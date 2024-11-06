@@ -25,9 +25,11 @@ Before(
 
 Given(/^a metadata starts with an empty object$/, { timeout: TIMEOUT }, () => null);
 
-Then(/^the "BOOZ" job is disabled$/, { timeout: TIMEOUT }, function step() {
+Then(/^the "BOOZ" job is "(disabled|enabled)"$/, { timeout: TIMEOUT }, function step(jobState) {
+    const jobName = 'fourth';
+
     return request({
-        url: `${this.instance}/${this.namespace}/pipelines/${this.pipelineId}/jobs?jobName=fourth`,
+        url: `${this.instance}/${this.namespace}/pipelines/${this.pipelineId}/jobs?jobName=${jobName}`,
         method: 'GET',
         context: {
             token: this.jwt
@@ -36,7 +38,7 @@ Then(/^the "BOOZ" job is disabled$/, { timeout: TIMEOUT }, function step() {
         .then(resp => {
             Assert.equal(resp.statusCode, 200);
             Assert.equal(resp.body.length, 1);
-            Assert.equal(resp.body[0].name, 'fourth');
+            Assert.equal(resp.body[0].name, jobName);
 
             return resp.body[0].id;
         })
@@ -45,8 +47,8 @@ Then(/^the "BOOZ" job is disabled$/, { timeout: TIMEOUT }, function step() {
                 url: `${this.instance}/${this.namespace}/jobs/${jobId}`,
                 method: 'PUT',
                 json: {
-                    state: 'DISABLED',
-                    stateChangeMessage: 'Disabled for testing'
+                    state: jobState.toUpperCase(),
+                    stateChangeMessage: `${jobState} for testing`
                 },
                 context: {
                     token: this.jwt
