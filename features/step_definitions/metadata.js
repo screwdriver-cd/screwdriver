@@ -25,7 +25,7 @@ Before(
 
 Given(/^a metadata starts with an empty object$/, { timeout: TIMEOUT }, () => null);
 
-Then(/^the "BOOZ" job is "(disabled|enabled)"$/, { timeout: TIMEOUT }, function step(jobState) {
+When(/^the BOOZ job is "(disabled|enabled)"$/, { timeout: TIMEOUT }, function step(jobState) {
     const jobName = 'fourth';
 
     return request({

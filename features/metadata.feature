@@ -43,7 +43,7 @@ Feature: Metadata
             | BAR   | BAZ       |
             | BAZ   | BOOZ      |
             | BAM   |           |
-        And the "BOOZ" job is disabled
+        Then the BOOZ job is "disabled"
         When the "main" job is started
         And the build succeeded
         Then add the { "foo": <foobar> } to metadata in the "main" build container
@@ -61,7 +61,7 @@ Feature: Metadata
         And the build succeeded
         Then in the build, the { "foo": <foobar> } is available from metadata
         And in the build, the { "bar": <barbaz> } is available from metadata
-        When the "BOOZ" job is enabled
+        When the BOOZ job is "enabled"
         Then the "BOOZ" job is started    
         And the build succeeded
         Then in the build, the { "foo": <foobar> } is available from metadata
