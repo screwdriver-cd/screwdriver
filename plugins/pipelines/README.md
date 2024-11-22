@@ -110,11 +110,18 @@ Query Params:
 * `sortBy` - *Optional* Field to sort by
 * `type` - *Optional* Get pipeline or pr events (default `pipeline`)
 * `prNum` - *Optional* Return only PR events of specified PR number
-* `sha` - *Optional* Search `sha` and `configPipelineSha` for events
 * `groupEventId` - *Optional* Return only events with a specified groupEventId
 * `id` - *Optional* Fetch specific event ID; alternatively can use greater than(`gt:`) or less than(`lt:`) prefix
+* `sha` - *Optional* Search `sha` and `configPipelineSha` for events
+* `author` - *Optional* Search commit author `username` and `name` for events
+* `creator` - *Optional* Search creator `username` and `name` for events
+* `message` - *Optional* Search commit `message` for events
+
+_Caveats_: Only one search field can be used at one time
 
 `GET /pipelines/{id}/events?page={pageNumber}&count={countNumber}&sort={sort}&type={type}&prNum={prNumber}&sha={sha}`
+
+`GET /pipelines/{id}/events?commit={commit}`
 
 `GET /pipelines/{id}/events?id=gt:{eventId}&count={countNumber}` (greater than eventId)
 

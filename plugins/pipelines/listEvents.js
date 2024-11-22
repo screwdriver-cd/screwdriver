@@ -34,7 +34,7 @@ module.exports = () => ({
 
         handler: async (request, h) => {
             const factory = request.server.app.pipelineFactory;
-            const { page, count, sha, prNum, id, sort, sortBy, groupEventId } = request.query;
+            const { page, count, sha, prNum, id, sort, sortBy, groupEventId, message, author, creator } = request.query;
 
             return factory
                 .get(request.params.id)
@@ -62,13 +62,18 @@ module.exports = () => ({
                         config.params.prNum = prNum;
                     }
 
+                    // Do a search
+                    // See https://www.w3schools.com/sql/sql_like.asp for syntax
                     if (sha) {
-                        config.search = {
-                            field: ['sha', 'configPipelineSha'],
-                            // Do a search for sha
-                            // See https://www.w3schools.com/sql/sql_like.asp for syntax
-                            keyword: `${sha}%`
-                        };
+                        config.search = { field: ['sha', 'configPipelineSha'], keyword: `${sha}%` };
+                    } else if (message) {
+                        config.search = { field: ['commit'], keyword: `%"message":"${message}%` };
+                    } else if (author) {
+                        // searches name and username
+                        config.search = { field: ['commit'], keyword: `%name":"${author}%` };
+                    } else if (creator) {
+                        // searches name and username
+                        config.search = { field: ['creator'], keyword: `%name":"${creator}%` };
                     }
 
                     if (groupEventId) {
@@ -95,15 +100,24 @@ module.exports = () => ({
                 id: pipelineIdSchema
             }),
             query: schema.api.pagination.concat(
-                joi.object({
-                    type: typeSchema,
-                    prNum: prNumSchema,
-                    sha: shaSchema,
-                    id: queryIdSchema,
-                    groupEventId: pipelineIdSchema,
-                    search: joi.forbidden(), // we don't support search for Pipeline list events
-                    getCount: joi.forbidden() // we don't support getCount for Pipeline list events
-                })
+                joi
+                    .object({
+                        type: typeSchema,
+                        prNum: prNumSchema,
+                        sha: shaSchema,
+                        message: joi.string().label('Commit message').example('fix: Typo'),
+                        author: joi.string().label('Author Name').example('Dao Lam'),
+                        creator: joi.string().label('Creator Name').example('Dao Lam'),
+                        id: queryIdSchema,
+                        groupEventId: pipelineIdSchema,
+                        search: joi.forbidden(), // we don't support search for Pipeline list events
+                        getCount: joi.forbidden() // we don't support getCount for Pipeline list events
+                    })
+                    // https://joi.dev/api/?v=17.13.3#objectoxorpeers-options
+                    .oxor('sha', 'message', 'author', 'creator')
+                    .messages({
+                        'object.oxor': 'You can only specify one search parameter: sha, message, author, or creator.'
+                    })
             )
         }
     }
