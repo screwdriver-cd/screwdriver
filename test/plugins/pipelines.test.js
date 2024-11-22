@@ -1568,6 +1568,60 @@ describe('pipeline plugin test', () => {
             });
         });
 
+        it('returns 200 for getting events with commit author name', () => {
+            options.url = `/pipelines/${id}/events?author=Dao`;
+
+            return server.inject(options).then(reply => {
+                assert.calledOnce(pipelineMock.getEvents);
+                assert.calledWith(pipelineMock.getEvents, {
+                    params: { type: 'pipeline' },
+                    search: {
+                        field: ['commit'],
+                        keyword: '%name":"Dao%'
+                    },
+                    sort: 'descending'
+                });
+                assert.deepEqual(reply.result, testEvents);
+                assert.equal(reply.statusCode, 200);
+            });
+        });
+
+        it('returns 200 for getting events with commit creator name', () => {
+            options.url = `/pipelines/${id}/events?creator=Dao`;
+
+            return server.inject(options).then(reply => {
+                assert.calledOnce(pipelineMock.getEvents);
+                assert.calledWith(pipelineMock.getEvents, {
+                    params: { type: 'pipeline' },
+                    search: {
+                        field: ['creator'],
+                        keyword: '%name":"Dao%'
+                    },
+                    sort: 'descending'
+                });
+                assert.deepEqual(reply.result, testEvents);
+                assert.equal(reply.statusCode, 200);
+            });
+        });
+
+        it('returns 200 for getting events with commit message', () => {
+            options.url = `/pipelines/${id}/events?message=Update screwdriver.yaml`;
+
+            return server.inject(options).then(reply => {
+                assert.calledOnce(pipelineMock.getEvents);
+                assert.calledWith(pipelineMock.getEvents, {
+                    params: { type: 'pipeline' },
+                    search: {
+                        field: ['commit'],
+                        keyword: '%"message":"Update screwdriver.yaml%'
+                    },
+                    sort: 'descending'
+                });
+                assert.deepEqual(reply.result, testEvents);
+                assert.equal(reply.statusCode, 200);
+            });
+        });
+
         it('returns 200 for getting events with groupEventId', () => {
             options.url = `/pipelines/${id}/events?groupEventId=4`;
 
@@ -1630,6 +1684,15 @@ describe('pipeline plugin test', () => {
 
             return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 500);
+            });
+        });
+
+        it('returns 400 when trying to search multiple fields at once', () => {
+            options.url = `/pipelines/${id}/events?creator=Dao&sha=33`;
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 400);
+                assert.equal(reply.result.message, 'Invalid request query input');
             });
         });
     });
