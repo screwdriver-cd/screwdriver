@@ -117,11 +117,11 @@ Query Params:
 * `creator` - *Optional* Search creator `username` and `name` for events
 * `message` - *Optional* Search commit `message` for events
 
-_Caveats_: Only one search field can be used at one time
+_Caveats_: Only one of the search fields can be used at one time (sha, author, creator, or message).
 
 `GET /pipelines/{id}/events?page={pageNumber}&count={countNumber}&sort={sort}&type={type}&prNum={prNumber}&sha={sha}`
 
-`GET /pipelines/{id}/events?commit={commit}`
+`GET /pipelines/{id}/events?message={message}`
 
 `GET /pipelines/{id}/events?id=gt:{eventId}&count={countNumber}` (greater than eventId)
 
