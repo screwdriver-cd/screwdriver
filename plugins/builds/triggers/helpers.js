@@ -294,6 +294,7 @@ async function createExternalEvent(config) {
  * @param {Boolean} config.start Whether to start the build or not
  * @param {Number|undefined} config.jobId Job ID
  * @param {EventModel} config.event Event build belongs to
+ * @param {String} config.causeMessage Reason the event is run
  * @returns {Promise<BuildModel|null>}
  */
 async function createInternalBuild(config) {
@@ -309,7 +310,8 @@ async function createInternalBuild(config) {
         start,
         baseBranch,
         parentBuildId,
-        jobId
+        jobId,
+        causeMessage
     } = config;
     const { ref = '', prSource = '', prBranchName = '', url = '' } = event.pr || {};
     const prInfo = prBranchName ? { url, prBranchName } : '';
@@ -334,7 +336,8 @@ async function createInternalBuild(config) {
         prSource,
         prInfo,
         start: start !== false,
-        baseBranch
+        baseBranch,
+        causeMessage
     };
 
     let jobState = job.state;
@@ -609,9 +612,10 @@ async function getParentBuildStatus({ newBuild, joinListNames, pipelineId, build
  * @param {String|undefined} arg.pipelineId Pipeline ID
  * @param {String|undefined} arg.stageName Stage name
  * @param {Boolean} arg.isVirtualJob If the job is virtual or not
+ * @param {Event} arg.event Event
  * @returns {Promise<Build|null>} The newly updated/created build
  */
-async function handleNewBuild({ done, hasFailure, newBuild, job, pipelineId, stageName, isVirtualJob }) {
+async function handleNewBuild({ done, hasFailure, newBuild, job, pipelineId, stageName, isVirtualJob, event }) {
     if (!done || Status.isStarted(newBuild.status)) {
         return null;
     }
@@ -647,7 +651,9 @@ async function handleNewBuild({ done, hasFailure, newBuild, job, pipelineId, sta
     newBuild.status = Status.QUEUED;
     await newBuild.update();
 
-    return newBuild.start();
+    const causeMessage = job.name === event.startFrom ? event.causeMessage : '';
+
+    return newBuild.start({ causeMessage });
 }
 
 /**

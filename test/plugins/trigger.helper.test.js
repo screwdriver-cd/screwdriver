@@ -923,7 +923,8 @@ describe('createInternalBuild function', () => {
             prSource: '',
             prInfo: '',
             start: true,
-            baseBranch: 'master'
+            baseBranch: 'master',
+            causeMessage: undefined
         });
     });
 
@@ -1023,7 +1024,8 @@ describe('createInternalBuild function', () => {
                 prBranchName: 'feature-branch'
             },
             start: true,
-            baseBranch: 'master'
+            baseBranch: 'master',
+            causeMessage: undefined
         });
     });
 });
@@ -1224,6 +1226,7 @@ describe('handleNewBuild function', () => {
 
     let newBuildMock;
     let jobMock;
+    let eventMock;
 
     beforeEach(() => {
         newBuildMock = {
@@ -1241,6 +1244,8 @@ describe('handleNewBuild function', () => {
             permutations: [{}]
         };
 
+        eventMock = {};
+
         sinon.stub(logger, 'info');
     });
 
@@ -1253,7 +1258,8 @@ describe('handleNewBuild function', () => {
             done: false,
             hasFailure: false,
             newBuild: newBuildMock,
-            job: jobMock
+            job: jobMock,
+            event: eventMock
         });
 
         assert.isNull(result);
@@ -1269,7 +1275,8 @@ describe('handleNewBuild function', () => {
             done: true,
             hasFailure: false,
             newBuild: newBuildMock,
-            job: jobMock
+            job: jobMock,
+            event: eventMock
         });
 
         assert.strictEqual(result.status, Status.QUEUED);
@@ -1285,7 +1292,8 @@ describe('handleNewBuild function', () => {
             newBuild: newBuildMock,
             job: jobMock,
             pipelineId: 1,
-            stage: { name: 'deploy' }
+            stage: { name: 'deploy' },
+            event: eventMock
         });
 
         assert.isNull(result);
@@ -1304,7 +1312,8 @@ describe('handleNewBuild function', () => {
             newBuild: newBuildMock,
             job: jobMock,
             pipelineId: 1,
-            stageName: 'deploy'
+            stageName: 'deploy',
+            event: eventMock
         });
 
         assert.isNull(result);
@@ -1319,7 +1328,8 @@ describe('handleNewBuild function', () => {
             done: true,
             hasFailure: false,
             newBuild: newBuildMock,
-            job: jobMock
+            job: jobMock,
+            event: eventMock
         });
 
         assert.strictEqual(result.status, Status.QUEUED);
@@ -1333,7 +1343,8 @@ describe('handleNewBuild function', () => {
             hasFailure: false,
             newBuild: newBuildMock,
             job: jobMock,
-            isVirtualJob: true
+            isVirtualJob: true,
+            event: eventMock
         });
 
         assert.strictEqual(newBuildMock.status, Status.SUCCESS);
@@ -1351,7 +1362,8 @@ describe('handleNewBuild function', () => {
             hasFailure: false,
             newBuild: newBuildMock,
             job: jobMock,
-            isVirtualJob: true
+            isVirtualJob: true,
+            event: eventMock
         });
 
         assert.strictEqual(newBuildMock.status, Status.SUCCESS);
@@ -1367,7 +1379,8 @@ describe('handleNewBuild function', () => {
             hasFailure: false,
             newBuild: newBuildMock,
             job: jobMock,
-            isVirtualJob: true
+            isVirtualJob: true,
+            event: eventMock
         });
 
         assert.strictEqual(newBuildMock.status, Status.QUEUED);
