@@ -50,6 +50,8 @@ class OrBase {
         const hasFreezeWindows =
             nextJob.permutations[0].freezeWindows && nextJob.permutations[0].freezeWindows.length > 0;
 
+        const causeMessage = nextJob.name === event.startFrom ? event.causeMessage : '';
+
         if (nextBuild !== null) {
             if (Status.isStarted(nextBuild.status)) {
                 return nextBuild;
@@ -67,7 +69,7 @@ class OrBase {
             nextBuild.status = Status.QUEUED;
             await nextBuild.update();
 
-            return nextBuild.start();
+            return nextBuild.start({ causeMessage });
         }
 
         nextBuild = await createInternalBuild({
@@ -82,7 +84,8 @@ class OrBase {
             baseBranch: event.baseBranch || null,
             parentBuilds,
             parentBuildId: this.currentBuild.id,
-            start: hasFreezeWindows || !isNextJobVirtual
+            start: hasFreezeWindows || !isNextJobVirtual,
+            causeMessage
         });
 
         // Bypass execution of the build if the job is virtual

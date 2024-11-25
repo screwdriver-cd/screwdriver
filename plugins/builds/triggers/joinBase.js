@@ -105,7 +105,8 @@ class JoinBase {
             job: nextJob,
             pipelineId,
             isVirtualJob: isNextJobVirtual,
-            stageName: nextJobStageName
+            stageName: nextJobStageName,
+            event
         });
     }
 }

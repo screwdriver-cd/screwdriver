@@ -1613,7 +1613,8 @@ describe('build plugin test', () => {
                             prInfo: { prBranchName: eventMock.pr.prBranchName, url: eventMock.pr.url },
                             prRef: eventMock.pr.ref,
                             start: true,
-                            baseBranch: null
+                            baseBranch: null,
+                            causeMessage: ''
                         });
                         // Events should not be created if there is no external pipeline
                         assert.notCalled(eventFactoryMock.create);
@@ -1763,6 +1764,105 @@ describe('build plugin test', () => {
                             name: eventMock.startFrom,
                             pipelineId
                         });
+                    });
+                });
+
+                it('triggers the startFrom job after the stage setup job even if the startFrom job is within freeze window', () => {
+                    const status = 'SUCCESS';
+                    const options = {
+                        method: 'PUT',
+                        url: `/builds/${id}`,
+                        auth: {
+                            credentials: {
+                                username: id,
+                                scope: ['build']
+                            },
+                            strategy: ['token']
+                        },
+                        payload: {
+                            status
+                        }
+                    };
+
+                    jobMock = {
+                        id: 110,
+                        name: 'stage@alpha:setup',
+                        pipelineId,
+                        permutations: [
+                            {
+                                settings: {
+                                    email: 'foo@bar.com'
+                                }
+                            }
+                        ],
+                        pipeline: sinon.stub().resolves(pipelineMock)(),
+                        getLatestBuild: sinon.stub().resolves(buildMock)
+                    };
+                    buildMock.job = sinon.stub().resolves(jobMock)();
+                    buildMock.parentBuilds = {
+                        123: { eventId: '8888', jobs: { '~commit': 7777, C: 7778, D: 7779 } }
+                    };
+                    eventMock.getBuilds.resolves([
+                        {
+                            id: 1,
+                            eventId: '8888',
+                            jobId: 1,
+                            status: 'FAILURE'
+                        },
+                        {
+                            id: 7777,
+                            eventId: '8888',
+                            jobId: 4,
+                            status: 'SUCCESS'
+                        },
+                        {
+                            id: 7778,
+                            eventId: '8888',
+                            jobId: 5,
+                            status: 'SUCCESS'
+                        },
+                        {
+                            id: 7779,
+                            eventId: '8888',
+                            jobId: 6,
+                            status: 'SUCCESS'
+                        }
+                    ]);
+
+                    const causeMessage = '[force start] Starting frozen build from the middle of a stage';
+
+                    eventMock.workflowGraph = testWorkflowGraphWithStages;
+                    eventMock.startFrom = 'alpha-certify';
+                    eventMock.causeMessage = causeMessage;
+                    eventFactoryMock.get.resolves(eventMock);
+
+                    const jobAlphaCertify = {
+                        id: 113,
+                        name: 'alpha-certify',
+                        pipelineId,
+                        state: 'ENABLED',
+                        permutations: [
+                            {
+                                settings: {
+                                    email: 'foo@bar.com'
+                                }
+                            }
+                        ]
+                    };
+
+                    jobFactoryMock.get.withArgs(jobAlphaCertify.id).resolves(jobAlphaCertify);
+                    jobFactoryMock.get.withArgs({ pipelineId, name: 'alpha-certify' }).resolves(jobAlphaCertify);
+
+                    buildFactoryMock.get.withArgs({ eventId: eventMock.id, jobId: jobAlphaCertify.id }).returns(null);
+
+                    return server.inject(options).then(reply => {
+                        assert.equal(reply.statusCode, 200);
+                        assert.calledWith(jobFactoryMock.get, {
+                            name: eventMock.startFrom,
+                            pipelineId
+                        });
+                        assert.calledOnce(buildFactoryMock.create);
+                        assert.strictEqual(buildFactoryMock.create.getCall(0).args[0].causeMessage, causeMessage);
                     });
                 });
 
@@ -2464,7 +2564,8 @@ describe('build plugin test', () => {
                         prSource: '',
                         prInfo: '',
                         prRef: '',
-                        baseBranch: 'master'
+                        baseBranch: 'master',
+                        causeMessage: ''
                     };
                     jobCconfig = {
                         ...jobBconfig,
@@ -2558,6 +2659,7 @@ describe('build plugin test', () => {
                         // there is a finished join, jobC is created without starting, then start separately
                         // (same action but different flow in the code)
                         jobCconfig.start = false;
+                        jobCconfig.causeMessage = undefined;
                         assert.calledWith(buildFactoryMock.create.secondCall, jobCconfig);
 
                         // only jobC will be started in this test scope, the start of jobB is in the buildFactoryMock.create
@@ -2633,6 +2735,7 @@ describe('build plugin test', () => {
                         // there is a finished join, jobC is created without starting, then start separately
                         // (same action but different flow in the code)
                         jobCconfig.start = false;
+                        jobCconfig.causeMessage = undefined;
                         assert.calledWith(buildFactoryMock.create.secondCall, jobCconfig);
 
                         // only jobC will be started in this test scope, the start of jobB is in the buildFactoryMock.create
@@ -2974,7 +3077,8 @@ describe('build plugin test', () => {
                         prSource: '',
                         prInfo: '',
                         baseBranch: 'master',
-                        parentBuilds: { 123: { jobs: { a: 12345 }, eventId: '8888' } }
+                        parentBuilds: { 123: { jobs: { a: 12345 }, eventId: '8888' } },
+                        causeMessage: ''
                     };
                     jobCconfig = { ...jobBconfig, jobId: 3 };
 
@@ -3047,6 +3151,9 @@ describe('build plugin test', () => {
                             { src: 'a', dest: 'c' }
                         ]
                     };
+
+                    jobBconfig.causeMessage = '';
+                    jobCconfig.causeMessage = '';
 
                     return newServer.inject(options).then(() => {
                         assert.calledWith(buildFactoryMock.create.firstCall, jobBconfig);
@@ -3178,7 +3285,8 @@ describe('build plugin test', () => {
                         start: true,
                         baseBranch: null,
                         sha: 'sha',
-                        configPipelineSha: 'sha'
+                        configPipelineSha: 'sha',
+                        causeMessage: ''
                     };
 
                     const externalEventMock = {
@@ -3855,7 +3963,8 @@ describe('build plugin test', () => {
                         scmContext: 'github:github.com',
                         sha: '58393af682d61de87789fb4961645c42180cec5a',
                         start: false,
-                        username: 12345
+                        username: 12345,
+                        causeMessage: undefined
                     };
 
                     buildC.update = sinon.stub().resolves(updatedBuildC);
@@ -3991,7 +4100,8 @@ describe('build plugin test', () => {
                         scmContext: 'github:github.com',
                         sha: '58393af682d61de87789fb4961645c42180cec5a',
                         start: true,
-                        username: 12345
+                        username: 12345,
+                        causeMessage: ''
                     };
 
                     buildC.update = sinon.stub().resolves(updatedBuildC);
@@ -4650,6 +4760,7 @@ describe('build plugin test', () => {
 
                     jobCconfig.start = false;
                     jobCconfig.parentBuilds = parentBuilds;
+                    jobCconfig.causeMessage = undefined;
                     buildC.update = sinon.stub().resolves(updatedBuildC);
                     buildFactoryMock.create.onCall(1).resolves(buildC);
                     buildFactoryMock.get.withArgs(4).resolves({ status: 'SUCCESS' });
@@ -4761,12 +4872,14 @@ describe('build plugin test', () => {
                             jobs: { a: 12345 }
                         }
                     };
+                    jobBconfig.causeMessage = '';
                     jobCconfig.parentBuilds = {
                         123: {
                             eventId: '8888',
                             jobs: { a: 12345, d: 889 }
                         }
                     };
+                    jobCconfig.causeMessage = '';
                     buildC.update = sinon.stub().resolves(updatedBuildC);
                     eventFactoryMock.get.withArgs('456').resolves(externalEventMock);
                     eventFactoryMock.list.resolves([Object.assign(externalEventMock, { id: '455', pipelineId: 555 })]);
@@ -4804,6 +4917,7 @@ describe('build plugin test', () => {
                         }
                     ]);
                     jobCconfig.start = false;
+                    jobCconfig.causeMessage = undefined;
                     buildFactoryMock.create.onCall(1).resolves(buildC);
                     buildFactoryMock.get.withArgs(5555).resolves({ status: 'SUCCESS' });
 
@@ -5498,7 +5612,8 @@ describe('build plugin test', () => {
                             prSource: '',
                             prInfo: '',
                             start: false,
-                            baseBranch: 'master'
+                            baseBranch: 'master',
+                            causeMessage: undefined
                         });
 
                         assert.calledOnce(buildAlphaTeardown.update);
