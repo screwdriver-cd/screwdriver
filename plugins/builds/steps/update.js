@@ -21,7 +21,11 @@ module.exports = () => ({
             const stepName = request.params.name;
             const buildIdCred = request.auth.credentials.username;
 
-            request.log(['builds', buildId, 'steps', stepName], `Received payload: ${JSON.stringify(request.payload)}`);
+            if (request.payload && request.payload.code !== undefined) {
+                if (request.payload.code !== 0) {
+                    request.log(['builds', buildId, 'steps', stepName], `Step failed. Received payload: ${JSON.stringify(request.payload)}`);
+                }
+            } 
 
             if (buildId !== buildIdCred) {
                 return boom.forbidden(`Credential only valid for ${buildIdCred}`);
