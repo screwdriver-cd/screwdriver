@@ -23,9 +23,12 @@ module.exports = () => ({
 
             if (request.payload && request.payload.code !== undefined) {
                 if (request.payload.code !== 0) {
-                    request.log(['builds', buildId, 'steps', stepName], `Step failed. Received payload: ${JSON.stringify(request.payload)}`);
+                    request.log(
+                        ['builds', buildId, 'steps', stepName],
+                        `Step failed. Received payload: ${JSON.stringify(request.payload)}`
+                    );
                 }
-            } 
+            }
 
             if (buildId !== buildIdCred) {
                 return boom.forbidden(`Credential only valid for ${buildIdCred}`);
