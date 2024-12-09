@@ -811,7 +811,7 @@ function mergeParentBuilds(parentBuilds, relatedBuilds, currentEvent, nextEvent)
 
             if (strToInt(pipelineId) !== strToInt(currentEvent.pipelineId)) {
                 if (nextEvent) {
-                    if (strToInt(pipelineId) !== nextEvent.pipelineId) {
+                    if (strToInt(pipelineId) !== strToInt(nextEvent.pipelineId)) {
                         nodeName = `sd@${pipelineId}:${nodeName}`;
                     }
                     workflowGraph = nextEvent.workflowGraph;

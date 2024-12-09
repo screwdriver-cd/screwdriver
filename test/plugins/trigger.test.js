@@ -1195,8 +1195,10 @@ describe('trigger tests', () => {
 
         await downstreamRestartEvent.getBuildOf('a').complete('SUCCESS');
 
-        assert.equal(upstreamEvent.id, upstreamPipeline.getLatestEvent().id);
-        assert.equal(upstreamEvent.getBuildOf('target').status, 'RUNNING');
+        const upstreamRestartEvent = upstreamPipeline.getLatestEvent();
+
+        assert.notEqual(upstreamEvent.id, upstreamRestartEvent.id);
+        assert.equal(upstreamRestartEvent.getBuildOf('target').status, 'RUNNING');
     });
 
     it('[ sd@1:a ] is triggered in a downstream', async () => {
@@ -1363,7 +1365,9 @@ describe('trigger tests', () => {
 
         await downstreamRestartEvent.getBuildOf('a').complete('SUCCESS');
 
-        assert.equal(upstreamEvent.getBuildOf('target').status, 'RUNNING');
+        const upstreamRestartEvent = await upstreamPipeline.getLatestEvent();
+
+        assert.equal(upstreamRestartEvent.getBuildOf('target').status, 'RUNNING');
     });
 
     it('[ ~sd@1:a, ~sd@1:b ] is triggered when sd@1:a succeeds', async () => {
@@ -1651,7 +1655,9 @@ describe('trigger tests', () => {
 
         await downstreamRestartEvent.getBuildOf('b').complete('SUCCESS');
 
-        assert.equal(upstreamEvent.getBuildOf('target').status, 'RUNNING');
+        const upstreamRestartEvent = upstreamPipeline.getLatestEvent();
+
+        assert.equal(upstreamRestartEvent.getBuildOf('target').status, 'RUNNING');
         assert.equal(upstreamPipeline.getBuildsOf('target').length, 1);
     });
 
@@ -1677,6 +1683,35 @@ describe('trigger tests', () => {
 
         assert.isNull(upstreamEvent.getBuildOf('target'));
         assert.equal(upstreamPipeline.getBuildsOf('target').length, 0);
+    });
+
+    it('[ sd@2:b, sd@2:c ] is triggered when sd@2:b and sd@2:c fail and restart and both succeed', async () => {
+        const upstreamPipeline = await pipelineFactoryMock.createFromFile('sd@2:b_sd@2:c-upstream.yaml');
+        const downstreamPipeline = await pipelineFactoryMock.createFromFile('sd@2:b_sd@2:c-downstream.yaml');
+
+        const upstreamEvent = await eventFactoryMock.create({
+            pipelineId: upstreamPipeline.id,
+            startFrom: 'hub'
+        });
+
+        await upstreamEvent.run();
+
+        const downstreamEvent = await downstreamPipeline.getLatestEvent();
+
+        await downstreamEvent.getBuildOf('hub').complete('SUCCESS');
+        await downstreamEvent.getBuildOf('b').complete('FAILURE');
+        await downstreamEvent.getBuildOf('c').complete('FAILURE');
+
+        const downstreamRestartEvent = await downstreamEvent.restartFrom('hub');
+
+        await downstreamRestartEvent.getBuildOf('hub').complete('SUCCESS');
+        await downstreamRestartEvent.getBuildOf('b').complete('SUCCESS');
+        await downstreamRestartEvent.getBuildOf('c').complete('SUCCESS');
+
+        const upstreamRestartEvent = await upstreamPipeline.getLatestEvent();
+
+        assert.isNull(upstreamEvent.getBuildOf('target'));
+        assert.equal(upstreamRestartEvent.getBuildOf('target').status, 'RUNNING');
     });
 
     it('[ sd@2:a, sd@2:b ] is triggered', async () => {
@@ -1864,9 +1899,11 @@ describe('trigger tests', () => {
 
         await downstreamRestartEvent.getBuildOf('a').complete('SUCCESS');
 
-        assert.equal(upstreamEvent, upstreamPipeline.getLatestEvent());
+        const upstreamRestartEvent = await upstreamPipeline.getLatestEvent();
+
+        assert.notEqual(upstreamEvent.id, upstreamRestartEvent.id);
         assert.isNull(upstreamEvent.getBuildOf('target'));
-        assert.equal(upstreamPipeline.getBuildsOf('target').length, 0);
+        assert.isNull(upstreamRestartEvent.getBuildOf('target'));
     });
 
     it('[ sd@2:a, b ] is not triggered when sd@2:a fails and b succeeds', async () => {
@@ -1937,9 +1974,10 @@ describe('trigger tests', () => {
 
         await downstreamRestartEvent.getBuildOf('a').complete('SUCCESS');
 
-        assert.equal(upstreamEvent, upstreamPipeline.getLatestEvent());
-        assert.equal(upstreamEvent.getBuildOf('target').status, 'RUNNING');
-        assert.equal(upstreamPipeline.getBuildsOf('target').length, 1);
+        const upstreamRestartEvent = await upstreamPipeline.getLatestEvent();
+
+        assert.equal(upstreamEvent.getBuildOf('target').status, 'CREATED');
+        assert.equal(upstreamRestartEvent.getBuildOf('target').status, 'RUNNING');
     });
 
     it('[ sd@2:a, b ] is triggered in restart event when only b restarts', async () => {
@@ -2036,8 +2074,11 @@ describe('trigger tests', () => {
 
         await downstreamRestartEvent1.getBuildOf('a').complete('SUCCESS');
 
-        assert.equal(upstreamEvent, upstreamPipeline.getLatestEvent());
+        const upstreamRestartEvent = upstreamPipeline.getLatestEvent();
+
+        assert.notEqual(upstreamEvent.id, upstreamRestartEvent.id);
         assert.isNull(upstreamEvent.getBuildOf('target'));
+        assert.isNull(upstreamRestartEvent.getBuildOf('target'));
         assert.equal(upstreamPipeline.getBuildsOf('target').length, 0);
     });
 
@@ -2064,9 +2105,10 @@ describe('trigger tests', () => {
 
         await downstreamRestartEvent2.getBuildOf('a').complete('SUCCESS');
 
-        assert.equal(upstreamEvent, upstreamPipeline.getLatestEvent());
-        assert.equal(upstreamEvent.getBuildOf('target').status, 'RUNNING');
-        assert.equal(upstreamPipeline.getBuildsOf('target').length, 1);
+        const upstreamRestartEvent = await upstreamPipeline.getLatestEvent();
+
+        assert.isNull(upstreamEvent.getBuildOf('target'));
+        assert.equal(upstreamRestartEvent.getBuildOf('target').status, 'RUNNING');
     });
 
     it('[ sd@2:a, sd@3:a ] is triggered in restart event when only sd@3:a restarts', async () => {
@@ -2278,8 +2320,10 @@ describe('trigger tests', () => {
 
         await downstreamRestartEvent.getBuildOf('c').complete('SUCCESS');
 
-        assert.equal(upstreamEvent, upstreamPipeline.getLatestEvent());
-        assert.equal(upstreamEvent.getBuildOf('target').status, 'RUNNING');
+        const upstreamRestartEvent = await upstreamPipeline.getLatestEvent();
+
+        assert.isNull(upstreamEvent.getBuildOf('target'));
+        assert.equal(upstreamRestartEvent.getBuildOf('target').status, 'RUNNING');
         assert.equal(upstreamPipeline.getBuildsOf('target').length, 1);
     });
 
