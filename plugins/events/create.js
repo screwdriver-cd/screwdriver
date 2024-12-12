@@ -5,6 +5,8 @@ const boom = require('@hapi/boom');
 const validationSchema = require('screwdriver-data-schema');
 const ANNOT_RESTRICT_PR = 'screwdriver.cd/restrictPR';
 const { getScmUri, isStageTeardown } = require('../helper');
+const { updateBuildAndTriggerDownstreamJobs } = require('../builds/helper/updateBuild');
+const { Status, BUILD_STATUS_MESSAGES } = require('../builds/triggers/helpers');
 
 module.exports = () => ({
     method: 'POST',
@@ -244,6 +246,23 @@ module.exports = () => ({
             if (event.builds === null) {
                 return boom.notFound('No jobs to start.');
             }
+
+            const virtualJobBuilds = event.builds.filter(b => b.status === 'CREATED');
+
+            for (const build of virtualJobBuilds) {
+                await updateBuildAndTriggerDownstreamJobs(
+                    {
+                        status: Status.SUCCESS,
+                        statusMessage: BUILD_STATUS_MESSAGES.SKIP_VIRTUAL_JOB.statusMessage,
+                        statusMessageType: BUILD_STATUS_MESSAGES.SKIP_VIRTUAL_JOB.statusMessageType
+                    },
+                    build,
+                    request.server,
+                    username,
+                    scmContext
+                );
+            }
+
             // everything succeeded, inform the user
             const location = urlLib.format({
                 host: request.headers.host,

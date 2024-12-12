@@ -151,4 +151,41 @@
         }
     ],
     "status": "QUEUED"
+},{
+    "id": 776677,
+    "jobId": 1234,
+    "number": 5,
+    "sha": "58393af682d61de87789fb4961645c42180cec5a",
+    "cause": "Started by user foo",
+    "createTime": "2038-01-19T03:17:08.131Z",
+    "startTime": "2038-01-19T03:18:08.131Z",
+    "endTime": "2038-01-19T03:19:10.131Z",
+    "parameters": {},
+    "steps": [
+        {
+            "name": "sd-setup",
+            "code": 0,
+            "startTime": "2038-01-19T03:15:08.131Z",
+            "endTime": "2038-01-19T03:15:08.532Z"
+        },
+        {
+            "name": "install",
+            "code": 5,
+            "startTime": "2038-01-19T03:15:08.532Z",
+            "endTime": "2038-01-19T03:15:09.114Z"
+        },
+        {
+            "name": "test"
+        },
+        {
+            "name": "publish"
+        },
+        {
+            "name": "sd-cleanup",
+            "code": 0,
+            "startTime": "2038-01-19T03:15:09.115Z",
+            "endTime": "2038-01-19T03:15:10.130Z"
+        }
+    ],
+    "status": "CREATED"
 }]

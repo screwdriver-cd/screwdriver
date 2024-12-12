@@ -101,7 +101,8 @@ describe('event plugin test', () => {
             getFullDisplayName: sinon.stub().returns('Memys Elfandi')
         };
         buildFactoryMock = {
-            get: sinon.stub()
+            get: sinon.stub(),
+            create: sinon.stub()
         };
         jobFactoryMock = {
             get: sinon.stub()
@@ -137,6 +138,7 @@ describe('event plugin test', () => {
                 })
         }));
         server.auth.strategy('token', 'custom');
+        server.auth.strategy('session', 'custom');
 
         await server.register([
             { plugin: bannerMock },
@@ -144,6 +146,10 @@ describe('event plugin test', () => {
             {
                 // eslint-disable-next-line global-require
                 plugin: require('../../plugins/pipelines')
+            },
+            {
+                // eslint-disable-next-line global-require
+                plugin: require('../../plugins/builds')
             }
         ]);
     });
@@ -292,6 +298,7 @@ describe('event plugin test', () => {
         let scmConfig;
         let userMock;
         let pipelineMock;
+        let eventMock;
         let meta;
         const username = 'myself';
         const parentBuildId = 12345;
@@ -335,8 +342,23 @@ describe('event plugin test', () => {
                 chainPR: false,
                 annotations: {
                     'screwdriver.cd/restrictPR': 'none'
+                },
+                workflowGraph: {
+                    nodes: [
+                        { name: '~pr' },
+                        { name: '~commit' },
+                        { name: 'main', id: 1234 },
+                        { name: 'publish' },
+                        { name: 'beta' }
+                    ],
+                    edges: [
+                        { src: '~commit', dest: 'main' },
+                        { src: 'main', dest: 'publish' },
+                        { src: 'publish', dest: 'beta' }
+                    ]
                 }
             };
+            pipelineMock.toJson = sinon.stub().returns(pipelineMock);
             scmConfig = {
                 prNum: null,
                 scmContext: 'github:github.com',
@@ -348,6 +370,7 @@ describe('event plugin test', () => {
                 foo: 'bar',
                 one: 1
             };
+
             options = {
                 method: 'POST',
                 url: '/events',
@@ -377,8 +400,12 @@ describe('event plugin test', () => {
                 meta
             };
 
-            eventFactoryMock.get.withArgs(parentEventId).resolves(getEventMock(testEvent));
-            eventFactoryMock.create.resolves(getEventMock(testEvent));
+            eventMock = getEventMock(testEvent);
+            // eventFactoryMock.get.withArgs(parentEventId).resolves(getEventMock(testEvent));
+            eventFactoryMock.get.withArgs(eventMock.id).resolves(eventMock);
+
+            eventMock.builds = [];
+            eventFactoryMock.create.resolves(eventMock);
             userFactoryMock.get.resolves(userMock);
             pipelineFactoryMock.get.resolves(pipelineMock);
         });
@@ -522,6 +549,87 @@ describe('event plugin test', () => {
                 assert.strictEqual(reply.headers.location, urlLib.format(expectedLocation));
                 assert.calledWith(eventFactoryMock.scm.getCommitSha, scmConfig);
                 assert.notCalled(eventFactoryMock.scm.getPrInfo);
+            });
+        });
+
+        it('returns 201 when it skips execution of virtual builds and trigger downstream builds', () => {
+            delete options.payload.parentBuildId;
+            delete eventConfig.parentBuildId;
+
+            eventMock.builds = getBuildMocks(testBuilds);
+            eventMock.builds.forEach(b => {
+                b.eventId = eventMock.id;
+            });
+
+            const virtualBuildMock = eventMock.builds[4];
+
+            virtualBuildMock.status = 'CREATED';
+
+            const virtualJobMock = {
+                id: virtualBuildMock.jobId,
+                pipelineId,
+                name: 'main',
+                pipeline: pipelineMock,
+                permutations: [
+                    {
+                        settings: {
+                            email: 'foo@bar.com'
+                        }
+                    }
+                ],
+                getLatestBuild: sinon.stub().resolves(virtualBuildMock)
+            };
+
+            jobFactoryMock.get.withArgs(virtualJobMock.id).resolves(virtualJobMock);
+
+            virtualBuildMock.job = virtualJobMock;
+            virtualBuildMock.update = sinon.stub().resolves(virtualBuildMock);
+
+            eventMock.update = sinon.stub().resolves(eventMock);
+
+            server.events = {
+                emit: sinon.stub().resolves(null)
+            };
+
+            jobFactoryMock.get.withArgs(virtualJobMock.id).resolves(virtualJobMock);
+            eventFactoryMock.get.withArgs({ id: eventMock.id }).resolves(eventMock);
+
+            const jobPublishMock = {
+                id: 1235,
+                pipelineId,
+                state: 'ENABLED',
+                parsePRJobName: sinon.stub().returns('publish'),
+                permutations: [
+                    {
+                        settings: {
+                            email: 'foo@bar.com'
+                        }
+                    }
+                ]
+            };
+
+            jobFactoryMock.get.withArgs(jobPublishMock.id).resolves(jobPublishMock);
+            jobFactoryMock.get.withArgs({ pipelineId, name: 'publish' }).resolves(jobPublishMock);
+            buildFactoryMock.get.withArgs({ eventId: eventMock.id, jobId: jobPublishMock.id }).returns(null);
+
+            return server.inject(options).then(reply => {
+                expectedLocation = {
+                    host: reply.request.headers.host,
+                    port: reply.request.headers.port,
+                    protocol: reply.request.server.info.protocol,
+                    pathname: `${options.url}/12345`
+                };
+                assert.equal(reply.statusCode, 201);
+                assert.calledWith(userMock.getPermissions, scmUri, scmContext, scmRepo);
+                assert.calledWith(eventFactoryMock.create, eventConfig);
+                assert.strictEqual(reply.headers.location, urlLib.format(expectedLocation));
+                assert.calledWith(eventFactoryMock.scm.getCommitSha, scmConfig);
+                assert.notCalled(eventFactoryMock.scm.getPrInfo);
+
+                assert.equal(virtualBuildMock.status, 'SUCCESS');
+                assert.calledOnce(virtualBuildMock.update);
+                assert.calledOnce(buildFactoryMock.create);
+                assert.calledWith(buildFactoryMock.create, sinon.match({ jobId: jobPublishMock.id }));
             });
         });
 
