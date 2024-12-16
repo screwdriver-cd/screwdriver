@@ -19,7 +19,9 @@
         "nodes": [
             { "name": "~pr" },
             { "name": "~commit" },
-            { "name": "main" },
+            { "name": "main",
+                "id": 1234
+            },
             { "name": "publish" },
             { "name": "beta" }
         ],
