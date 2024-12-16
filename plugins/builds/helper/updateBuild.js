@@ -11,14 +11,15 @@ const FINISHED_STATUSES = ['FAILURE', 'SUCCESS', 'ABORTED', 'UNSTABLE', 'COLLAPS
 /**
  * @typedef {import('screwdriver-models/lib/build')} Build
  * @typedef {import('screwdriver-models/lib/event')} Event
+ * @typedef {import('screwdriver-models/lib/step')} Step
  */
 
 /**
  * Identify whether this build resulted in a previously failed job to become successful.
  *
  * @method isFixedBuild
- * @param  build         Build Object
- * @param  jobFactory    Job Factory instance
+ * @param  {Build}          build       Build Object
+ * @param  {JobFactory}     jobFactory  Job Factory instance
  */
 async function isFixedBuild(build, jobFactory) {
     if (build.status !== 'SUCCESS') {
@@ -29,18 +30,15 @@ async function isFixedBuild(build, jobFactory) {
     const failureBuild = await job.getLatestBuild({ status: 'FAILURE' });
     const successBuild = await job.getLatestBuild({ status: 'SUCCESS' });
 
-    if ((failureBuild && !successBuild) || failureBuild.id > successBuild.id) {
-        return true;
-    }
-
-    return false;
+    return !!((failureBuild && !successBuild) || failureBuild.id > successBuild.id);
 }
 
 /**
  * Stops a frozen build from executing
+ *
  * @method stopFrozenBuild
- * @param  {Object} build         Build Object
- * @param  {String} previousStatus    Prevous build status
+ * @param  {Build}  build           Build Object
+ * @param  {String} previousStatus  Previous build status
  */
 async function stopFrozenBuild(build, previousStatus) {
     if (previousStatus !== 'FROZEN') {
@@ -52,9 +50,11 @@ async function stopFrozenBuild(build, previousStatus) {
 
 /**
  * Updates execution details for init step
- * @method stopFrozenBuild
- * @param  {Object} build       Build Object
- * @param  {Object} app         Hapi app Object
+ *
+ * @method  stopFrozenBuild
+ * @param   {Build}         build   Build Object
+ * @param   {Object}        app     Hapi app Object
+ * @returns {Promise<Step>}         Updated step
  */
 async function updateInitStep(build, app) {
     const step = await app.stepFactory.get({ buildId: build.id, name: 'sd-setup-init' });
@@ -72,46 +72,53 @@ async function updateInitStep(build, app) {
 
 /**
  * Set build status to desired status, set build statusMessage
- * @param {Object} build                Build Model
- * @param {String} desiredStatus        New Status
- * @param {String} statusMessage        User passed status message
- * @param {String} statusMessageType    User passed severity of the status message
- * @param {String} username             User initiating status build update
+ *
+ * @param {Build}   build               Build Model
+ * @param {String}  desiredStatus       New Status
+ * @param {String}  statusMessage       User passed status message
+ * @param {String}  statusMessageType   User passed severity of the status message
+ * @param {String}  username            User initiating status build update
  */
 function updateBuildStatus(build, desiredStatus, statusMessage, statusMessageType, username) {
-    // UNSTABLE -> SUCCESS needs to update meta and endtime.
-    // However, the status itself cannot be updated to SUCCESS
     const currentStatus = build.status;
 
-    if (currentStatus !== 'UNSTABLE') {
-        if (desiredStatus !== undefined) {
-            build.status = desiredStatus;
-        }
-        if (build.status === 'ABORTED') {
-            if (currentStatus === 'FROZEN') {
-                build.statusMessage = `Frozen build aborted by ${username}`;
-            } else {
-                build.statusMessage = `Aborted by ${username}`;
-            }
-        } else if (build.status === 'FAILURE' || build.status === 'SUCCESS') {
+    // UNSTABLE -> SUCCESS needs to update meta and endtime.
+    // However, the status itself cannot be updated to SUCCESS
+    if (currentStatus === 'UNSTABLE') {
+        return;
+    }
+
+    if (desiredStatus !== undefined) {
+        build.status = desiredStatus;
+    }
+
+    switch (build.status) {
+        case 'ABORTED':
+            build.statusMessage =
+                currentStatus === 'FROZEN' ? `Frozen build aborted by ${username}` : `Aborted by ${username}`;
+            break;
+        case 'FAILURE':
+        case 'SUCCESS':
             if (statusMessage) {
                 build.statusMessage = statusMessage;
                 build.statusMessageType = statusMessageType || null;
             }
-        } else {
+            break;
+        default:
             build.statusMessage = statusMessage || null;
             build.statusMessageType = statusMessageType || null;
-        }
+            break;
     }
 }
 
 /**
  * Get stage for current node
- * @param  {StageFactory}   stageFactory                Stage factory
- * @param  {Object}         workflowGraph               Workflow graph
- * @param  {String}         jobName                     Job name
- * @param  {Number}         pipelineId                  Pipeline ID
- * @return {Stage}                                      Stage for node
+ *
+ * @param  {StageFactory}   stageFactory    Stage factory
+ * @param  {Object}         workflowGraph   Workflow graph
+ * @param  {String}         jobName         Job name
+ * @param  {Number}         pipelineId      Pipeline ID
+ * @return {Stage}                          Stage for node
  */
 async function getStage({ stageFactory, workflowGraph, jobName, pipelineId }) {
     const currentNode = workflowGraph.nodes.find(node => node.name === jobName);
@@ -129,15 +136,14 @@ async function getStage({ stageFactory, workflowGraph, jobName, pipelineId }) {
 
 /**
  * Checks if all builds in stage are done running
- * @param  {Object}     stage                     Stage
- * @param  {Object}     event                     Event
- * @return {Boolean}              Flag if stage is done
+ *
+ * @param  {Stage}      stage   Stage
+ * @param  {Event}      event   Event
+ * @return {Boolean}            Flag if stage is done
  */
 async function isStageDone({ stage, event }) {
     // Get all jobIds for jobs in the stage
-    const stageJobIds = stage.jobIds;
-
-    stageJobIds.push(stage.setup);
+    const stageJobIds = [...stage.jobIds, stage.setup];
 
     // Get all builds in a stage for this event
     const stageJobBuilds = await event.getBuilds({ params: { jobId: stageJobIds } });

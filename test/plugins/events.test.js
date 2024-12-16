@@ -401,7 +401,6 @@ describe('event plugin test', () => {
             };
 
             eventMock = getEventMock(testEvent);
-            // eventFactoryMock.get.withArgs(parentEventId).resolves(getEventMock(testEvent));
             eventFactoryMock.get.withArgs(eventMock.id).resolves(eventMock);
 
             eventMock.builds = [];
