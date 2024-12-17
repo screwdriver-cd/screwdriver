@@ -1716,14 +1716,124 @@ describe('startHookEvent test', () => {
         it('throws error when failed', () => {
             const error = new Error('Failed to start');
 
-            error.statusCode = 500;
             eventFactoryMock.create.rejects(error);
 
             return startHookEvent(request, responseHandler, parsed)
                 .then(() => assert.fail())
                 .catch(err => {
                     assert.equal(err.message, 'Failed to start a event caused by "Failed to start"');
-                    assert.equal(err.statusCode, 500);
+                    assert.equal(err.statusCode, undefined);
+                });
+        });
+
+        it('throws error with status code when failed', () => {
+            const error = new Error('Failed to start');
+
+            error.statusCode = 400;
+            eventFactoryMock.create.rejects(error);
+
+            return startHookEvent(request, responseHandler, parsed)
+                .then(() => assert.fail())
+                .catch(err => {
+                    assert.equal(err.message, 'Failed to start a event caused by "Failed to start"');
+                    assert.equal(err.statusCode, 400);
+                });
+        });
+
+        it('throws multiple same errors when failed', () => {
+            const wMock1 = {
+                nodes: [{ name: '~commit:master' }, { name: '~commit' }, { name: 'main' }],
+                edges: [
+                    { src: '~commit:master', dest: 'main' },
+                    { src: '~commit', dest: 'main' }
+                ]
+            };
+            const pMock1 = getPipelineMocks({
+                id: 'pipelineHash1',
+                scmUri: 'github.com:123456:branch1',
+                annotations: {},
+                admins: {
+                    baxterthehacker: false
+                },
+                workflowGraph: wMock1,
+                branch: Promise.resolve('branch1')
+            });
+
+            pipelineFactoryMock.list
+                .withArgs({
+                    search: { field: 'scmUri', keyword: `${scmRepoId}:%` },
+                    params: { state: 'ACTIVE' }
+                })
+                .resolves([pipelineMock, pMock1]);
+            pipelineFactoryMock.list
+                .withArgs({
+                    search: { field: 'subscribedScmUrlsWithActions', keyword: `%${scmRepoId}:%` },
+                    params: { state: 'ACTIVE' }
+                })
+                .resolves([]);
+
+            const error = new Error('Failed to start');
+
+            error.statusCode = 400;
+
+            eventFactoryMock.create.rejects(error);
+
+            return startHookEvent(request, responseHandler, parsed)
+                .then(() => assert.fail())
+                .catch(err => {
+                    assert.equal(err.message, 'Failed to start some events caused by "Failed to start"');
+                    assert.equal(err.statusCode, 400);
+                });
+        });
+
+        it('throws multiple different errors when failed', () => {
+            const wMock1 = {
+                nodes: [{ name: '~commit:master' }, { name: '~commit' }, { name: 'main' }],
+                edges: [
+                    { src: '~commit:master', dest: 'main' },
+                    { src: '~commit', dest: 'main' }
+                ]
+            };
+            const pMock1 = getPipelineMocks({
+                id: 'pipelineHash1',
+                scmUri: 'github.com:123456:branch1',
+                annotations: {},
+                admins: {
+                    baxterthehacker: false
+                },
+                workflowGraph: wMock1,
+                branch: Promise.resolve('branch1')
+            });
+
+            pipelineFactoryMock.list
+                .withArgs({
+                    search: { field: 'scmUri', keyword: `${scmRepoId}:%` },
+                    params: { state: 'ACTIVE' }
+                })
+                .resolves([pipelineMock, pMock1]);
+            pipelineFactoryMock.list
+                .withArgs({
+                    search: { field: 'subscribedScmUrlsWithActions', keyword: `%${scmRepoId}:%` },
+                    params: { state: 'ACTIVE' }
+                })
+                .resolves([]);
+
+            const error1 = new Error('Failed to start 1');
+            const error2 = new Error('Failed to start 2');
+
+            error1.statusCode = 500;
+            error2.statusCode = 400;
+            eventFactoryMock.create.onCall(0).rejects(error1);
+            eventFactoryMock.create.onCall(1).rejects(error2);
+
+            return startHookEvent(request, responseHandler, parsed)
+                .then(() => assert.fail())
+                .catch(err => {
+                    assert.equal(
+                        err.message,
+                        'Failed to start some events caused by "Failed to start 1", "Failed to start 2"'
+                    );
+                    assert.equal(err.statusCode, 400);
                 });
         });
     });
@@ -2125,14 +2235,117 @@ describe('startHookEvent test', () => {
             it('throws error when failed', () => {
                 const error = new Error('Failed to start');
 
-                error.statusCode = 500;
                 eventFactoryMock.create.rejects(error);
 
                 return startHookEvent(request, responseHandler, parsed)
                     .then(() => assert.fail())
                     .catch(err => {
                         assert.equal(err.message, 'Failed to start a event caused by "Failed to start"');
-                        assert.equal(err.statusCode, 500);
+                        assert.equal(err.statusCode, undefined);
+                    });
+            });
+
+            it('throws error with status code when failed', () => {
+                const error = new Error('Failed to start');
+
+                error.statusCode = 400;
+                eventFactoryMock.create.rejects(error);
+
+                return startHookEvent(request, responseHandler, parsed)
+                    .then(() => assert.fail())
+                    .catch(err => {
+                        assert.equal(err.message, 'Failed to start a event caused by "Failed to start"');
+                        assert.equal(err.statusCode, 400);
+                    });
+            });
+
+            it('throws multiple same errors when failed', () => {
+                const wMock1 = {
+                    nodes: [{ name: '~pr:master' }, { name: '~pr' }, { name: 'main' }],
+                    edges: [
+                        { src: '~pr:master', dest: 'main' },
+                        { src: '~pr', dest: 'main' }
+                    ]
+                };
+                const pMock1 = getPipelineMocks({
+                    id: 'pipelineHash1',
+                    scmUri: 'github.com:123456:branch1',
+                    annotations: {},
+                    admins: {
+                        baxterthehacker: false
+                    },
+                    workflowGraph: wMock1,
+                    branch: Promise.resolve('branch1')
+                });
+
+                eventFactoryMock.create.resetHistory();
+                pipelineFactoryMock.list.resolves([pipelineMock, pMock1]);
+                pipelineFactoryMock.scm.getCommitSha
+                    .withArgs({
+                        scmUri: pMock1.scmUri,
+                        scmContext,
+                        token
+                    })
+                    .rejects({ statusCode: 500 });
+
+                const error = new Error('Failed to start');
+
+                error.statusCode = 400;
+                eventFactoryMock.create.rejects(error);
+
+                return startHookEvent(request, responseHandler, parsed)
+                    .then(() => assert.fail())
+                    .catch(err => {
+                        assert.equal(err.message, 'Failed to start some events caused by "Failed to start"');
+                        assert.equal(err.statusCode, 400);
+                    });
+            });
+
+            it('throws multiple different errors when failed', () => {
+                const wMock1 = {
+                    nodes: [{ name: '~pr:master' }, { name: '~pr' }, { name: 'main' }],
+                    edges: [
+                        { src: '~pr:master', dest: 'main' },
+                        { src: '~pr', dest: 'main' }
+                    ]
+                };
+                const pMock1 = getPipelineMocks({
+                    id: 'pipelineHash1',
+                    scmUri: 'github.com:123456:branch1',
+                    annotations: {},
+                    admins: {
+                        baxterthehacker: false
+                    },
+                    workflowGraph: wMock1,
+                    branch: Promise.resolve('branch1')
+                });
+
+                eventFactoryMock.create.resetHistory();
+                pipelineFactoryMock.list.resolves([pipelineMock, pMock1]);
+                pipelineFactoryMock.scm.getCommitSha
+                    .withArgs({
+                        scmUri: pMock1.scmUri,
+                        scmContext,
+                        token
+                    })
+                    .rejects({ statusCode: 500 });
+
+                const error1 = new Error('Failed to start 1');
+                const error2 = new Error('Failed to start 2');
+
+                error1.statusCode = 500;
+                error2.statusCode = 400;
+                eventFactoryMock.create.onCall(0).rejects(error1);
+                eventFactoryMock.create.onCall(1).rejects(error2);
+
+                return startHookEvent(request, responseHandler, parsed)
+                    .then(() => assert.fail())
+                    .catch(err => {
+                        assert.equal(
+                            err.message,
+                            'Failed to start some events caused by "Failed to start 1", "Failed to start 2"'
+                        );
+                        assert.equal(err.statusCode, 400);
                     });
             });
 
@@ -2720,14 +2933,101 @@ describe('startHookEvent test', () => {
             it('throws error when failed', () => {
                 const error = new Error('Failed to create event');
 
-                error.statusCode = 500;
                 eventFactoryMock.create.rejects(error);
 
                 return startHookEvent(request, responseHandler, parsed)
                     .then(() => assert.fail())
                     .catch(err => {
                         assert.equal(err.message, 'Failed to start a event caused by "Failed to create event"');
-                        assert.equal(err.statusCode, 500);
+                        assert.equal(err.statusCode, undefined);
+                    });
+            });
+
+            it('throws error with status code when failed', () => {
+                const error = new Error('Failed to create event');
+
+                error.statusCode = 400;
+                eventFactoryMock.create.rejects(error);
+
+                return startHookEvent(request, responseHandler, parsed)
+                    .then(() => assert.fail())
+                    .catch(err => {
+                        assert.equal(err.message, 'Failed to start a event caused by "Failed to create event"');
+                        assert.equal(err.statusCode, 400);
+                    });
+            });
+
+            it('throws multiple same errors when failed', () => {
+                const wMock1 = {
+                    nodes: [{ name: '~pr:master' }, { name: '~pr' }, { name: 'main' }],
+                    edges: [
+                        { src: '~pr:master', dest: 'main' },
+                        { src: '~pr', dest: 'main' }
+                    ]
+                };
+                const pMock1 = getPipelineMocks({
+                    id: 'pipelineHash1',
+                    scmUri: 'github.com:123456:branch1',
+                    annotations: {},
+                    admins: {
+                        baxterthehacker: false
+                    },
+                    workflowGraph: wMock1,
+                    branch: Promise.resolve('branch1')
+                });
+
+                pipelineFactoryMock.list.resolves([pipelineMock, pMock1]);
+
+                const error = new Error('Failed to create event');
+
+                error.statusCode = 400;
+                eventFactoryMock.create.rejects(error);
+
+                return startHookEvent(request, responseHandler, parsed)
+                    .then(() => assert.fail())
+                    .catch(err => {
+                        assert.equal(err.message, 'Failed to start some events caused by "Failed to create event"');
+                        assert.equal(err.statusCode, 400);
+                    });
+            });
+
+            it('throws multiple different errors when failed', () => {
+                const wMock1 = {
+                    nodes: [{ name: '~pr:master' }, { name: '~pr' }, { name: 'main' }],
+                    edges: [
+                        { src: '~pr:master', dest: 'main' },
+                        { src: '~pr', dest: 'main' }
+                    ]
+                };
+                const pMock1 = getPipelineMocks({
+                    id: 'pipelineHash1',
+                    scmUri: 'github.com:123456:branch1',
+                    annotations: {},
+                    admins: {
+                        baxterthehacker: false
+                    },
+                    workflowGraph: wMock1,
+                    branch: Promise.resolve('branch1')
+                });
+
+                pipelineFactoryMock.list.resolves([pipelineMock, pMock1]);
+
+                const error1 = new Error('Failed to create event 1');
+                const error2 = new Error('Failed to create event 2');
+
+                error1.statusCode = 500;
+                error2.statusCode = 400;
+                eventFactoryMock.create.onCall(0).rejects(error1);
+                eventFactoryMock.create.onCall(1).rejects(error2);
+
+                return startHookEvent(request, responseHandler, parsed)
+                    .then(() => assert.fail())
+                    .catch(err => {
+                        assert.equal(
+                            err.message,
+                            'Failed to start some events caused by "Failed to create event 1", "Failed to create event 2"'
+                        );
+                        assert.equal(err.statusCode, 400);
                     });
             });
         });

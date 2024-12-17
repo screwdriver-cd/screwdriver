@@ -447,23 +447,21 @@ async function startEvents(eventConfigs, eventFactory) {
 
     if (errorCount > 0 && errorCount === eventsCount) {
         // preserve current behavior of returning 500 on error
-        const errorMessages = [];
+        const errorMessages = new Set();
         let statusCode;
 
         errors.forEach(err => {
-            if (err.message !== undefined) {
-                errorMessages.push(err.message);
-            }
+            errorMessages.add(`"${err.message}"`);
             if (err.statusCode !== undefined) {
                 statusCode = err.statusCode;
             }
         });
 
-        const errorMessage = errorMessages.join(',');
+        const errorMessage = [...errorMessages].join(', ');
         const error =
             errorCount === 1
-                ? new Error(`Failed to start a event caused by "${errorMessage}"`)
-                : new Error(`Failed to start some events caused by "${errorMessage}"`);
+                ? new Error(`Failed to start a event caused by ${errorMessage}`)
+                : new Error(`Failed to start some events caused by ${errorMessage}`);
 
         error.statusCode = statusCode;
         throw error;
