@@ -1714,11 +1714,17 @@ describe('startHookEvent test', () => {
         });
 
         it('throws error when failed', () => {
-            eventFactoryMock.create.rejects(new Error('Failed to start'));
+            const error = new Error('Failed to start');
+
+            error.statusCode = 500;
+            eventFactoryMock.create.rejects(error);
 
             return startHookEvent(request, responseHandler, parsed)
                 .then(() => assert.fail())
-                .catch(err => assert.equal(err.message, 'Failed to start any events'));
+                .catch(err => {
+                    assert.equal(err.message, 'Failed to start a event caused by "Failed to start"');
+                    assert.equal(err.statusCode, 500);
+                });
         });
     });
 
@@ -2117,11 +2123,17 @@ describe('startHookEvent test', () => {
             });
 
             it('throws error when failed', () => {
-                eventFactoryMock.create.rejects(new Error('Failed to start'));
+                const error = new Error('Failed to start');
+
+                error.statusCode = 500;
+                eventFactoryMock.create.rejects(error);
 
                 return startHookEvent(request, responseHandler, parsed)
                     .then(() => assert.fail())
-                    .catch(err => assert.equal(err.message, 'Failed to start any events'));
+                    .catch(err => {
+                        assert.equal(err.message, 'Failed to start a event caused by "Failed to start"');
+                        assert.equal(err.statusCode, 500);
+                    });
             });
 
             it('creates empty event if pr from fork by default', () => {
@@ -2706,11 +2718,17 @@ describe('startHookEvent test', () => {
             });
 
             it('throws error when failed', () => {
-                eventFactoryMock.create.rejects(new Error('Failed to create event'));
+                const error = new Error('Failed to create event');
+
+                error.statusCode = 500;
+                eventFactoryMock.create.rejects(error);
 
                 return startHookEvent(request, responseHandler, parsed)
                     .then(() => assert.fail())
-                    .catch(err => assert.equal(err.message, 'Failed to start any events'));
+                    .catch(err => {
+                        assert.equal(err.message, 'Failed to start a event caused by "Failed to create event"');
+                        assert.equal(err.statusCode, 500);
+                    });
             });
         });
 
