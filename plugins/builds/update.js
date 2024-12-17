@@ -95,6 +95,13 @@ module.exports = () => ({
                 await validateUserPermission(build, request);
             }
 
+            if (request.payload.status && request.payload.status === 'FAILURE') {
+                request.log(
+                    ['PUT', 'builds', id],
+                    `Build failed. Received payload: ${JSON.stringify(request.payload)}`
+                );
+            }
+
             const newBuild = await updateBuildAndTriggerDownstreamJobs(
                 request.payload,
                 build,
