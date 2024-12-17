@@ -865,6 +865,75 @@ describe('event plugin test', () => {
             });
         });
 
+        it('returns 201 when it creates an event with parent event which has meta', () => {
+            eventConfig.parentEventId = parentEventId;
+            eventConfig.workflowGraph = getEventMock(testEvent).workflowGraph;
+            eventConfig.sha = getEventMock(testEvent).sha;
+            eventConfig.baseBranch = 'master';
+            testEvent.configPipelineSha = 'configPipelineSha';
+            testEvent.meta = meta;
+            eventConfig.configPipelineSha = 'configPipelineSha';
+            eventConfig.meta = meta;
+            options.payload.parentEventId = parentEventId;
+            eventFactoryMock.get.withArgs(parentEventId).resolves(getEventMock(testEvent));
+
+            return server.inject(options).then(reply => {
+                expectedLocation = {
+                    host: reply.request.headers.host,
+                    port: reply.request.headers.port,
+                    protocol: reply.request.server.info.protocol,
+                    pathname: `${options.url}/12345`
+                };
+                assert.equal(reply.statusCode, 201);
+                assert.calledWith(userMock.getPermissions, scmUri, scmContext, scmRepo);
+                assert.calledWith(eventFactoryMock.create, eventConfig);
+                assert.strictEqual(reply.headers.location, urlLib.format(expectedLocation));
+                assert.notCalled(eventFactoryMock.scm.getPrInfo);
+                delete testEvent.configPipelineSha;
+            });
+        });
+
+        it('returns 201 when it creates an event with custom parameters and parent event which has meta', () => {
+            eventConfig.parentEventId = parentEventId;
+            eventConfig.workflowGraph = getEventMock(testEvent).workflowGraph;
+            eventConfig.sha = getEventMock(testEvent).sha;
+            eventConfig.baseBranch = 'master';
+            testEvent.configPipelineSha = 'configPipelineSha';
+            testEvent.meta = {
+                parameters: {
+                    user: { value: 'adong' }
+                },
+                foo: 'bar',
+                one: 1
+            };
+            eventConfig.configPipelineSha = 'configPipelineSha';
+            eventConfig.meta.parameters = {
+                user: { value: 'klu' },
+                foo: 'bar',
+                one: 1
+            };
+            options.payload.parentEventId = parentEventId;
+            options.payload.meta.parameters = {
+                user: { value: 'klu' }
+            };
+            eventFactoryMock.get.withArgs(parentEventId).resolves(getEventMock(testEvent));
+
+            return server.inject(options).then(reply => {
+                expectedLocation = {
+                    host: reply.request.headers.host,
+                    port: reply.request.headers.port,
+                    protocol: reply.request.server.info.protocol,
+                    pathname: `${options.url}/12345`
+                };
+                assert.equal(reply.statusCode, 201);
+                assert.calledWith(userMock.getPermissions, scmUri, scmContext, scmRepo);
+                assert.calledWith(eventFactoryMock.create, eventConfig);
+                assert.strictEqual(reply.headers.location, urlLib.format(expectedLocation));
+                assert.notCalled(eventFactoryMock.scm.getPrInfo);
+                delete testEvent.configPipelineSha;
+            });
+        });
+
         it('returns 201 when it successfully creates a PR event', () => {
             eventConfig.startFrom = 'PR-1:main';
             eventConfig.prNum = '1';
