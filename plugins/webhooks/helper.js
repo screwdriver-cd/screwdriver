@@ -448,7 +448,7 @@ async function startEvents(eventConfigs, eventFactory) {
     if (errorCount > 0 && errorCount === eventsCount) {
         // preserve current behavior of returning 500 on error
         const errorMessages = new Set();
-        let statusCode;
+        let statusCode = 500;
 
         errors.forEach(err => {
             errorMessages.add(`"${err.message}"`);
