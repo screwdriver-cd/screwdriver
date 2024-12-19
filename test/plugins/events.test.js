@@ -907,14 +907,18 @@ describe('event plugin test', () => {
                 one: 1
             };
             eventConfig.configPipelineSha = 'configPipelineSha';
-            eventConfig.meta.parameters = {
-                user: { value: 'klu' },
+            eventConfig.meta = {
+                parameters: {
+                    user: { value: 'klu' }
+                },
                 foo: 'bar',
                 one: 1
             };
             options.payload.parentEventId = parentEventId;
-            options.payload.meta.parameters = {
-                user: { value: 'klu' }
+            options.payload.meta = {
+                parameters: {
+                    user: { value: 'klu' }
+                }
             };
             eventFactoryMock.get.withArgs(parentEventId).resolves(getEventMock(testEvent));
 
