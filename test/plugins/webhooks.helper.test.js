@@ -1722,7 +1722,7 @@ describe('startHookEvent test', () => {
                 .then(() => assert.fail())
                 .catch(err => {
                     assert.equal(err.message, 'Failed to start a event caused by "Failed to start"');
-                    assert.equal(err.statusCode, undefined);
+                    assert.equal(err.statusCode, 500);
                 });
         });
 
@@ -2241,7 +2241,7 @@ describe('startHookEvent test', () => {
                     .then(() => assert.fail())
                     .catch(err => {
                         assert.equal(err.message, 'Failed to start a event caused by "Failed to start"');
-                        assert.equal(err.statusCode, undefined);
+                        assert.equal(err.statusCode, 500);
                     });
             });
 
@@ -2939,7 +2939,7 @@ describe('startHookEvent test', () => {
                     .then(() => assert.fail())
                     .catch(err => {
                         assert.equal(err.message, 'Failed to start a event caused by "Failed to create event"');
-                        assert.equal(err.statusCode, undefined);
+                        assert.equal(err.statusCode, 500);
                     });
             });
 
