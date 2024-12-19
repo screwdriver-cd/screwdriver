@@ -220,15 +220,27 @@ module.exports = () => ({
 
             payload.sha = sha;
 
-            // If there is parentEvent, pass workflowGraph and sha to payload
+            // If there is parentEvent, pass workflowGraph, meta and sha to payload
             // Skip PR, for PR builds, we should always start from latest commit
             if (payload.parentEventId) {
                 const parentEvent = await eventFactory.get(parentEventId);
+                let mergedParameters = payload.meta.parameters || {};
 
                 payload.baseBranch = parentEvent.baseBranch || null;
 
+                // Merge parameters if they exist in the parent event and not in the payload
                 if (!payload.meta.parameters && parentEvent.meta && parentEvent.meta.parameters) {
-                    payload.meta.parameters = parentEvent.meta.parameters;
+                    mergedParameters = parentEvent.meta.parameters;
+                }
+                delete payload.meta.parameters;
+
+                // Copy meta from parent event if payload.meta is empty except for the parameters
+                if (Object.keys(payload.meta).length === 0) {
+                    payload.meta = { ...parentEvent.meta };
+                }
+
+                if (Object.keys(mergedParameters).length > 0) {
+                    payload.meta.parameters = mergedParameters;
                 }
 
                 if (!prNum) {
