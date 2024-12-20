@@ -433,18 +433,38 @@ async function startEvents(eventConfigs, eventFactory) {
         })
     );
 
+    const errors = [];
+
     results.forEach((result, i) => {
         if (result.status === 'fulfilled') {
             if (result.value) events.push(result.value);
         } else {
             errorCount += 1;
+            errors.push(result.reason);
             logger.error(`pipeline:${eventConfigs[i].pipelineId} error in starting event`, result.reason);
         }
     });
 
-    if (errorCount && errorCount === eventsCount) {
+    if (errorCount > 0 && errorCount === eventsCount) {
         // preserve current behavior of returning 500 on error
-        throw new Error('Failed to start any events');
+        const errorMessages = new Set();
+        let statusCode = 500;
+
+        errors.forEach(err => {
+            errorMessages.add(`"${err.message}"`);
+            if (err.statusCode !== undefined) {
+                statusCode = err.statusCode;
+            }
+        });
+
+        const errorMessage = [...errorMessages].join(', ');
+        const error =
+            errorCount === 1
+                ? new Error(`Failed to start a event caused by ${errorMessage}`)
+                : new Error(`Failed to start some events caused by ${errorMessage}`);
+
+        error.statusCode = statusCode;
+        throw error;
     }
 
     return events;
