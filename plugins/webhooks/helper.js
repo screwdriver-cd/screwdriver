@@ -4,6 +4,8 @@ const workflowParser = require('screwdriver-workflow-parser');
 const schema = require('screwdriver-data-schema');
 const logger = require('screwdriver-logger');
 const { getReadOnlyInfo } = require('../helper');
+const { updateBuildAndTriggerDownstreamJobs } = require('../builds/helper/updateBuild');
+const { Status, BUILD_STATUS_MESSAGES } = require('../builds/triggers/helpers');
 
 const ANNOT_NS = 'screwdriver.cd';
 const ANNOT_CHAIN_PR = `${ANNOT_NS}/chainPR`;
@@ -661,23 +663,39 @@ async function batchStopJobs({ pipelines, prNum, action, name }) {
  * @param  {Hapi.h}       h                     Response toolkit
  */
 async function pullRequestOpened(options, request, h) {
-    const { hookId } = options;
+    const { hookId, username, scmConfig, pipeline } = options;
+    const { scmContext } = scmConfig;
 
-    return createPREvents(options, request)
-        .then(events => {
-            events.forEach(e => {
-                request.log(['webhook', hookId, e.id], `Event ${e.id} started`);
-            });
+    try {
+        const events = await createPREvents(options, request);
+        const hasBuildEvents = events.filter(e => e.builds !== null);
 
-            return h.response().code(201);
-        })
-        .catch(err => {
-            logger.error(
-                `Failed to pullRequestOpened: [${hookId}, pipeline:${options.pipeline && options.pipeline.id}]: ${err}`
-            );
+        for (const event of hasBuildEvents) {
+            const virtualJobBuilds = event.builds.filter(b => b.status === 'CREATED');
 
-            throw err;
-        });
+            for (const build of virtualJobBuilds) {
+                await updateBuildAndTriggerDownstreamJobs(
+                    {
+                        status: Status.SUCCESS,
+                        statusMessage: BUILD_STATUS_MESSAGES.SKIP_VIRTUAL_JOB.statusMessage,
+                        statusMessageType: BUILD_STATUS_MESSAGES.SKIP_VIRTUAL_JOB.statusMessageType
+                    },
+                    build,
+                    request.server,
+                    username,
+                    scmContext
+                );
+            }
+
+            request.log(['webhook', hookId, event.id], `Event ${event.id} started`);
+        }
+
+        return h.response().code(201);
+    } catch (err) {
+        logger.error(`Failed to pullRequestOpened: [${hookId}, pipeline:${pipeline && pipeline.id}]: ${err}`);
+
+        throw err;
+    }
 }
 
 /**
@@ -741,27 +759,43 @@ async function pullRequestClosed(options, request, h) {
  * @param  {Hapi.reply}   reply                 Reply to user
  */
 async function pullRequestSync(options, request, h) {
-    const { pipelines, hookId, name, prNum, action } = options;
+    const { pipelines, pipeline, hookId, name, prNum, action, scmConfig, username } = options;
+    const { scmContext } = scmConfig;
 
     await batchStopJobs({ pipelines, name, prNum, action });
 
     request.log(['webhook', hookId], `Job(s) for ${name} stopped`);
 
-    return createPREvents(options, request)
-        .then(events => {
-            events.forEach(e => {
-                request.log(['webhook', hookId, e.id], `Event ${e.id} started`);
-            });
+    try {
+        const events = await createPREvents(options, request);
+        const hasBuildEvents = events.filter(e => e.builds !== null);
 
-            return h.response().code(201);
-        })
-        .catch(err => {
-            logger.error(
-                `Failed to pullRequestSync: [${hookId}, pipeline:${options.pipeline && options.pipeline.id}]: ${err}`
-            );
+        for (const event of hasBuildEvents) {
+            const virtualJobBuilds = event.builds.filter(b => b.status === 'CREATED');
 
-            throw err;
-        });
+            for (const build of virtualJobBuilds) {
+                await updateBuildAndTriggerDownstreamJobs(
+                    {
+                        status: Status.SUCCESS,
+                        statusMessage: BUILD_STATUS_MESSAGES.SKIP_VIRTUAL_JOB.statusMessage,
+                        statusMessageType: BUILD_STATUS_MESSAGES.SKIP_VIRTUAL_JOB.statusMessageType
+                    },
+                    build,
+                    request.server,
+                    username,
+                    scmContext
+                );
+            }
+
+            request.log(['webhook', hookId, event.id], `Event ${event.id} started`);
+        }
+
+        return h.response().code(201);
+    } catch (err) {
+        logger.error(`Failed to pullRequestSync: [${hookId}, pipeline:${pipeline && pipeline.id}]: ${err}`);
+
+        throw err;
+    }
 }
 
 /**
@@ -1118,7 +1152,7 @@ async function createEvents(
  */
 async function pushEvent(request, h, parsed, skipMessage, token) {
     const { eventFactory, pipelineFactory, userFactory } = request.server.app;
-    const { hookId, checkoutUrl, branch, scmContext, type, action, changedFiles, releaseName, ref } = parsed;
+    const { hookId, checkoutUrl, branch, scmContext, type, action, changedFiles, releaseName, ref, username } = parsed;
 
     const fullCheckoutUrl = `${checkoutUrl}#${branch}`;
     const scmConfig = {
@@ -1170,9 +1204,25 @@ async function pushEvent(request, h, parsed, skipMessage, token) {
             return h.response({ message: 'No jobs to start' }).code(204);
         }
 
-        hasBuildEvents.forEach(e => {
-            request.log(['webhook', hookId, e.id], `Event ${e.id} started`);
-        });
+        for (const event of hasBuildEvents) {
+            const virtualJobBuilds = event.builds.filter(b => b.status === 'CREATED');
+
+            for (const build of virtualJobBuilds) {
+                await updateBuildAndTriggerDownstreamJobs(
+                    {
+                        status: Status.SUCCESS,
+                        statusMessage: BUILD_STATUS_MESSAGES.SKIP_VIRTUAL_JOB.statusMessage,
+                        statusMessageType: BUILD_STATUS_MESSAGES.SKIP_VIRTUAL_JOB.statusMessageType
+                    },
+                    build,
+                    request.server,
+                    username,
+                    scmContext
+                );
+            }
+
+            request.log(['webhook', hookId, event.id], `Event ${event.id} started`);
+        }
 
         return h.response().code(201);
     } catch (err) {
