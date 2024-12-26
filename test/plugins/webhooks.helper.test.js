@@ -295,6 +295,8 @@ describe('startHookEvent test', () => {
     let name;
     let scmConfig;
     let workflowGraph;
+    let updateBuildAndTriggerDownstreamJobsMock;
+
     const decoratePipelineMock = pipeline => {
         const decorated = hoek.clone(pipeline);
 
@@ -437,7 +439,8 @@ describe('startHookEvent test', () => {
             })
         };
         eventMock = {
-            id: 'bbf22a3808c19dc50777258a253805b14fb3ad8b'
+            id: 'bbf22a3808c19dc50777258a253805b14fb3ad8b',
+            builds: []
         };
         reqHeaders = {
             'x-github-event': 'notSupported',
@@ -467,6 +470,9 @@ describe('startHookEvent test', () => {
         userMock.unsealToken.resolves(token);
 
         eventFactoryMock.create.resolves(eventMock);
+
+        updateBuildAndTriggerDownstreamJobsMock = sinon.stub();
+        RewiredWebhooksHelper.__set__('updateBuildAndTriggerDownstreamJobs', updateBuildAndTriggerDownstreamJobsMock);
     });
 
     describe('tag event', () => {
@@ -1137,6 +1143,15 @@ describe('startHookEvent test', () => {
                     meta: {}
                 });
             }));
+
+        it('returns 201 on success with virtual job', () => {
+            eventMock.builds = [{ status: 'CREATED' }];
+
+            return startHookEvent(request, responseHandler, parsed).then(reply => {
+                assert.calledOnce(updateBuildAndTriggerDownstreamJobsMock);
+                assert.equal(reply.statusCode, 201);
+            });
+        });
 
         it('returns 201 on success with branch trigger', () => {
             const wMock1 = {
@@ -1940,6 +1955,15 @@ describe('startHookEvent test', () => {
                     assert.notCalled(pipelineFactoryMock.scm.getCommitRefSha);
                 }));
 
+            it('returns 201 on success with virtual job', () => {
+                eventMock.builds = [{ status: 'CREATED' }];
+
+                return startHookEvent(request, responseHandler, parsed).then(reply => {
+                    assert.calledOnce(updateBuildAndTriggerDownstreamJobsMock);
+                    assert.equal(reply.statusCode, 201);
+                });
+            });
+
             it('returns 201 on success with pr branch trigger', () => {
                 const wMock1 = {
                     nodes: [{ name: '~pr:master' }, { name: '~pr' }, { name: 'main' }],
@@ -2588,6 +2612,15 @@ describe('startHookEvent test', () => {
                     assert.equal(reply.statusCode, 201);
                     assert.calledOnce(pipelineMock.update);
                 }));
+
+            it('returns 201 on success with virtual job', () => {
+                eventMock.builds = [{ status: 'CREATED' }];
+
+                return startHookEvent(request, responseHandler, parsed).then(reply => {
+                    assert.calledOnce(updateBuildAndTriggerDownstreamJobsMock);
+                    assert.equal(reply.statusCode, 201);
+                });
+            });
 
             it('returns 201 on success with read-only scm', () => {
                 pipelineFactoryMock.scm.getReadOnlyInfo.returns({ enabled: true, accessToken: token });
