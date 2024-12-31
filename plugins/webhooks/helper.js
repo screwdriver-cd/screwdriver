@@ -671,20 +671,26 @@ async function pullRequestOpened(options, request, h) {
         const hasBuildEvents = events.filter(e => e.builds !== null);
 
         for (const event of hasBuildEvents) {
-            const virtualJobBuilds = event.builds.filter(b => b.status === 'CREATED');
+            const createdBuilds = event.builds.filter(b => b.status === 'CREATED');
 
-            for (const build of virtualJobBuilds) {
-                await updateBuildAndTriggerDownstreamJobs(
-                    {
-                        status: Status.SUCCESS,
-                        statusMessage: BUILD_STATUS_MESSAGES.SKIP_VIRTUAL_JOB.statusMessage,
-                        statusMessageType: BUILD_STATUS_MESSAGES.SKIP_VIRTUAL_JOB.statusMessageType
-                    },
-                    build,
-                    request.server,
-                    username,
-                    scmContext
-                );
+            for (const build of createdBuilds) {
+                const job = await build.job;
+                const { annotations } = job.permutations[0];
+                const isVirtualJob = annotations ? annotations['screwdriver.cd/virtualJob'] === true : false;
+
+                if (isVirtualJob) {
+                    await updateBuildAndTriggerDownstreamJobs(
+                        {
+                            status: Status.SUCCESS,
+                            statusMessage: BUILD_STATUS_MESSAGES.SKIP_VIRTUAL_JOB.statusMessage,
+                            statusMessageType: BUILD_STATUS_MESSAGES.SKIP_VIRTUAL_JOB.statusMessageType
+                        },
+                        build,
+                        request.server,
+                        username,
+                        scmContext
+                    );
+                }
             }
 
             request.log(['webhook', hookId, event.id], `Event ${event.id} started`);
@@ -771,20 +777,26 @@ async function pullRequestSync(options, request, h) {
         const hasBuildEvents = events.filter(e => e.builds !== null);
 
         for (const event of hasBuildEvents) {
-            const virtualJobBuilds = event.builds.filter(b => b.status === 'CREATED');
+            const createdBuilds = event.builds.filter(b => b.status === 'CREATED');
 
-            for (const build of virtualJobBuilds) {
-                await updateBuildAndTriggerDownstreamJobs(
-                    {
-                        status: Status.SUCCESS,
-                        statusMessage: BUILD_STATUS_MESSAGES.SKIP_VIRTUAL_JOB.statusMessage,
-                        statusMessageType: BUILD_STATUS_MESSAGES.SKIP_VIRTUAL_JOB.statusMessageType
-                    },
-                    build,
-                    request.server,
-                    username,
-                    scmContext
-                );
+            for (const build of createdBuilds) {
+                const job = await build.job;
+                const { annotations } = job.permutations[0];
+                const isVirtualJob = annotations ? annotations['screwdriver.cd/virtualJob'] === true : false;
+
+                if (isVirtualJob) {
+                    await updateBuildAndTriggerDownstreamJobs(
+                        {
+                            status: Status.SUCCESS,
+                            statusMessage: BUILD_STATUS_MESSAGES.SKIP_VIRTUAL_JOB.statusMessage,
+                            statusMessageType: BUILD_STATUS_MESSAGES.SKIP_VIRTUAL_JOB.statusMessageType
+                        },
+                        build,
+                        request.server,
+                        username,
+                        scmContext
+                    );
+                }
             }
 
             request.log(['webhook', hookId, event.id], `Event ${event.id} started`);
@@ -1205,20 +1217,26 @@ async function pushEvent(request, h, parsed, skipMessage, token) {
         }
 
         for (const event of hasBuildEvents) {
-            const virtualJobBuilds = event.builds.filter(b => b.status === 'CREATED');
+            const createdBuilds = event.builds.filter(b => b.status === 'CREATED');
 
-            for (const build of virtualJobBuilds) {
-                await updateBuildAndTriggerDownstreamJobs(
-                    {
-                        status: Status.SUCCESS,
-                        statusMessage: BUILD_STATUS_MESSAGES.SKIP_VIRTUAL_JOB.statusMessage,
-                        statusMessageType: BUILD_STATUS_MESSAGES.SKIP_VIRTUAL_JOB.statusMessageType
-                    },
-                    build,
-                    request.server,
-                    username,
-                    scmContext
-                );
+            for (const build of createdBuilds) {
+                const job = await build.job;
+                const { annotations } = job.permutations[0];
+                const isVirtualJob = annotations ? annotations['screwdriver.cd/virtualJob'] === true : false;
+
+                if (isVirtualJob) {
+                    await updateBuildAndTriggerDownstreamJobs(
+                        {
+                            status: Status.SUCCESS,
+                            statusMessage: BUILD_STATUS_MESSAGES.SKIP_VIRTUAL_JOB.statusMessage,
+                            statusMessageType: BUILD_STATUS_MESSAGES.SKIP_VIRTUAL_JOB.statusMessageType
+                        },
+                        build,
+                        request.server,
+                        username,
+                        scmContext
+                    );
+                }
             }
 
             request.log(['webhook', hookId, event.id], `Event ${event.id} started`);

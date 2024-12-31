@@ -276,6 +276,18 @@ describe('startHookEvent test', () => {
     const prRef = 'pull/1/merge';
     const scmDisplayName = 'github';
     const changedFiles = ['README.md'];
+    const nonVirtualJobMock = {
+        permutations: [{}]
+    };
+    const virtualJobMock = {
+        permutations: [
+            {
+                annotations: {
+                    'screwdriver.cd/virtualJob': true
+                }
+            }
+        ]
+    };
     let jobFactoryMock;
     let buildFactoryMock;
     let pipelineFactoryMock;
@@ -1145,7 +1157,11 @@ describe('startHookEvent test', () => {
             }));
 
         it('returns 201 on success with virtual job', () => {
-            eventMock.builds = [{ status: 'CREATED' }];
+            eventMock.builds = [
+                { status: 'CREATED', job: nonVirtualJobMock },
+                { status: 'CREATED', job: virtualJobMock },
+                { status: 'QUEUED' }
+            ];
 
             return startHookEvent(request, responseHandler, parsed).then(reply => {
                 assert.calledOnce(updateBuildAndTriggerDownstreamJobsMock);
@@ -1956,7 +1972,11 @@ describe('startHookEvent test', () => {
                 }));
 
             it('returns 201 on success with virtual job', () => {
-                eventMock.builds = [{ status: 'CREATED' }];
+                eventMock.builds = [
+                    { status: 'CREATED', job: nonVirtualJobMock },
+                    { status: 'CREATED', job: virtualJobMock },
+                    { status: 'QUEUED' }
+                ];
 
                 return startHookEvent(request, responseHandler, parsed).then(reply => {
                     assert.calledOnce(updateBuildAndTriggerDownstreamJobsMock);
@@ -2614,7 +2634,11 @@ describe('startHookEvent test', () => {
                 }));
 
             it('returns 201 on success with virtual job', () => {
-                eventMock.builds = [{ status: 'CREATED' }];
+                eventMock.builds = [
+                    { status: 'CREATED', job: nonVirtualJobMock },
+                    { status: 'CREATED', job: virtualJobMock },
+                    { status: 'QUEUED' }
+                ];
 
                 return startHookEvent(request, responseHandler, parsed).then(reply => {
                     assert.calledOnce(updateBuildAndTriggerDownstreamJobsMock);
