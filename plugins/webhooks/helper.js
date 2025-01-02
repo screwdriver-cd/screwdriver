@@ -4,6 +4,7 @@ const workflowParser = require('screwdriver-workflow-parser');
 const schema = require('screwdriver-data-schema');
 const logger = require('screwdriver-logger');
 const { getReadOnlyInfo } = require('../helper');
+const { createEvent } = require('../events/helper/createEvent');
 
 const ANNOT_NS = 'screwdriver.cd';
 const ANNOT_CHAIN_PR = `${ANNOT_NS}/chainPR`;
@@ -413,10 +414,10 @@ async function triggeredPipelines(
  * Start Events
  * @async  startEvents
  * @param  {Array}  eventConfigs Array of event config objects
- * @param  {Object} eventFactory Factory to create events
+ * @param  {Object} server Server
  * @return {Promise<Array>}  Array of created events
  */
-async function startEvents(eventConfigs, eventFactory) {
+async function startEvents(eventConfigs, server) {
     const events = [];
     let errorCount = 0;
     let eventsCount = 0;
@@ -426,7 +427,7 @@ async function startEvents(eventConfigs, eventFactory) {
             if (eventConfig && eventConfig.configPipelineSha) {
                 eventsCount += 1;
 
-                return eventFactory.create(eventConfig);
+                return createEvent(eventConfig, server);
             }
 
             return Promise.resolve(null);
@@ -626,7 +627,7 @@ async function createPREvents(options, request) {
         })
     );
 
-    const events = await startEvents(eventConfigs, eventFactory);
+    const events = await startEvents(eventConfigs, request.server);
 
     return events;
 }
@@ -944,23 +945,15 @@ function pullRequestEvent(pluginOptions, request, h, parsed, token) {
 /**
  * Create events for each pipeline
  * @async   createEvents
- * @param   {EventFactory}       eventFactory       To create event
- * @param   {UserFactory}        userFactory        To get user permission
- * @param   {PipelineFactory}    pipelineFactory    To use scm module
- * @param   {Array}              pipelines          The pipelines to start events
- * @param   {Object}             parsed             It has information to create event
+ * @param   {Object}            server
+ * @param   {UserFactory}       userFactory         To get user permission
+ * @param   {PipelineFactory}   pipelineFactory     To use scm module
+ * @param   {Array}             pipelines           The pipelines to start events
+ * @param   {Object}            parsed              It has information to create event
  * @param   {String}            [skipMessage]       Message to skip starting builds
  * @returns {Promise}                               Promise that resolves into events
  */
-async function createEvents(
-    eventFactory,
-    userFactory,
-    pipelineFactory,
-    pipelines,
-    parsed,
-    skipMessage,
-    scmConfigFromHook
-) {
+async function createEvents(server, userFactory, pipelineFactory, pipelines, parsed, skipMessage, scmConfigFromHook) {
     const { action, branch, sha, username, scmContext, changedFiles, type, releaseName, ref } = parsed;
 
     const pipelineTuples = await Promise.all(
@@ -1101,7 +1094,7 @@ async function createEvents(
         })
     );
 
-    const events = await startEvents(eventConfigs, eventFactory);
+    const events = await startEvents(eventConfigs, server);
 
     return events;
 }
@@ -1117,7 +1110,7 @@ async function createEvents(
  * @param  {String}             [skipMessage]          Message to skip starting builds
  */
 async function pushEvent(request, h, parsed, skipMessage, token) {
-    const { eventFactory, pipelineFactory, userFactory } = request.server.app;
+    const { pipelineFactory, userFactory } = request.server.app;
     const { hookId, checkoutUrl, branch, scmContext, type, action, changedFiles, releaseName, ref } = parsed;
 
     const fullCheckoutUrl = `${checkoutUrl}#${branch}`;
@@ -1154,7 +1147,7 @@ async function pushEvent(request, h, parsed, skipMessage, token) {
             request.log(['webhook', hookId], `Skipping since Pipeline ${fullCheckoutUrl} does not exist`);
         } else {
             events = await createEvents(
-                eventFactory,
+                request.server,
                 userFactory,
                 pipelineFactory,
                 pipelines,
