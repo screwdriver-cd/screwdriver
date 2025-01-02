@@ -4,6 +4,7 @@ const boom = require('@hapi/boom');
 const joi = require('joi');
 const schema = require('screwdriver-data-schema');
 const { getUserPermissions } = require('../helper');
+const { createEvent } = require('../events/helper/createEvent');
 const idSchema = schema.models.pipeline.base.extract('id');
 
 module.exports = () => ({
@@ -19,7 +20,7 @@ module.exports = () => ({
         },
 
         handler: async (request, h) => {
-            const { pipelineFactory, eventFactory, userFactory } = request.server.app;
+            const { pipelineFactory, userFactory } = request.server.app;
             const { username, scmContext } = request.auth.credentials;
             const { id } = request.params;
             const { scm } = pipelineFactory;
@@ -41,7 +42,7 @@ module.exports = () => ({
                 }
             });
 
-            const createEvents = await Promise.allSettled(
+            const createdEvents = await Promise.allSettled(
                 pipelines.map(async p => {
                     const pipelineToken = await p.token;
                     const pipelineScmContext = p.scmContext;
@@ -53,18 +54,21 @@ module.exports = () => ({
 
                     await getUserPermissions({ user, scmUri: p.scmUri, level: 'push' });
 
-                    await eventFactory.create({
-                        pipelineId: p.id,
-                        sha,
-                        username,
-                        scmContext: pipelineScmContext,
-                        startFrom: '~commit',
-                        causeMessage: `Started by ${username}`
-                    });
+                    await createEvent(
+                        {
+                            pipelineId: p.id,
+                            sha,
+                            username,
+                            scmContext: pipelineScmContext,
+                            startFrom: '~commit',
+                            causeMessage: `Started by ${username}`
+                        },
+                        request.server
+                    );
                 })
             );
 
-            const rejected = createEvents.filter(createEvent => createEvent.status === 'rejected');
+            const rejected = createdEvents.filter(createdEvent => createdEvent.status === 'rejected');
 
             if (rejected.length) {
                 throw boom.forbidden('Failed to start some child pipelines due to lack of permissions.');
