@@ -2955,7 +2955,8 @@ describe('pipeline plugin test', () => {
             pipelineFactoryMock.list.resolves(getPipelineMocks(testPipelines));
         });
 
-        it('returns 201 for starting all child pipelines', () =>
+        it('returns 201 for starting all child pipelines', () => {
+            eventFactoryMock.create.resolves({});
             server.inject(options).then(reply => {
                 assert.calledWith(pipelineFactoryMock.list, {
                     params: {
@@ -2966,7 +2967,8 @@ describe('pipeline plugin test', () => {
                 assert.calledThrice(pipelineFactoryMock.scm.getCommitSha);
                 assert.calledThrice(eventFactoryMock.create);
                 assert.equal(reply.statusCode, 201);
-            }));
+            });
+        });
 
         it('returns 403 when user does not have admin permission', () => {
             const error = {
