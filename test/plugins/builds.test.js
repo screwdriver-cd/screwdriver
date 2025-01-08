@@ -1433,6 +1433,32 @@ describe('build plugin test', () => {
                 });
             });
 
+            it('does not allow update status "RUNNING" to "RUNNING"', () => {
+                const status = 'RUNNING';
+                const options = {
+                    method: 'PUT',
+                    url: `/builds/${id}`,
+                    auth: {
+                        credentials: {
+                            username: `${id}a`,
+                            scope: ['build']
+                        },
+                        strategy: ['token']
+                    },
+                    payload: {
+                        status
+                    }
+                };
+
+                buildMock.status = 'RUNNING';
+
+                return server.inject(options).then(reply => {
+                    assert.equal(reply.statusCode, 403);
+                    assert.notCalled(buildFactoryMock.get);
+                    assert.notCalled(buildMock.update);
+                });
+            });
+
             it('update status for non-UNSTABLE builds', () => {
                 testBuild.status = 'BLOCKED';
                 testBuild.statusMessage = 'blocked';

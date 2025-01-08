@@ -37,7 +37,6 @@ async function getBuildToUpdate(id, buildFactory) {
 async function validateUserPermission(build, request) {
     const { jobFactory, userFactory, bannerFactory, pipelineFactory } = request.server.app;
     const { username, scmContext, scmUserId } = request.auth.credentials;
-
     const { status: desiredStatus } = request.payload;
 
     const scmDisplayName = bannerFactory.scm.getDisplayName({ scmContext });
@@ -66,6 +65,20 @@ async function validateUserPermission(build, request) {
     await getUserPermissions({ user, scmUri, level: 'push', isAdmin: adminDetails.isAdmin });
 }
 
+/**
+ * Prevent duplicate builds with the same build ID
+ * @param  {Object} build Build object
+ * @param  {Object} request hapi request object
+ * @throws boom.forbidden error
+ */
+async function preventDuplicateBuild(build, request) {
+    const { status: desiredStatus } = request.payload;
+
+    if (build.status === 'RUNNING' && desiredStatus === 'RUNNING') {
+        throw boom.forbidden(`Can not update status to RUNNING. Build Id: ${build.id} is still running.`);
+    }
+}
+
 module.exports = () => ({
     method: 'PUT',
     path: '/builds/{id}',
@@ -91,7 +104,9 @@ module.exports = () => ({
 
             const build = await getBuildToUpdate(id, buildFactory);
 
-            if (!isBuild) {
+            if (isBuild) {
+                await preventDuplicateBuild(build, request);
+            } else {
                 await validateUserPermission(build, request);
             }
 
