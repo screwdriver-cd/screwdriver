@@ -22,6 +22,7 @@ Before(
         this.jwt = null;
         this.template = null;
         this.jobName = 'main';
+        this.additionalJobName = 'test';
 
         this.startJob = jobName => {
             return this.ensurePipelineExists({
@@ -166,6 +167,18 @@ Given(
             )
             .then(() =>
                 request({
+                    url: `${this.instance}/${this.namespace}/pipelines/${this.pipelineId}`,
+                    method: 'GET',
+                    context: {
+                        token: this.jwt
+                    }
+                })
+            )
+            .then(response => {
+                Assert.equal(response.body.templateVersionId, this.templateId);
+            })
+            .then(() =>
+                request({
                     url: `${this.instance}/${this.namespace}/pipelines/${this.pipelineId}/jobs`,
                     method: 'GET',
                     context: {
@@ -174,20 +187,79 @@ Given(
                 })
             )
             .then(response => {
-                Assert.equal(response.body.length, 1);
-                Assert.equal(response.body[0].templateId, this.templateId);
+                this.jobs = Object.fromEntries(response.body.map(job => [job.name, job]));
             });
     }
 );
 
-Given(/^user has some pipeline settings defined$/, function step() {
-    Assert.equal(this.job.permutations[0].commands.length, 3);
-    Assert.equal(this.job.permutations[0].image, 'node:20');
+Given(/^user defined shared settings$/, function step() {
+    const job = this.jobs[this.jobName];
+
+    Assert.equal(Object.keys(this.jobs).length, 1);
+    Assert.equal(job.permutations[0].image, 'node:20');
+    Assert.equal(job.permutations[0].environment.FOO, 'bar');
+    Assert.equal(job.permutations[0].environment.BAR, 'baz');
+    Assert.equal(job.permutations[0].commands.length, 2);
 });
 
-Given(/^the pipeline template has the same settings with different values$/, function step() {
-    Assert.notEqual(this.job.permutations[0].commands.length, this.templateConfig.jobs[this.jobName].steps.length);
-    Assert.notEqual(this.job.permutations[0].image, this.templateConfig.shared.image);
+Given(/^the pipeline template has overwritten shared settings$/, function step() {
+    const job = this.jobs[this.jobName];
+
+    Assert.notEqual(job.permutations[0].image, this.templateConfig.jobs[this.jobName].image);
+    Assert.equal(Object.hasOwn(this.templateConfig.jobs[this.jobName].environment, 'BAR'), false);
+});
+
+Given(/^user defined exists jobs settings$/, function step() {
+    const job = this.jobs[this.jobName];
+
+    Assert.equal(Object.keys(this.jobs).length, 1);
+    Assert.equal(job.permutations[0].image, 'node:22');
+    Assert.equal(job.permutations[0].annotations['screwdriver.cd/displayName'], 'foo-bar');
+    Assert.equal(job.permutations[0].environment.FOO, 'bar');
+    Assert.equal(job.permutations[0].environment.BAR, 'baz');
+    Assert.equal(job.permutations[0].environment.BAZ, 'qux');
+    Assert.equal(job.permutations[0].commands.length, 2);
+});
+
+Given(/^the pipeline template has overwritten jobs settings$/, function step() {
+    const job = this.jobs[this.jobName];
+
+    Assert.notEqual(job.permutations[0].image, this.templateConfig.jobs[this.jobName].image);
+    Assert.isFalse(Object.hasOwn(this.templateConfig.jobs[this.jobName].environment, 'BAR'));
+    Assert.isFalse(Object.hasOwn(this.templateConfig.jobs[this.jobName].environment, 'BAZ'));
+});
+
+Given(/^user defined additional jobs settings$/, function step() {
+    const existsJob = this.jobs[this.jobName];
+    const userDefinedJob = this.jobs[this.additionalJobName];
+
+    Assert.equal(Object.keys(this.jobs).length, 2);
+    Assert.equal(existsJob.permutations[0].image, 'node:22');
+    Assert.equal(existsJob.permutations[0].annotations['screwdriver.cd/displayName'], 'foo-bar');
+    Assert.equal(existsJob.permutations[0].environment.FOO, 'bar');
+    Assert.equal(existsJob.permutations[0].environment.BAR, 'baz');
+    Assert.equal(existsJob.permutations[0].environment.BAZ, 'qux');
+    Assert.equal(existsJob.permutations[0].commands.length, 2);
+    Assert.isFalse(Object.hasOwn(existsJob.permutations[0].environment, 'QUX'));
+
+    Assert.equal(userDefinedJob.permutations[0].image, 'node:23');
+    Assert.equal(userDefinedJob.permutations[0].annotations['screwdriver.cd/displayName'], 'baz-qux');
+    Assert.equal(userDefinedJob.permutations[0].environment.BAR, 'baz');
+    Assert.equal(userDefinedJob.permutations[0].environment.QUX, 'quux');
+    Assert.equal(userDefinedJob.permutations[0].commands.length, 3);
+    Assert.isFalse(Object.hasOwn(userDefinedJob.permutations[0].environment, 'FOO'));
+    Assert.isFalse(Object.hasOwn(userDefinedJob.permutations[0].environment, 'BAZ'));
+});
+
+Given(/^the pipeline template has additional jobs settings$/, function step() {
+    const existsJob = this.jobs[this.jobName];
+
+    Assert.notEqual(existsJob.permutations[0].image, this.templateConfig.jobs[this.jobName].image);
+    Assert.isFalse(Object.hasOwn(this.templateConfig.jobs[this.jobName].environment, 'BAR'));
+    Assert.isFalse(Object.hasOwn(this.templateConfig.jobs[this.jobName].environment, 'BAZ'));
+    Assert.isFalse(Object.hasOwn(this.templateConfig.jobs[this.jobName].annotations, 'screwdriver.cd/displayName'));
+
+    Assert.isFalse(Object.hasOwn(this.templateConfig.jobs, this.additionalJobName));
 });
 
 When(
@@ -242,13 +314,151 @@ When(
 );
 
 When(
-    /^user starts the pipeline that uses pipeline template$/,
+    /^user starts the job that uses pipeline template$/,
     {
         timeout: TIMEOUT
     },
     function step() {
         return this.startJob(this.jobName).then(result => {
             Assert.oneOf(result, ['SUCCESS', 'FAILURE']);
+        });
+    }
+);
+
+When(
+    /^user starts the additional job that uses pipeline template$/,
+    {
+        timeout: TIMEOUT
+    },
+    function step() {
+        return this.startJob(this.additionalJobName).then(result => {
+            Assert.oneOf(result, ['SUCCESS', 'FAILURE']);
+        });
+    }
+);
+
+Then(
+    /^job settings are the template command$/,
+    {
+        timeout: TIMEOUT
+    },
+    function step() {
+        return request({
+            url: `${this.instance}/${this.namespace}/builds/${this.buildId}/steps`,
+            method: 'GET',
+            context: {
+                token: this.jwt
+            }
+        }).then(response => {
+            Assert.equal(response.statusCode, 200);
+            const steps = Object.fromEntries(
+                response.body
+                    .filter(s => !s.name.startsWith('sd-setup') && !s.name.startsWith('sd-teardown'))
+                    .map(job => [job.name, job])
+            );
+
+            const expectedSteps = [
+                {
+                    name: 'pretest',
+                    command: "echo 'pretest'"
+                },
+                {
+                    name: 'test',
+                    command: 'echo $FOO'
+                }
+            ];
+
+            Assert.equal(Object.keys(steps).length, expectedSteps.length);
+            expectedSteps.forEach(expectedStep => {
+                const result = steps[expectedStep.name];
+
+                Assert.equal(result.name, expectedStep.name);
+                Assert.equal(result.command, expectedStep.command);
+            });
+        });
+    }
+);
+
+Then(
+    /^job settings are the user command$/,
+    {
+        timeout: TIMEOUT
+    },
+    function step() {
+        return request({
+            url: `${this.instance}/${this.namespace}/builds/${this.buildId}/steps`,
+            method: 'GET',
+            context: {
+                token: this.jwt
+            }
+        }).then(response => {
+            Assert.equal(response.statusCode, 200);
+            const steps = Object.fromEntries(
+                response.body
+                    .filter(s => !s.name.startsWith('sd-setup') && !s.name.startsWith('sd-teardown'))
+                    .map(job => [job.name, job])
+            );
+
+            const expectedSteps = [
+                {
+                    name: 'pretest',
+                    command: "echo 'pretest'"
+                },
+                {
+                    name: 'test',
+                    command: 'echo $FOO'
+                }
+            ];
+
+            Assert.equal(Object.keys(steps).length, expectedSteps.length);
+            expectedSteps.forEach(expectedStep => {
+                const result = steps[expectedStep.name];
+
+                Assert.equal(result.name, expectedStep.name);
+                Assert.equal(result.command, expectedStep.command);
+            });
+        });
+    }
+);
+
+Then(
+    /^additional job settings are the user command$/,
+    {
+        timeout: TIMEOUT
+    },
+    function step() {
+        return request({
+            url: `${this.instance}/${this.namespace}/builds/${this.buildId}/steps`,
+            method: 'GET',
+            context: {
+                token: this.jwt
+            }
+        }).then(response => {
+            Assert.equal(response.statusCode, 200);
+
+            const expectedSteps = [
+                {
+                    name: 'pretest',
+                    command: "echo 'pretest'"
+                },
+                {
+                    name: 'test',
+                    command: 'echo $QUX'
+                },
+                {
+                    name: 'posttest',
+                    command: "echo 'posttest'"
+                }
+            ];
+
+            expectedSteps.forEach(expectedStep => {
+                const result = response.body.filter(s => {
+                    return s.name === expectedStep.name;
+                })[0];
+
+                Assert.equal(result.name, expectedStep.name);
+                Assert.include(result.command, expectedStep.command);
+            });
         });
     }
 );

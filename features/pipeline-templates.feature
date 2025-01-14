@@ -95,16 +95,28 @@ Feature: Pipeline Templates
             | test-trusted-pipeline-template    | trusted    | publish-trusted    |
             | test-distrusted-pipeline-template | distrusted | publish-distrusted |
 
-    @ignore
-    Scenario: Merges pipeline template into user's config
-        Given a "second" pipeline using a "test-pipeline-template" @ "1.0.0" pipeline template
-        When user starts the pipeline that uses pipeline template
-        Then the pipeline executes what is specified in the pipeline template
-
-    @ignore
-    Scenario: Pipeline config takes precedence over template config
+    Scenario: Use pipeline template
         Given a "third" pipeline using a "test-pipeline-template" @ "1.0.0" pipeline template
-        And user has some pipeline settings defined
-        And the pipeline template has the same settings with different values
-        When user starts the pipeline that uses pipeline template
-        Then pipeline settings are the user settings.
+        When user starts the job that uses pipeline template
+        And the pipeline executes what is specified in the pipeline template
+
+    Scenario: Pipeline shared config takes precedence over template config
+        Given a "fourth" pipeline using a "test-pipeline-template" @ "1.0.0" pipeline template
+        And user defined shared settings
+        And the pipeline template has overwritten shared settings
+        When user starts the job that uses pipeline template
+        Then job settings are the template command
+
+    Scenario: Pipeline exists job config takes precedence over template config
+        Given a "fifth" pipeline using a "test-pipeline-template" @ "1.0.0" pipeline template
+        And user defined exists jobs settings
+        And the pipeline template has overwritten jobs settings
+        When user starts the job that uses pipeline template
+        Then job settings are the user command
+
+    Scenario: Pipeline user defined job config takes precedence over template config
+        Given a "sixth" pipeline using a "test-pipeline-template" @ "1.0.0" pipeline template
+        And user defined additional jobs settings
+        And the pipeline template has additional jobs settings
+        When user starts the additional job that uses pipeline template
+        Then additional job settings are the user command
