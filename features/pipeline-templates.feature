@@ -96,26 +96,26 @@ Feature: Pipeline Templates
             | test-distrusted-pipeline-template | distrusted | publish-distrusted |
 
     Scenario: Use pipeline template
-        Given a "third" pipeline using a "test-pipeline-template" @ "1.0.0" pipeline template
+        Given a "third" pipeline using a "test-pipeline-template" @ "latest" pipeline template
         When user starts the job that uses pipeline template
         And the pipeline executes what is specified in the pipeline template
 
     Scenario: Pipeline shared config takes precedence over template config
-        Given a "fourth" pipeline using a "test-pipeline-template" @ "1.0.0" pipeline template
+        Given a "fourth" pipeline using a "test-pipeline-template" @ "latest" pipeline template
         And user defined shared settings
         And the pipeline template has overwritten shared settings
         When user starts the job that uses pipeline template
         Then job settings are the template command
 
     Scenario: Pipeline exists job config takes precedence over template config
-        Given a "fifth" pipeline using a "test-pipeline-template" @ "1.0.0" pipeline template
+        Given a "fifth" pipeline using a "test-pipeline-template" @ "latest" pipeline template
         And user defined exists jobs settings
         And the pipeline template has overwritten jobs settings
         When user starts the job that uses pipeline template
         Then job settings are the user command
 
     Scenario: Pipeline user defined job config takes precedence over template config
-        Given a "sixth" pipeline using a "test-pipeline-template" @ "1.0.0" pipeline template
+        Given a "sixth" pipeline using a "test-pipeline-template" @ "latest" pipeline template
         And user defined additional jobs settings
         And the pipeline template has additional jobs settings
         When user starts the additional job that uses pipeline template
