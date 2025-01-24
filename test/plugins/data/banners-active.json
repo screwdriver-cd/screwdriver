@@ -4,6 +4,8 @@
         "message": "Test banner example",
         "type": "info",
         "isActive": true,
+        "scope": "GLOBAL",
+        "scopeId": null,
         "createdBy": "batman123",
         "createTime": "2017-01-06T01:49:50.384359267Z"
     }

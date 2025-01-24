@@ -104,6 +104,7 @@ describe('banner plugin test', () => {
         const message = 'Test banner example';
         const isActive = true;
         const type = 'info';
+        const scope = 'GLOBAL';
 
         beforeEach(() => {
             options = {
@@ -112,7 +113,8 @@ describe('banner plugin test', () => {
                 payload: {
                     message,
                     isActive,
-                    type
+                    type,
+                    scope
                 },
                 auth: {
                     credentials: {

@@ -4,6 +4,8 @@
         "message": "Test banner example",
         "type": "info",
         "isActive": true,
+        "scope": "GLOBAL",
+        "scopeId": null,
         "createdBy": "batman123",
         "createTime": "2017-01-06T01:49:50.384359267Z"
     },
@@ -12,6 +14,8 @@
         "message": "Test banner example again",
         "type": "info",
         "isActive": false,
+        "scope": "GLOBAL",
+        "scopeId": null,
         "createdBy": "batman123",
         "createTime": "2017-01-07T01:49:50.384359267Z"
     },
@@ -20,6 +24,8 @@
         "message": "Test banner example yet again",
         "type": "warn",
         "isActive": false,
+        "scope": "GLOBAL",
+        "scopeId": null,
         "createdBy": "batman123",
         "createTime": "2017-01-08T01:49:50.384359267Z"
     }
