@@ -16,7 +16,6 @@ Feature: Banner
 
     Background:
         Given "calvin" is logged in
-        # And "calvin" has Screwdriver admin permission
 
     Scenario: Banner with default scope
         When they create new banner with message "Hello World" and "default" scope
