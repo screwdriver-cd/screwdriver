@@ -32,12 +32,4 @@ Feature: Banner
         Then they can see that the banner is created with "pipeline" scope
         And banner is "updated" when they update the banner with "isActive" "false"
         And banner is "not updated" when they update the banner with "scope" "GLOBAL"
-        Then banner is deleted
-
-    # Scenario: List the API based on the pipeline scope
-
-    # Scenario: Update the banner
-        # make sure that the banner is updated using the acceptable fields and not acceptable
-
-    # Scenario: Delete the banner
-    
+        Then banner is deleted    
