@@ -17,9 +17,9 @@ Feature: Banner
     Background:
         Given "calvin" is logged in
 
-    Scenario: Banner with default scope
-        When they create new banner with message "Hello World" and "default" scope
-        Then they can see that the banner is created with "default" scope
+    Scenario: Banner with global scope
+        When they create new banner with message "Hello World" and "GLOBAL" scope
+        Then they can see that the banner is created with "GLOBAL" scope
         And banner is "updated" when they update the banner with "message" "Some Random Message"
         And banner is "not updated" when they update the banner with "scopeId" "1234"
         Then banner is deleted
