@@ -19,7 +19,7 @@ Before('@banner', function hook() {
 });
 
 When(
-    /^they create new banner with message "([^"]*)" and "(default|pipeline)" scope$/,
+    /^they create new banner with message "([^"]*)" and "(GLOBAL|PIPELINE)" scope$/,
     { timeout: TIMEOUT },
     function step(message, scope) {
         const payload = {
@@ -28,8 +28,8 @@ When(
             type: 'info'
         };
 
-        if (scope === 'pipeline') {
-            payload.scope = scope.toUpperCase();
+        if (scope === 'PIPELINE') {
+            payload.scope = scope;
             payload.scopeId = this.pipelineId;
         }
 
@@ -52,7 +52,7 @@ When(
 );
 
 Then(
-    /^they can see that the banner is created with "(default|pipeline)" scope$/,
+    /^they can see that the banner is created with "(GLOBAL|PIPELINE)" scope$/,
     { timeout: TIMEOUT },
     function step(scope) {
         return request({
@@ -63,7 +63,7 @@ Then(
             }
         }).then(resp => {
             Assert.equal(resp.statusCode, 200);
-            if (scope === 'pipeline') {
+            if (scope === 'PIPELINE') {
                 Assert.equal(resp.body.scope, scope.toUpperCase());
                 Assert.equal(resp.body.scopeId, this.pipelineId);
 
@@ -132,5 +132,19 @@ Then(/^there is no banner associated to that pipeline$/, { timeout: TIMEOUT }, f
     }).then(resp => {
         Assert.equal(resp.statusCode, 200);
         Assert.equal(resp.body.length, 0);
+    });
+});
+
+Then(/^they can get the banner associated to that pipeline$/, { timeout: TIMEOUT }, function step() {
+    return request({
+        url: `${this.instance}/${this.namespace}/banners?scopeId=${this.pipelineId}&scope=PIPELINE`,
+        method: 'GET',
+        context: {
+            token: this.jwt
+        }
+    }).then(resp => {
+        Assert.equal(resp.statusCode, 200);
+        Assert.equal(resp.body.length, 1);
+        Assert.equal(resp.body[0].scopeId, this.pipelineId);
     });
 });
