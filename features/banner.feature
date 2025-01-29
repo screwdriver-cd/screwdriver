@@ -27,8 +27,8 @@ Feature: Banner
     Scenario: Banner with pipeline scope
         Given an existing pipeline
         And there is no banner associated to that pipeline
-        When they create new banner with message "Hello World" and "pipeline" scope
-        Then they can see that the banner is created with "pipeline" scope
+        When they create new banner with message "Hello World" and "PIPELINE" scope
+        Then they can see that the banner is created with "PIPELINE" scope
         And banner is "updated" when they update the banner with "isActive" "false"
         And banner is "not updated" when they update the banner with "scope" "GLOBAL"
         Then banner is deleted    
