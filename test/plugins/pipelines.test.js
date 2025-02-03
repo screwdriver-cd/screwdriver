@@ -1595,7 +1595,27 @@ describe('pipeline plugin test', () => {
                     params: { type: 'pipeline' },
                     search: {
                         field: ['creator'],
-                        keyword: '%name":"Dao%'
+                        keyword: '%name":"Dao%',
+                        inverse: false
+                    },
+                    sort: 'descending'
+                });
+                assert.deepEqual(reply.result, testEvents);
+                assert.equal(reply.statusCode, 200);
+            });
+        });
+
+        it('returns 200 for getting events with commit creator not sd:scheduler', () => {
+            options.url = `/pipelines/${id}/events?creator=ne:sd:scheduler`;
+
+            return server.inject(options).then(reply => {
+                assert.calledOnce(pipelineMock.getEvents);
+                assert.calledWith(pipelineMock.getEvents, {
+                    params: { type: 'pipeline' },
+                    search: {
+                        field: ['creator'],
+                        keyword: '%name":"sd:scheduler%',
+                        inverse: true
                     },
                     sort: 'descending'
                 });

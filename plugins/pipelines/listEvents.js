@@ -73,7 +73,19 @@ module.exports = () => ({
                         config.search = { field: ['commit'], keyword: `%name":"${author}%` };
                     } else if (creator) {
                         // searches name and username
-                        config.search = { field: ['creator'], keyword: `%name":"${creator}%` };
+                        let inverse = false;
+                        let creatorName = creator;
+
+                        if (creator.startsWith('ne:')) {
+                            inverse = true;
+                            creatorName = creator.substring(3); // Remove 'ne:' prefix
+                        }
+
+                        config.search = {
+                            field: ['creator'],
+                            keyword: `%name":"${creatorName}%`,
+                            inverse
+                        };
                     }
 
                     if (groupEventId) {
@@ -107,7 +119,12 @@ module.exports = () => ({
                         sha: shaSchema,
                         message: joi.string().label('Commit message').example('fix: Typo'),
                         author: joi.string().label('Author Name').example('Dao Lam'),
-                        creator: joi.string().label('Creator Name').example('Dao Lam'),
+                        creator: joi
+                            .string()
+                            .label('Creator Name')
+                            .description('Creator Name; optionally use "ne:" prefix to exclude creator')
+                            .example('Dao Lam')
+                            .example('ne:Dao Lam'),
                         id: queryIdSchema,
                         groupEventId: pipelineIdSchema,
                         search: joi.forbidden(), // we don't support search for Pipeline list events
