@@ -51,10 +51,13 @@ When(
     }
 );
 
+// Then they cannot see that the banner is created with "GLOBAL" scope
+
+
 Then(
-    /^they can see that the banner is created with "(GLOBAL|PIPELINE)" scope$/,
+    /^they "(can|cannot)" see that the banner is created with "(GLOBAL|PIPELINE)" scope$/,
     { timeout: TIMEOUT },
-    function step(scope) {
+    function step(ok, scope) {
         return request({
             url: `${this.instance}/${this.namespace}/banners/${this.bannerId}`,
             method: 'GET',
@@ -62,14 +65,23 @@ Then(
                 token: this.jwt
             }
         }).then(resp => {
-            Assert.equal(resp.statusCode, 200);
-            if (scope === 'PIPELINE') {
-                Assert.equal(resp.body.scope, scope.toUpperCase());
-                Assert.equal(resp.body.scopeId, this.pipelineId);
+            if (ok === 'can') {
+                Assert.equal(resp.statusCode, 200);
+                if (scope === 'PIPELINE') {
+                    Assert.equal(resp.body.scope, scope.toUpperCase());
+                    Assert.equal(resp.body.scopeId, this.pipelineId);
 
-                return;
+                    return;
+                }
+                Assert.equal(resp.body.scope, 'GLOBAL');
+            } else {
+                throw new Error('User should not be able to see the banner');
             }
-            Assert.equal(resp.body.scope, 'GLOBAL');
+        }).catch(err => {
+            if (ok === 'can') {
+                throw new Error('User should be able to see the banner');
+            }
+            Assert.equal(err.statusCode, 401);
         });
     }
 );
@@ -146,5 +158,23 @@ Then(/^they can get the banner associated to that pipeline$/, { timeout: TIMEOUT
         Assert.equal(resp.statusCode, 200);
         Assert.equal(resp.body.length, 1);
         Assert.equal(resp.body[0].scopeId, this.pipelineId);
+    });
+});
+
+Then(/^"([^"]*)" has expired token$/, { timeout: TIMEOUT }, function step(username) {
+    this.jwt = null;
+});
+
+Then(/^they cannot see any banner$/, { timeout: TIMEOUT }, function step() {
+    return request({
+        url: `${this.instance}/${this.namespace}/banners`,
+        method: 'GET',
+        context: {
+            token: this.jwt
+        }
+    }).then(() => {
+        throw new Error('User should not be able to see any banners');
+    }).catch(err => {
+        Assert.equal(err.statusCode, 401);
     });
 });

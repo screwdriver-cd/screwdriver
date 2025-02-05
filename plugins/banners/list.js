@@ -10,6 +10,10 @@ module.exports = () => ({
         description: 'Get banners',
         notes: 'Returns all banner records',
         tags: ['api', 'banners'],
+        auth: {
+            strategies: ['token'],
+            scope: ['user', 'build', 'pipeline']
+        },
         plugins: {
             'hapi-rate-limit': {
                 enabled: false

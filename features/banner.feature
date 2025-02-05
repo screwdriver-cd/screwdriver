@@ -19,7 +19,7 @@ Feature: Banner
 
     Scenario: Banner with global scope
         When they create new banner with message "Hello World" and "GLOBAL" scope
-        Then they can see that the banner is created with "GLOBAL" scope
+        Then they "can" see that the banner is created with "GLOBAL" scope
         And banner is "updated" when they update the banner with "message" "Some Random Message"
         And banner is "not updated" when they update the banner with "scopeId" "1234"
         And banner is "not updated" when they update the banner with "scope" "PIPELINE"
@@ -29,8 +29,15 @@ Feature: Banner
         Given an existing pipeline
         And there is no banner associated to that pipeline
         When they create new banner with message "Hello World" and "PIPELINE" scope
-        Then they can see that the banner is created with "PIPELINE" scope
+        Then they "can" see that the banner is created with "PIPELINE" scope
         And they can get the banner associated to that pipeline
         And banner is "updated" when they update the banner with "isActive" "false"
         And banner is "not updated" when they update the banner with "scope" "GLOBAL"
-        Then banner is deleted    
+        Then banner is deleted
+    
+    Scenario: User without authorization should not see the banner
+        When they create new banner with message "Hello World" and "GLOBAL" scope
+        Then they "can" see that the banner is created with "GLOBAL" scope
+        And "calvin" has expired token
+        Then they "cannot" see that the banner is created with "GLOBAL" scope
+        And they cannot see any banner
