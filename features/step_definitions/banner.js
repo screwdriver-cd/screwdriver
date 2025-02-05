@@ -51,8 +51,6 @@ When(
     }
 );
 
-// Then they cannot see that the banner is created with "GLOBAL" scope
-
 Then(
     /^they "(can|cannot)" see that the banner is created with "(GLOBAL|PIPELINE)" scope$/,
     { timeout: TIMEOUT },
