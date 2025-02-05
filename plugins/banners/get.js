@@ -15,7 +15,7 @@ module.exports = () => ({
         tags: ['api', 'banners'],
         auth: {
             strategies: ['token'],
-            scope: ['user', '!guest']
+            scope: ['user']
         },
         plugins: {
             'hapi-rate-limit': {
