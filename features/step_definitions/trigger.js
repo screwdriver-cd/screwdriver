@@ -326,7 +326,15 @@ Then(
         const parentJob = parentPipeline.jobs.find(j => j.name === parentJobName);
         const parentBuild = parentBuilds.find(b => b.jobId === parentJob.id);
 
-        Assert.oneOf(parentBuild.id, joinBuild.parentBuildId);
+        // Before success, parentBuildId may be incomplete. Therefore, get it here.
+        const succeededJoinBuild = await this.waitForBuild(joinBuild.id).then(resp => {
+            Assert.equal(resp.statusCode, 200);
+            Assert.equal(resp.body.status, 'SUCCESS');
+
+            return resp.body;
+        });
+
+        Assert.oneOf(parentBuild.id, succeededJoinBuild.parentBuildId);
 
         const externalPipeline = this.pipelines[externalBranchName];
         const externalBuilds = await sdapi.findEventBuilds({
@@ -340,7 +348,7 @@ Then(
         const externalJob = externalPipeline.jobs.find(j => j.name === externalJobName);
         const externalBuild = externalBuilds.find(b => b.jobId === externalJob.id);
 
-        Assert.oneOf(externalBuild.id, joinBuild.parentBuildId);
+        Assert.oneOf(externalBuild.id, succeededJoinBuild.parentBuildId);
     }
 );
 
