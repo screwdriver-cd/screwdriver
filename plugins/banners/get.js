@@ -21,7 +21,7 @@ module.exports = () => ({
         auth: {
             strategies: ['token'],
             scope: ['user'],
-            mode: 'try'  // This allows unauthenticated requests but still runs the auth check
+            mode: 'try' // This allows unauthenticated requests but still runs the auth check
         },
         handler: async (request, h) => {
             const { bannerFactory } = request.server.app;

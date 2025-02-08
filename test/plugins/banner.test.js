@@ -3,12 +3,12 @@
 const { assert } = require('chai');
 const sinon = require('sinon');
 const hapi = require('@hapi/hapi');
+const boom = require('@hapi/boom');
 const testBanner = require('./data/banner.json');
 const testBannerPipeline = require('./data/banner-pipeline.json');
 const testBanners = require('./data/banners.json');
 const testBannersActive = require('./data/banners-active.json');
 const updatedBanner = require('./data/updatedBanner.json');
-const boom = require('@hapi/boom');
 
 sinon.assert.expose(assert, { prefix: '' });
 
@@ -78,6 +78,7 @@ describe('banner plugin test', () => {
                 if (request.headers['x-mock-auth'] === 'false') {
                     return h.unauthenticated(boom.unauthorized('Authentication required'));
                 }
+
                 return h.authenticated({
                     credentials: {
                         scope: ['user']
@@ -201,7 +202,7 @@ describe('banner plugin test', () => {
         it('returns 401 for listing banners', () => {
             options.headers = { 'x-mock-auth': 'false' }; // Force authentication failure
             bannerFactoryMock.list.resolves(getBannerMock(testBanners));
-        
+
             return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 401);
             });
@@ -254,7 +255,8 @@ describe('banner plugin test', () => {
         });
 
         it('returns 200 for get banner with PIPELINE scope', () => {
-            let pipelineBannerMock = getMock(testBannerPipeline);
+            const pipelineBannerMock = getMock(testBannerPipeline);
+
             bannerFactoryMock.get.withArgs(id).resolves(pipelineBannerMock);
 
             return server.inject(options).then(reply => {

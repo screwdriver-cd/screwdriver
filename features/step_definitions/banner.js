@@ -78,7 +78,7 @@ Then(
             })
             .catch(err => {
                 if (ok === 'can') {
-                    console.log(err)
+                    console.log(err);
                     throw new Error('User should be able to see the banner');
                 }
                 Assert.equal(err.statusCode, 401);
