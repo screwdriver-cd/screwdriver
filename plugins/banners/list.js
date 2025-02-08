@@ -2,6 +2,7 @@
 
 const schema = require('screwdriver-data-schema');
 const listSchema = schema.models.banner.list;
+const boom = require('@hapi/boom');
 
 module.exports = () => ({
     method: 'GET',
@@ -12,7 +13,8 @@ module.exports = () => ({
         tags: ['api', 'banners'],
         auth: {
             strategies: ['token'],
-            scope: ['user']
+            scope: ['user'],
+            mode: 'try'  // This allows unauthenticated requests but still runs the auth check
         },
         plugins: {
             'hapi-rate-limit': {
@@ -21,6 +23,12 @@ module.exports = () => ({
         },
         handler: async (request, h) => {
             const { bannerFactory } = request.server.app;
+            const { scope } = request.query;
+            if (scope !== 'GLOBAL') {
+                if (!request.auth.isAuthenticated) {
+                    throw boom.unauthorized('Authentication required');
+                }
+            }
 
             // list params defaults to empty object in models if undefined
             return bannerFactory

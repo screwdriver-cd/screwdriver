@@ -4,9 +4,11 @@ const { assert } = require('chai');
 const sinon = require('sinon');
 const hapi = require('@hapi/hapi');
 const testBanner = require('./data/banner.json');
+const testBannerPipeline = require('./data/banner-pipeline.json');
 const testBanners = require('./data/banners.json');
 const testBannersActive = require('./data/banners-active.json');
 const updatedBanner = require('./data/updatedBanner.json');
+const boom = require('@hapi/boom');
 
 sinon.assert.expose(assert, { prefix: '' });
 
@@ -72,12 +74,16 @@ describe('banner plugin test', () => {
         };
 
         server.auth.scheme('custom', () => ({
-            authenticate: (request, h) =>
-                h.authenticated({
+            authenticate: (request, h) => {
+                if (request.headers['x-mock-auth'] === 'false') {
+                    return h.unauthenticated(boom.unauthorized('Authentication required'));
+                }
+                return h.authenticated({
                     credentials: {
                         scope: ['user']
                     }
-                })
+                });
+            }
         }));
         server.auth.strategy('token', 'custom');
 
@@ -192,18 +198,17 @@ describe('banner plugin test', () => {
                 url: '/banners'
             };
         });
-
-        it('returns 200 for listing banners', () => {
+        it('returns 401 for listing banners', () => {
+            options.headers = { 'x-mock-auth': 'false' }; // Force authentication failure
             bannerFactoryMock.list.resolves(getBannerMock(testBanners));
-
+        
             return server.inject(options).then(reply => {
-                assert.equal(reply.statusCode, 200);
-                assert.deepEqual(reply.result, testBanners);
+                assert.equal(reply.statusCode, 401);
             });
         });
 
-        it('returns 200 for listing banners with query params', () => {
-            options.url = '/banners?isActive=true';
+        it('returns 200 for listing active banners with GLOBAL scope', () => {
+            options.url = '/banners?scope=GLOBAL&isActive=true';
             bannerFactoryMock.list.resolves(getBannerMock(testBannersActive));
 
             return server.inject(options).then(reply => {
@@ -234,7 +239,7 @@ describe('banner plugin test', () => {
             };
         });
 
-        it('returns 200 for get banner', () => {
+        it('returns 200 for get banner with GLOBAL scope', () => {
             bannerFactoryMock.get.withArgs(id).resolves(bannerMock);
 
             return server.inject(options).then(reply => {
@@ -245,6 +250,21 @@ describe('banner plugin test', () => {
                 delete expected.createTime;
                 assert.equal(reply.statusCode, 200);
                 assert.deepEqual(reply.result, testBanner);
+            });
+        });
+
+        it('returns 200 for get banner with PIPELINE scope', () => {
+            let pipelineBannerMock = getMock(testBannerPipeline);
+            bannerFactoryMock.get.withArgs(id).resolves(pipelineBannerMock);
+
+            return server.inject(options).then(reply => {
+                const expected = { ...testBannerPipeline };
+
+                delete expected.id;
+                delete expected.createdBy;
+                delete expected.createTime;
+                assert.equal(reply.statusCode, 200);
+                assert.deepEqual(reply.result, testBannerPipeline);
             });
         });
 

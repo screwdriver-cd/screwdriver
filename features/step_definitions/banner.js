@@ -78,6 +78,7 @@ Then(
             })
             .catch(err => {
                 if (ok === 'can') {
+                    console.log(err)
                     throw new Error('User should be able to see the banner');
                 }
                 Assert.equal(err.statusCode, 401);
@@ -160,7 +161,7 @@ Then(/^they can get the banner associated to that pipeline$/, { timeout: TIMEOUT
     });
 });
 
-Then(/^"([^"]*)" has expired token$/, { timeout: TIMEOUT }, function step() {
+Then(/^calvin has expired token$/, { timeout: TIMEOUT }, function step() {
     this.jwt = null;
 });
 

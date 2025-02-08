@@ -13,14 +13,15 @@ module.exports = () => ({
         description: 'Get a single banner',
         notes: 'Return a banner record',
         tags: ['api', 'banners'],
-        auth: {
-            strategies: ['token'],
-            scope: ['user']
-        },
         plugins: {
             'hapi-rate-limit': {
                 enabled: false
             }
+        },
+        auth: {
+            strategies: ['token'],
+            scope: ['user'],
+            mode: 'try'  // This allows unauthenticated requests but still runs the auth check
         },
         handler: async (request, h) => {
             const { bannerFactory } = request.server.app;
@@ -31,6 +32,11 @@ module.exports = () => ({
                 .then(banner => {
                     if (!banner) {
                         throw boom.notFound(`Banner ${id} does not exist`);
+                    }
+                    if (banner.scope !== 'GLOBAL') {
+                        if (!request.auth.isAuthenticated) {
+                            throw boom.unauthorized('Authentication required');
+                        }
                     }
 
                     return h.response(banner.toJson());

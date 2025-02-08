@@ -23,6 +23,9 @@ Feature: Banner
         And banner is "updated" when they update the banner with "message" "Some Random Message"
         And banner is "not updated" when they update the banner with "scopeId" "1234"
         And banner is "not updated" when they update the banner with "scope" "PIPELINE"
+        Then calvin has expired token
+        And they "can" see that the banner is created with "GLOBAL" scope
+        Then "calvin" is logged in
         Then banner is deleted
 
     Scenario: Banner with pipeline scope
@@ -33,11 +36,8 @@ Feature: Banner
         And they can get the banner associated to that pipeline
         And banner is "updated" when they update the banner with "isActive" "false"
         And banner is "not updated" when they update the banner with "scope" "GLOBAL"
-        Then banner is deleted
-    
-    Scenario: User without authorization should not see the banner
-        When they create new banner with message "Hello World" and "GLOBAL" scope
-        Then they "can" see that the banner is created with "GLOBAL" scope
-        And "calvin" has expired token
-        Then they "cannot" see that the banner is created with "GLOBAL" scope
+        Then calvin has expired token
+        Then they "cannot" see that the banner is created with "PIPELINE" scope
         And they cannot see any banner
+        Then "calvin" is logged in
+        Then banner is deleted
