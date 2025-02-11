@@ -60,6 +60,8 @@ Query Params:
 * `type` - *Optional* Filters by banner type
 * `isActive` - *Optional* Accepts true or false to filter active or inactive banners
 
+`GET /banners`
+
 `GET /banners?scope=GLOBAL&isActive=true&type=info`
 
 `GET /banners?scope=PIPELINE&scopeId=12345&isActive=true&type=info`
