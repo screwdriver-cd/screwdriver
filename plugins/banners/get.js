@@ -18,6 +18,11 @@ module.exports = () => ({
                 enabled: false
             }
         },
+        auth: {
+            strategies: ['token'],
+            scope: ['user'],
+            mode: 'try' // This allows unauthenticated requests but still runs the auth check
+        },
         handler: async (request, h) => {
             const { bannerFactory } = request.server.app;
             const { id } = request.params;
@@ -27,6 +32,11 @@ module.exports = () => ({
                 .then(banner => {
                     if (!banner) {
                         throw boom.notFound(`Banner ${id} does not exist`);
+                    }
+                    if (banner.scope !== 'GLOBAL') {
+                        if (!request.auth.isAuthenticated) {
+                            throw boom.unauthorized('Authentication required');
+                        }
                     }
 
                     return h.response(banner.toJson());

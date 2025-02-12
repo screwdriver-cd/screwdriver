@@ -1,0 +1,10 @@
+{
+    "id": 123,
+    "message": "Test banner example",
+    "isActive": true,
+    "type": "info",
+    "scope": "PIPELINE",
+    "scopeId": 1,
+    "createdBy": "jimgrund",
+    "createTime": "2017-01-06T01:49:50.384359267Z"
+}
