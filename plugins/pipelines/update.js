@@ -45,10 +45,10 @@ module.exports = () => ({
         },
 
         handler: async (request, h) => {
-            const { checkoutUrl, rootDir, settings, badges } = request.payload;
+            const { checkoutUrl, rootDir, settings, badges, annotations } = request.payload;
             const { id } = request.params;
             const { pipelineFactory, userFactory, secretFactory } = request.server.app;
-            const { scmContext, username } = request.auth.credentials;
+            const { scmContext, username, scmUserId } = request.auth.credentials;
             const scmContexts = pipelineFactory.scm.getScmContexts();
             const { isValidToken } = request.server.plugins.pipelines;
             const deployKeySecret = 'SD_SCM_DEPLOY_KEY';
@@ -163,6 +163,30 @@ module.exports = () => ({
                 }
             }
 
+            if (annotations) {
+                const scmDisplayName = bannerFactory.scm.getDisplayName({ scmContext });
+                // Lookup whether user is admin
+                const adminDetails = request.server.plugins.banners.screwdriverAdminDetails(
+                    username,
+                    scmDisplayName,
+                    scmUserId
+                );
+
+                // Only cluster admins to can update pipeline annotations
+                if (!adminDetails.isAdmin) {
+                    throw boom.forbidden(`Only SD cluster admin can update pipeline annotations`);
+
+                }
+
+                if (!oldPipeline.annotations) {
+                    oldPipeline.annotations = annotations;
+                } else {
+                    const newAnnotations = { ...oldPipeline.annotations, ...annotations };
+
+                    oldPipeline.annotations = newAnnotations;
+                }
+            }
+
             // update pipeline
             const updatedPipeline = await oldPipeline.update();
 
@@ -173,7 +197,7 @@ module.exports = () => ({
             // check if pipeline has deploy key annotation then create secrets
             // sync needs to happen before checking annotations
             const deployKeyAnnotation =
-                updatedPipeline.annotations && updatedPipeline.annotations[ANNOTATION_USE_DEPLOY_KEY];
+                updatedPipeline.annotations?.[ANNOTATION_USE_DEPLOY_KEY];
 
             if (deployKeyAnnotation) {
                 const deploySecret = await secretFactory.get({
