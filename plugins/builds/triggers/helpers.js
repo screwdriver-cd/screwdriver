@@ -129,6 +129,28 @@ function isExternalTrigger(jobName) {
 }
 
 /**
+ * Checks if job is virtual
+ * @param {Job} job Job object
+ * @returns {Boolean}
+ */
+function isVirtualJob(job) {
+    const { annotations } = job.permutations[0];
+
+    return annotations ? annotations['screwdriver.cd/virtualJob'] === true : false;
+}
+
+/**
+ * Checks if job has freezeWindows
+ * @param {Job} job Job object
+ * @returns {Boolean}
+ */
+function hasFreezeWindows(job) {
+    const { freezeWindows } = job.permutations[0];
+
+    return freezeWindows ? freezeWindows.length > 0 : false;
+}
+
+/**
  * Get external pipelineId and job name from the `name`
  * @param {String} name Job name
  * @returns {{externalPipelineId: String, externalJobName: String}}
@@ -611,11 +633,10 @@ async function getParentBuildStatus({ newBuild, joinListNames, pipelineId, build
  * @param {Job} arg.job Next job
  * @param {String|undefined} arg.pipelineId Pipeline ID
  * @param {String|undefined} arg.stageName Stage name
- * @param {Boolean} arg.isVirtualJob If the job is virtual or not
  * @param {Event} arg.event Event
  * @returns {Promise<Build|null>} The newly updated/created build
  */
-async function handleNewBuild({ done, hasFailure, newBuild, job, pipelineId, stageName, isVirtualJob, event }) {
+async function handleNewBuild({ done, hasFailure, newBuild, job, pipelineId, stageName, event }) {
     if (!done || Status.isStarted(newBuild.status)) {
         return null;
     }
@@ -636,9 +657,7 @@ async function handleNewBuild({ done, hasFailure, newBuild, job, pipelineId, sta
     }
 
     // Bypass execution of the build if the job is virtual
-    const hasFreezeWindows = job.permutations[0].freezeWindows && job.permutations[0].freezeWindows.length > 0;
-
-    if (isVirtualJob && !hasFreezeWindows) {
+    if (isVirtualJob(job) && !hasFreezeWindows(job)) {
         newBuild.status = Status.SUCCESS;
         newBuild.statusMessage = BUILD_STATUS_MESSAGES.SKIP_VIRTUAL_JOB.statusMessage;
         newBuild.statusMessageType = BUILD_STATUS_MESSAGES.SKIP_VIRTUAL_JOB.statusMessageType;
@@ -902,7 +921,6 @@ async function createJoinObject(nextJobNames, current, eventFactory) {
 
         const node = event.workflowGraph.nodes.find(n => n.name === trimJobName(jobName));
         const jId = node.id;
-        const isVirtual = node.virtual || false;
         const stageName = node.stageName || null;
 
         if (!joinObj[nextJobPipelineId]) joinObj[nextJobPipelineId] = {};
@@ -923,7 +941,7 @@ async function createJoinObject(nextJobNames, current, eventFactory) {
         }
 
         if (!pipelineObj.jobs) pipelineObj.jobs = {};
-        pipelineObj.jobs[nextJobName] = { id: jId, join: jobs, isExternal, isVirtual, stageName };
+        pipelineObj.jobs[nextJobName] = { id: jId, join: jobs, isExternal, stageName };
     }
 
     return joinObj;
@@ -1192,5 +1210,7 @@ module.exports = {
     buildsToRestartFilter,
     trimJobName,
     isStartFromMiddleOfCurrentStage,
+    isVirtualJob,
+    hasFreezeWindows,
     BUILD_STATUS_MESSAGES
 };
