@@ -1,0 +1,18 @@
+shared:
+    image: node:20
+    steps:
+        - test: echo 'test'
+
+jobs:
+    hub:
+        requires: [ ~commit, ~pr ]
+    a:
+        requires: [ hub ]
+    d:
+        requires: [ ~sd@2:b ]
+        annotations:
+            screwdriver.cd/virtualJob: true
+    e:
+        requires: [ sd@2:b, sd@2:c ]
+        annotations:
+            screwdriver.cd/virtualJob: true

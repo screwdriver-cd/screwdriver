@@ -3381,111 +3381,100 @@ describe('trigger tests', () => {
         });
     });
 
-    it('skip execution of virtual jobs', async () => {
-        const pipeline = await pipelineFactoryMock.createFromFile('virtual-jobs.yaml');
+    describe('virtual job', () => {
+        const assertVirtualBuildSuccess = build => {
+            assert.equal(build.status, 'SUCCESS');
+            assert.equal(build.statusMessage, BUILD_STATUS_MESSAGES.SKIP_VIRTUAL_JOB.statusMessage);
+            assert.equal(build.statusMessageType, BUILD_STATUS_MESSAGES.SKIP_VIRTUAL_JOB.statusMessageType);
+        };
 
-        const event = await eventFactoryMock.create({
-            pipelineId: pipeline.id,
-            startFrom: 'hub'
+        it('skip execution of virtual jobs', async () => {
+            const pipeline = await pipelineFactoryMock.createFromFile('virtual-jobs.yaml');
+
+            const event = await eventFactoryMock.create({
+                pipelineId: pipeline.id,
+                startFrom: 'hub'
+            });
+
+            await event.getBuildOf('hub').complete('SUCCESS');
+            assert.equal(event.getBuildOf('a').status, 'RUNNING');
+            assert.equal(event.getBuildOf('b').status, 'RUNNING');
+            assert.equal(event.getBuildOf('c').status, 'RUNNING');
+
+            await event.getBuildOf('a').complete('SUCCESS');
+            assertVirtualBuildSuccess(event.getBuildOf('d1'));
+            assertVirtualBuildSuccess(event.getBuildOf('d2'));
+            assertVirtualBuildSuccess(event.getBuildOf('d3'));
+            assertVirtualBuildSuccess(event.getBuildOf('d4'));
+
+            assert.equal(event.getBuildOf('d5').status, 'CREATED');
+            assert.equal(event.getBuildOf('d6').status, 'CREATED');
+            assert.equal(event.getBuildOf('d7').status, 'CREATED');
+            assertVirtualBuildSuccess(event.getBuildOf('target1'));
+            assert.equal(event.getBuildOf('target2').status, 'RUNNING');
+
+            await event.getBuildOf('b').complete('SUCCESS');
+            assertVirtualBuildSuccess(event.getBuildOf('d5'));
+            assertVirtualBuildSuccess(event.getBuildOf('d6'));
+            assert.equal(event.getBuildOf('d7').status, 'CREATED');
+
+            await event.getBuildOf('c').complete('SUCCESS');
+            assertVirtualBuildSuccess(event.getBuildOf('d7'));
         });
 
-        await event.getBuildOf('hub').complete('SUCCESS');
-        assert.equal(event.getBuildOf('a').status, 'RUNNING');
-        assert.equal(event.getBuildOf('b').status, 'RUNNING');
-        assert.equal(event.getBuildOf('c').status, 'RUNNING');
+        it('skip execution of virtual jobs when triggered from external', async () => {
+            const upstreamPipeline = await pipelineFactoryMock.createFromFile('virtual-jobs-upstream.yaml');
+            const downstreamPipeline = await pipelineFactoryMock.createFromFile('virtual-jobs-downstream.yaml');
 
-        await event.getBuildOf('a').complete('SUCCESS');
-        assert.equal(event.getBuildOf('d1').status, 'SUCCESS');
-        assert.equal(event.getBuildOf('d1').statusMessage, BUILD_STATUS_MESSAGES.SKIP_VIRTUAL_JOB.statusMessage);
-        assert.equal(
-            event.getBuildOf('d1').statusMessageType,
-            BUILD_STATUS_MESSAGES.SKIP_VIRTUAL_JOB.statusMessageType
-        );
-        assert.equal(event.getBuildOf('d2').status, 'SUCCESS');
-        assert.equal(event.getBuildOf('d2').statusMessage, BUILD_STATUS_MESSAGES.SKIP_VIRTUAL_JOB.statusMessage);
-        assert.equal(
-            event.getBuildOf('d2').statusMessageType,
-            BUILD_STATUS_MESSAGES.SKIP_VIRTUAL_JOB.statusMessageType
-        );
-        assert.equal(event.getBuildOf('d3').status, 'SUCCESS');
-        assert.equal(event.getBuildOf('d3').statusMessage, BUILD_STATUS_MESSAGES.SKIP_VIRTUAL_JOB.statusMessage);
-        assert.equal(
-            event.getBuildOf('d3').statusMessageType,
-            BUILD_STATUS_MESSAGES.SKIP_VIRTUAL_JOB.statusMessageType
-        );
-        assert.equal(event.getBuildOf('d4').status, 'SUCCESS');
-        assert.equal(event.getBuildOf('d4').statusMessage, BUILD_STATUS_MESSAGES.SKIP_VIRTUAL_JOB.statusMessage);
-        assert.equal(
-            event.getBuildOf('d4').statusMessageType,
-            BUILD_STATUS_MESSAGES.SKIP_VIRTUAL_JOB.statusMessageType
-        );
-        assert.equal(event.getBuildOf('d5').status, 'CREATED');
-        assert.equal(event.getBuildOf('d6').status, 'CREATED');
-        assert.equal(event.getBuildOf('d7').status, 'CREATED');
-        assert.equal(event.getBuildOf('target1').status, 'SUCCESS');
-        assert.equal(event.getBuildOf('target1').statusMessage, BUILD_STATUS_MESSAGES.SKIP_VIRTUAL_JOB.statusMessage);
-        assert.equal(
-            event.getBuildOf('target1').statusMessageType,
-            BUILD_STATUS_MESSAGES.SKIP_VIRTUAL_JOB.statusMessageType
-        );
-        assert.equal(event.getBuildOf('target2').status, 'RUNNING');
+            const upstreamEvent = await eventFactoryMock.create({
+                pipelineId: upstreamPipeline.id,
+                startFrom: 'hub'
+            });
 
-        await event.getBuildOf('b').complete('SUCCESS');
-        assert.equal(event.getBuildOf('d5').status, 'SUCCESS');
-        assert.equal(event.getBuildOf('d5').statusMessage, BUILD_STATUS_MESSAGES.SKIP_VIRTUAL_JOB.statusMessage);
-        assert.equal(
-            event.getBuildOf('d5').statusMessageType,
-            BUILD_STATUS_MESSAGES.SKIP_VIRTUAL_JOB.statusMessageType
-        );
-        assert.equal(event.getBuildOf('d6').status, 'SUCCESS');
-        assert.equal(event.getBuildOf('d6').statusMessage, BUILD_STATUS_MESSAGES.SKIP_VIRTUAL_JOB.statusMessage);
-        assert.equal(
-            event.getBuildOf('d6').statusMessageType,
-            BUILD_STATUS_MESSAGES.SKIP_VIRTUAL_JOB.statusMessageType
-        );
-        assert.equal(event.getBuildOf('d7').status, 'CREATED');
+            await upstreamEvent.getBuildOf('hub').complete('SUCCESS');
+            await upstreamEvent.getBuildOf('a').complete('SUCCESS');
 
-        await event.getBuildOf('c').complete('SUCCESS');
-        assert.equal(event.getBuildOf('d7').status, 'SUCCESS');
-        assert.equal(event.getBuildOf('d7').statusMessage, BUILD_STATUS_MESSAGES.SKIP_VIRTUAL_JOB.statusMessage);
-        assert.equal(
-            event.getBuildOf('d7').statusMessageType,
-            BUILD_STATUS_MESSAGES.SKIP_VIRTUAL_JOB.statusMessageType
-        );
-    });
+            const downstreamEvent = downstreamPipeline.getLatestEvent();
 
-    it('should add virtual jobs to execution queue when they have freeze windows', async () => {
-        const pipeline = await pipelineFactoryMock.createFromFile('virtual-jobs-with-freeze-windows.yaml');
-
-        const event = await eventFactoryMock.create({
-            pipelineId: pipeline.id,
-            startFrom: 'hub'
+            assertVirtualBuildSuccess(downstreamEvent.getBuildOf('b'));
+            assertVirtualBuildSuccess(downstreamEvent.getBuildOf('c'));
+            assertVirtualBuildSuccess(upstreamEvent.getBuildOf('d'));
+            assertVirtualBuildSuccess(upstreamEvent.getBuildOf('e'));
         });
 
-        await event.getBuildOf('hub').complete('SUCCESS');
-        assert.equal(event.getBuildOf('a').status, 'RUNNING');
-        assert.equal(event.getBuildOf('b').status, 'RUNNING');
-        assert.equal(event.getBuildOf('c').status, 'RUNNING');
+        it('should add virtual jobs to execution queue when they have freeze windows', async () => {
+            const pipeline = await pipelineFactoryMock.createFromFile('virtual-jobs-with-freeze-windows.yaml');
 
-        await event.getBuildOf('a').complete('SUCCESS');
-        assert.equal(event.getBuildOf('d1').status, 'RUNNING');
-        assert.equal(event.getBuildOf('d2').status, 'RUNNING');
-        assert.equal(event.getBuildOf('d3').status, 'RUNNING');
-        assert.equal(event.getBuildOf('d4').status, 'RUNNING');
-        assert.equal(event.getBuildOf('d5').status, 'CREATED');
-        assert.equal(event.getBuildOf('d6').status, 'CREATED');
-        assert.equal(event.getBuildOf('d7').status, 'CREATED');
+            const event = await eventFactoryMock.create({
+                pipelineId: pipeline.id,
+                startFrom: 'hub'
+            });
 
-        await event.getBuildOf('d1').complete('SUCCESS');
-        assert.equal(event.getBuildOf('target1').status, 'RUNNING');
-        assert.equal(event.getBuildOf('target2').status, 'RUNNING');
+            await event.getBuildOf('hub').complete('SUCCESS');
+            assert.equal(event.getBuildOf('a').status, 'RUNNING');
+            assert.equal(event.getBuildOf('b').status, 'RUNNING');
+            assert.equal(event.getBuildOf('c').status, 'RUNNING');
 
-        await event.getBuildOf('b').complete('SUCCESS');
-        assert.equal(event.getBuildOf('d5').status, 'RUNNING');
-        assert.equal(event.getBuildOf('d6').status, 'RUNNING');
-        assert.equal(event.getBuildOf('d7').status, 'CREATED');
+            await event.getBuildOf('a').complete('SUCCESS');
+            assert.equal(event.getBuildOf('d1').status, 'RUNNING');
+            assert.equal(event.getBuildOf('d2').status, 'RUNNING');
+            assert.equal(event.getBuildOf('d3').status, 'RUNNING');
+            assert.equal(event.getBuildOf('d4').status, 'RUNNING');
+            assert.equal(event.getBuildOf('d5').status, 'CREATED');
+            assert.equal(event.getBuildOf('d6').status, 'CREATED');
+            assert.equal(event.getBuildOf('d7').status, 'CREATED');
 
-        await event.getBuildOf('c').complete('SUCCESS');
-        assert.equal(event.getBuildOf('d7').status, 'RUNNING');
+            await event.getBuildOf('d1').complete('SUCCESS');
+            assert.equal(event.getBuildOf('target1').status, 'RUNNING');
+            assert.equal(event.getBuildOf('target2').status, 'RUNNING');
+
+            await event.getBuildOf('b').complete('SUCCESS');
+            assert.equal(event.getBuildOf('d5').status, 'RUNNING');
+            assert.equal(event.getBuildOf('d6').status, 'RUNNING');
+            assert.equal(event.getBuildOf('d7').status, 'CREATED');
+
+            await event.getBuildOf('c').complete('SUCCESS');
+            assert.equal(event.getBuildOf('d7').status, 'RUNNING');
+        });
     });
 });
