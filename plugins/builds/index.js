@@ -129,7 +129,7 @@ async function triggerNextJobs(config, app) {
                 nextBuild = await andTrigger.execute(nextJob, parentBuilds, joinListNames, nextJobStageName);
             }
 
-            if (isVirtualJob(nextJob) && nextBuild !== null && nextBuild.status === Status.SUCCESS) {
+            if (isVirtualJob(nextJob) && nextBuild && nextBuild.status === Status.SUCCESS) {
                 downstreamOfNextJobsToBeProcessed.push({
                     build: nextBuild,
                     event: currentEvent,
@@ -315,7 +315,7 @@ async function triggerNextJobs(config, app) {
                         );
                     }
 
-                    if (isVirtualJob(nextJob) && nextBuild !== null && nextBuild.status === Status.SUCCESS) {
+                    if (isVirtualJob(nextJob) && nextBuild && nextBuild.status === Status.SUCCESS) {
                         downstreamOfNextJobsToBeProcessed.push({
                             build: nextBuild,
                             event: currentEvent,
