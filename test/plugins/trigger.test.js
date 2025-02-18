@@ -35,8 +35,8 @@ describe('trigger tests', () => {
 
     const loggerMock = {
         info: sinon.stub(),
-        error: sinon.stub(),
-        warn: sinon.stub()
+        warn: sinon.stub(),
+        error: (msg, err) => console.error(msg, err)
     };
 
     beforeEach(async () => {
