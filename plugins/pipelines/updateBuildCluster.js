@@ -20,13 +20,16 @@ module.exports = () => ({
         handler: async (request, h) => {
             const buildClusterAnnotation = 'screwdriver.cd/buildCluster';
             const payload = request.payload;
-
-            console.log("payload: ", payload);
-
             const { id } = request.params;
 
-            console.log("id: ", id);
 
+            // payload should have buildCluster annotation
+            if (!payload[buildClusterAnnotation]) {
+                throw boom.badRequest(`Payload must contain ${buildClusterAnnotation}`);
+            }
+
+            console.log("id: ", id);
+            console.log("payload: ", payload);
             const { pipelineFactory, bannerFactory } = request.server.app;
             const { scmContext, username, scmUserId } = request.auth.credentials;
 
@@ -62,19 +65,16 @@ module.exports = () => ({
 
             // update pipeline with buildCluster annotation
             pipeline.annotations[buildClusterAnnotation] = payload[buildClusterAnnotation];
-            logger.info(
-                `[Audit] user ${username} updates ${buildClusterAnnotation} for pipelineID:${id} to ${payload[buildClusterAnnotation]}.`
-            );
-            const result = await pipeline.update();
-
-            // update pipeline
-            // const updatedPipeline = await oldPipeline.update();
-
-            // await updatedPipeline.addWebhooks(`${request.server.info.uri}/v4/webhooks`);
-
-            // const result = await updatedPipeline.sync();
-
-            return h.response(result.toJson()).code(200);
+            try {
+                const result = await pipeline.update();
+                logger.info(
+                    `[Audit] user ${username} updates ${buildClusterAnnotation} for pipelineID:${id} to ${payload[buildClusterAnnotation]}.`
+                );
+                return h.response(result.toJson()).code(200);
+            } catch (err) {
+                logger.error(`Failed to update ${buildClusterAnnotation} for pipeline ${id}: ${err.message}`);
+                throw boom.internal(`Failed to update pipeline ${id}`);
+            }
         },
         validate: {
             params: joi.object({
