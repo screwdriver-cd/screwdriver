@@ -58,7 +58,6 @@ describe('createJoinObject function', () => {
                             { id: 12, name: 'jobB' }
                         ],
                         isExternal: false,
-                        isVirtual: false,
                         stageName: null
                     }
                 }
@@ -125,7 +124,6 @@ describe('createJoinObject function', () => {
                             { id: 23, name: 'sd@2:jobC' }
                         ],
                         isExternal: true,
-                        isVirtual: false,
                         stageName: null
                     }
                 }
@@ -162,53 +160,8 @@ describe('createJoinObject function', () => {
         const expected = {
             1: {
                 jobs: {
-                    jobB: { id: 12, join: [], isExternal: false, isVirtual: false, stageName: null },
-                    jobC: { id: 13, join: [], isExternal: false, isVirtual: false, stageName: null }
-                }
-            }
-        };
-
-        assert.deepEqual(result, expected);
-    });
-
-    it('should create join object for virtual jobs', async () => {
-        const nextJobNames = ['jobC'];
-        const current = {
-            build: { id: 1 },
-            event: {
-                workflowGraph: {
-                    nodes: [
-                        { name: '~commit' },
-                        { name: 'jobA', id: 11 },
-                        { name: 'jobB', id: 12 },
-                        { name: 'jobC', id: 13, virtual: true }
-                    ],
-                    edges: [
-                        { src: '~commit', dest: 'jobA' },
-                        { src: '~commit', dest: 'jobB' },
-                        { src: 'jobA', dest: 'jobC', join: true },
-                        { src: 'jobB', dest: 'jobC', join: true }
-                    ]
-                }
-            },
-            pipeline: { id: 1 }
-        };
-
-        const result = await createJoinObject(nextJobNames, current, eventFactoryMock);
-
-        const expected = {
-            1: {
-                jobs: {
-                    jobC: {
-                        id: 13,
-                        join: [
-                            { id: 11, name: 'jobA' },
-                            { id: 12, name: 'jobB' }
-                        ],
-                        isExternal: false,
-                        isVirtual: true,
-                        stageName: null
-                    }
+                    jobB: { id: 12, join: [], isExternal: false, stageName: null },
+                    jobC: { id: 13, join: [], isExternal: false, stageName: null }
                 }
             }
         };
@@ -226,7 +179,7 @@ describe('createJoinObject function', () => {
                         { name: '~commit' },
                         { name: 'jobA', id: 11 },
                         { name: 'jobB', id: 12 },
-                        { name: 'jobC', id: 13, virtual: true, stageName: 'red' }
+                        { name: 'jobC', id: 13, stageName: 'red' }
                     ],
                     edges: [
                         { src: '~commit', dest: 'jobA' },
@@ -251,7 +204,6 @@ describe('createJoinObject function', () => {
                             { id: 12, name: 'jobB' }
                         ],
                         isExternal: false,
-                        isVirtual: true,
                         stageName: 'red'
                     }
                 }
@@ -1338,12 +1290,13 @@ describe('handleNewBuild function', () => {
     });
 
     it('should skip the execution of virtual job and mark the build as successful', async () => {
+        jobMock.permutations[0].annotations = { 'screwdriver.cd/virtualJob': true };
+
         await handleNewBuild({
             done: true,
             hasFailure: false,
             newBuild: newBuildMock,
             job: jobMock,
-            isVirtualJob: true,
             event: eventMock
         });
 
@@ -1355,6 +1308,7 @@ describe('handleNewBuild function', () => {
     });
 
     it('should skip the execution of virtual job when freeze windows is empty', async () => {
+        jobMock.permutations[0].annotations = { 'screwdriver.cd/virtualJob': true };
         jobMock.permutations[0].freezeWindows = [];
 
         await handleNewBuild({
@@ -1362,7 +1316,6 @@ describe('handleNewBuild function', () => {
             hasFailure: false,
             newBuild: newBuildMock,
             job: jobMock,
-            isVirtualJob: true,
             event: eventMock
         });
 
@@ -1372,6 +1325,7 @@ describe('handleNewBuild function', () => {
     });
 
     it('should add virtual job to the execution queue when the job has freeze windows', async () => {
+        jobMock.permutations[0].annotations = { 'screwdriver.cd/virtualJob': true };
         jobMock.permutations[0].freezeWindows = ['* 10-21 ? * *'];
 
         await handleNewBuild({
@@ -1379,7 +1333,6 @@ describe('handleNewBuild function', () => {
             hasFailure: false,
             newBuild: newBuildMock,
             job: jobMock,
-            isVirtualJob: true,
             event: eventMock
         });
 
