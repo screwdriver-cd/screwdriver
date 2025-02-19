@@ -3,6 +3,7 @@
 const joi = require('joi');
 const schema = require('screwdriver-data-schema');
 const idSchema = schema.models.pipeline.base.extract('id');
+const scmUriSchema = schema.models.pipeline.base.extract('scmUri');
 const listSchema = joi.array().items(schema.models.pipeline.get).label('List of Pipelines');
 const pipelineIdsSchema = joi.alternatives().try(joi.array().items(idSchema), idSchema).required();
 const IDS_KEY = 'ids[]';
@@ -21,7 +22,7 @@ module.exports = () => ({
 
         handler: async (request, h) => {
             const { pipelineFactory } = request.server.app;
-            const { sort, configPipelineId, sortBy, search, page, count } = request.query;
+            const { sort, configPipelineId, sortBy, search, scmUri, page, count } = request.query;
             const scmContexts = pipelineFactory.scm.getScmContexts();
             let pipelineArray = [];
 
@@ -54,6 +55,15 @@ module.exports = () => ({
                         // Do a fuzzy search for name: screwdriver-cd/ui
                         // See https://www.w3schools.com/sql/sql_like.asp for syntax
                         keyword: `%${search}%`
+                    };
+                } else if (scmUri) {
+                    // The format of scmUri is 'github.com:123:main:source-dir'
+                    // Search pipelines based on the same repository (include other branch)
+                    const [scm, id] = scmUri.split(':');
+
+                    config.search = {
+                        field: 'scmUri',
+                        keyword: `${scm}:${id}:%`
                     };
                 } else {
                     // default list all to 50 max count, according to schema.api.pagination
@@ -118,7 +128,8 @@ module.exports = () => ({
             query: schema.api.pagination.concat(
                 joi.object({
                     configPipelineId: idSchema,
-                    'ids[]': pipelineIdsSchema.optional()
+                    'ids[]': pipelineIdsSchema.optional(),
+                    scmUri: scmUriSchema
                 })
             )
         }
