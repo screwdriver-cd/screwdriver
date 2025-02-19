@@ -1,6 +1,6 @@
 'use strict';
 
-const { createInternalBuild, Status, BUILD_STATUS_MESSAGES } = require('./helpers');
+const { createInternalBuild, Status, BUILD_STATUS_MESSAGES, isVirtualJob, hasFreezeWindows } = require('./helpers');
 
 /**
  * @typedef {import('screwdriver-models').BuildFactory} BuildFactory
@@ -38,18 +38,16 @@ class OrBase {
      * @param {Number} pipelineId
      * @param {Job} nextJob
      * @param {import('./helpers').ParentBuilds} parentBuilds
-     * @param {Boolean} isNextJobVirtual
      * @return {Promise<Build|null>}
      */
-    async trigger(event, pipelineId, nextJob, parentBuilds, isNextJobVirtual) {
+    async trigger(event, pipelineId, nextJob, parentBuilds) {
         let nextBuild = await this.buildFactory.get({
             eventId: event.id,
             jobId: nextJob.id
         });
 
-        const hasFreezeWindows =
-            nextJob.permutations[0].freezeWindows && nextJob.permutations[0].freezeWindows.length > 0;
-
+        const isNextJobVirtual = isVirtualJob(nextJob);
+        const hasWindows = hasFreezeWindows(nextJob);
         const causeMessage = nextJob.name === event.startFrom ? event.causeMessage : '';
 
         if (nextBuild !== null) {
@@ -58,7 +56,7 @@ class OrBase {
             }
 
             // Bypass execution of the build if the job is virtual
-            if (isNextJobVirtual && !hasFreezeWindows) {
+            if (isNextJobVirtual && !hasWindows) {
                 nextBuild.status = Status.SUCCESS;
                 nextBuild.statusMessage = BUILD_STATUS_MESSAGES.SKIP_VIRTUAL_JOB.statusMessage;
                 nextBuild.statusMessageType = BUILD_STATUS_MESSAGES.SKIP_VIRTUAL_JOB.statusMessageType;
@@ -84,17 +82,17 @@ class OrBase {
             baseBranch: event.baseBranch || null,
             parentBuilds,
             parentBuildId: this.currentBuild.id,
-            start: hasFreezeWindows || !isNextJobVirtual,
+            start: hasWindows || !isNextJobVirtual,
             causeMessage
         });
 
         // Bypass execution of the build if the job is virtual
-        if (isNextJobVirtual && !hasFreezeWindows) {
+        if (isNextJobVirtual && !hasWindows) {
             nextBuild.status = Status.SUCCESS;
             nextBuild.statusMessage = BUILD_STATUS_MESSAGES.SKIP_VIRTUAL_JOB.statusMessage;
             nextBuild.statusMessageType = BUILD_STATUS_MESSAGES.SKIP_VIRTUAL_JOB.statusMessageType;
 
-            nextBuild = nextBuild.update();
+            await nextBuild.update();
         }
 
         return nextBuild;
