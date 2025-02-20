@@ -30,7 +30,7 @@ module.exports = () => ({
 
             console.log("id: ", id);
             console.log("payload: ", payload);
-            const { pipelineFactory, bannerFactory } = request.server.app;
+            const { pipelineFactory, bannerFactory, buildClusterFactory } = request.server.app;
             const { scmContext, username, scmUserId } = request.auth.credentials;
 
             // only SD cluster admins can update the buildCluster
@@ -62,13 +62,19 @@ module.exports = () => ({
             }
 
             // need to make sure that the buildCluster is a valid cluster
+            const buildClusterName = payload[buildClusterAnnotation];
+            const buildCluster = await buildClusterFactory.get({ name: buildClusterName });
+
+            if (!buildCluster) {
+                throw boom.badRequest(`Build cluster ${buildClusterName} does not exist`);
+            }
 
             // update pipeline with buildCluster annotation
-            pipeline.annotations[buildClusterAnnotation] = payload[buildClusterAnnotation];
+            pipeline.annotations[buildClusterAnnotation] = buildClusterName;
             try {
                 const result = await pipeline.update();
                 logger.info(
-                    `[Audit] user ${username} updates ${buildClusterAnnotation} for pipelineID:${id} to ${payload[buildClusterAnnotation]}.`
+                    `[Audit] user ${username} updates ${buildClusterAnnotation} for pipelineID:${id} to ${buildClusterName}.`
                 );
                 return h.response(result.toJson()).code(200);
             } catch (err) {
