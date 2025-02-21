@@ -20,16 +20,12 @@ module.exports = () => ({
         handler: async (request, h) => {
             const buildClusterAnnotation = 'screwdriver.cd/buildCluster';
             const payload = request.payload;
-            const { id } = request.params;
-
 
             // payload should have buildCluster annotation
             if (!payload[buildClusterAnnotation]) {
                 throw boom.badRequest(`Payload must contain ${buildClusterAnnotation}`);
             }
 
-            console.log("id: ", id);
-            console.log("payload: ", payload);
             const { pipelineFactory, bannerFactory, buildClusterFactory } = request.server.app;
             const { scmContext, username, scmUserId } = request.auth.credentials;
 
@@ -42,34 +38,40 @@ module.exports = () => ({
             );
             if (!adminDetails.isAdmin) {
                 throw boom.forbidden(
-                    `User ${adminDetails.userDisplayName} does not have Screwdriver administrative privileges to update the buildCluster`
+                    `User ${username} does not have Screwdriver administrative privileges to update the buildCluster`
                 );
             }   
 
+            const { id } = request.params;
             const pipeline = await pipelineFactory.get({ id });
-            // check if pipeline is null
+            // check if pipeline exists
             if (!pipeline) {                
                 throw boom.notFound(`Pipeline ${id} does not exist`);
             }
 
-            console.log("pipeline: ", pipeline);
             const pipelineConfig = await pipeline.getConfiguration({});
-
             // check if pipeline has buildCluster annotation
             if (pipelineConfig.annotations?.[buildClusterAnnotation]) {
                 const scmUrl = pipeline.scmRepo.url;
                 throw boom.conflict(`Pipeline ${id} already has a buildCluster annotation set in the YAML configuration: check ${scmUrl}`);
             }
 
-            // need to make sure that the buildCluster is a valid cluster
+            // ensure that the buildCluster is a valid cluster
             const buildClusterName = payload[buildClusterAnnotation];
-            const buildCluster = await buildClusterFactory.get({ name: buildClusterName });
-
+            const buildCluster = await buildClusterFactory.get({ name: buildClusterName, scmContext });
             if (!buildCluster) {
                 throw boom.badRequest(`Build cluster ${buildClusterName} does not exist`);
             }
 
+            // ensure that the buildCluster is active
+            if (!buildCluster.isActive) { 
+                throw boom.badRequest(`Build cluster ${buildClusterName} is not active`);
+            }
+
             // update pipeline with buildCluster annotation
+            if (!pipeline.annotations) {
+                pipeline.annotations = {};
+            }
             pipeline.annotations[buildClusterAnnotation] = buildClusterName;
             try {
                 const result = await pipeline.update();
@@ -79,7 +81,7 @@ module.exports = () => ({
                 return h.response(result.toJson()).code(200);
             } catch (err) {
                 logger.error(`Failed to update ${buildClusterAnnotation} for pipeline ${id}: ${err.message}`);
-                throw boom.internal(`Failed to update pipeline ${id}`);
+                throw boom.internal(`Failed to update ${buildClusterAnnotation} for pipeline ${id}`);
             }
         },
         validate: {
