@@ -22,6 +22,7 @@ const testEvents = require('./data/events.json');
 const testEventsWithGroupEventId = require('./data/eventsWithGroupEventId.json');
 const testEventsPr = require('./data/eventsPr.json');
 const testTokens = require('./data/pipeline-tokens.json');
+const PARSED_CONFIG = require('./data/github.parsedyaml.json');
 
 sinon.assert.expose(assert, { prefix: '' });
 
@@ -85,7 +86,7 @@ const decoratePipelineMock = pipeline => {
     mock.sync = sinon.stub();
     mock.addWebhooks = sinon.stub();
     mock.syncPRs = sinon.stub();
-    mock.update = sinon.stub();
+    mock.update = sinon.stub().returns(pipeline);
     mock.toJson = sinon.stub().returns(pipeline);
     mock.jobs = sinon.stub();
     mock.getJobs = sinon.stub();
@@ -96,6 +97,7 @@ const decoratePipelineMock = pipeline => {
     mock.getFirstAdmin = sinon.stub();
     mock.token = Promise.resolve('faketoken');
     mock.tokens = sinon.stub();
+    mock.getConfiguration = sinon.stub();
 
     return mock;
 };
@@ -178,6 +180,20 @@ const getCollectionMock = collection => {
     return mock;
 };
 
+const decorateBuildClusterObject = buildCluster => {
+    const decorated = hoek.clone(buildCluster);
+    decorated.toJson = sinon.stub().returns(buildCluster);
+    return decorated;
+};
+
+const getMockBuildClusters = buildClusters => {
+    if (Array.isArray(buildClusters)) {
+        return buildClusters.map(decorateBuildClusterObject);
+    }
+
+    return decorateBuildClusterObject(buildClusters);
+};
+
 describe('pipeline plugin test', () => {
     let pipelineFactoryMock;
     let userFactoryMock;
@@ -194,6 +210,7 @@ describe('pipeline plugin test', () => {
     let scmMock;
     let pipelineTemplateFactoryMock;
     let pipelineTemplateVersionFactoryMock;
+    let buildClusterFactoryMock;
     let plugin;
     let server;
     const password = 'this_is_a_password_that_needs_to_be_atleast_32_characters';
@@ -274,6 +291,9 @@ describe('pipeline plugin test', () => {
         pipelineTemplateVersionFactoryMock = {
             create: sinon.stub()
         };
+        buildClusterFactoryMock = {
+            get: sinon.stub()
+        };
 
         /* eslint-disable global-require */
         plugin = require('../../plugins/pipelines');
@@ -294,6 +314,7 @@ describe('pipeline plugin test', () => {
             secretFactory: secretFactoryMock,
             pipelineTemplateFactory: pipelineTemplateFactoryMock,
             pipelineTemplateVersionFactory: pipelineTemplateVersionFactoryMock,
+            buildClusterFactory: buildClusterFactoryMock,
             ecosystem: {
                 badges: '{{subject}}/{{status}}/{{color}}'
             }
@@ -4222,4 +4243,70 @@ describe('pipeline plugin test', () => {
             });
         });
     });
+
+    describe('PUT /pipelines/{id}/buildCluster', () => {
+        const id = 123;
+        let options;
+
+        const testBuildCluster = require('./data/buildCluster.json');
+        // const testBuildClusters = require('./data/buildClusters.json');
+        // const updatedBuildCluster = require('./data/updatedBuildCluster.json');
+        beforeEach(() => {
+            options = {
+                method: 'PUT',
+                url: `/pipelines/${id}/buildCluster`,
+                payload: {
+                    'screwdriver.cd/buildCluster': 'aws.west2',
+                },
+                auth: {
+                    credentials: {
+                        username: 'foo',
+                        scmContext: 'github:github.com',
+                        scmUserId: 1312,
+                        scope: ['user']
+                    },
+                    strategy: ['token']
+                }
+            };
+            screwdriverAdminDetailsMock.returns({ isAdmin: true });
+        });
+
+        it('returns 400 because of bad payload', () => {
+            delete options.payload['screwdriver.cd/buildCluster'];
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 400);
+                assert.equal(reply.result.message, 'Payload must contain screwdriver.cd/buildCluster');
+            });
+        });
+
+        it('returns 403 because user is not SD admin', () => {
+            screwdriverAdminDetailsMock.returns({ isAdmin: false });
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 403);
+                assert.equal(reply.result.message, 'User foo does not have Screwdriver administrative privileges to update the buildCluster');
+            });
+        });
+
+        it('returns 404 when pipeline does not exist', () => {
+            pipelineFactoryMock.get.resolves(null);
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 404);
+                assert.equal(reply.result.message, `Pipeline ${id} does not exist`);
+            });
+        });
+
+        it('returns 200 when pipeline exists', () => {
+            const pipelineMock = getPipelineMocks(testPipeline);
+            pipelineMock.getConfiguration.resolves(PARSED_CONFIG);
+            pipelineFactoryMock.get.resolves(pipelineMock);
+            buildClusterFactoryMock.get.resolves(getMockBuildClusters(testBuildCluster));
+
+            return server.inject(options).then(reply => {
+                // console.log(reply);
+                // assert.equal(reply.result.message, 'User foo does not have Screwdriver administrative privileges to update the buildCluster');
+            });
+        });
+
+    });
+
 });
