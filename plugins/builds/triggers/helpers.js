@@ -634,10 +634,22 @@ async function getParentBuildStatus({ newBuild, joinListNames, pipelineId, build
  * @param {String|undefined} arg.pipelineId Pipeline ID
  * @param {String|undefined} arg.stageName Stage name
  * @param {Event} arg.event Event
+ * @param {Build} arg.currentBuild Current build
  * @returns {Promise<Build|null>} The newly updated/created build
  */
-async function handleNewBuild({ done, hasFailure, newBuild, job, pipelineId, stageName, event }) {
+async function handleNewBuild({ done, hasFailure, newBuild, job, pipelineId, stageName, event, currentBuild }) {
     if (!done || Status.isStarted(newBuild.status)) {
+        // The virtual job does not inherit metadata because the Launcher is not executed.
+        // Therefore, it is necessary to take over the metadata from the previous build.
+
+        // TODO There is a bug when virtual job requires [a, b] and if "a" and "b" are completed simultaneously.
+        // https://github.com/screwdriver-cd/screwdriver/issues/3287
+        if (isVirtualJob(job) && !hasFreezeWindows(job)) {
+            newBuild.meta = merge({}, newBuild.meta, currentBuild.meta);
+
+            await newBuild.update();
+        }
+
         return null;
     }
 
@@ -661,6 +673,9 @@ async function handleNewBuild({ done, hasFailure, newBuild, job, pipelineId, sta
         newBuild.status = Status.SUCCESS;
         newBuild.statusMessage = BUILD_STATUS_MESSAGES.SKIP_VIRTUAL_JOB.statusMessage;
         newBuild.statusMessageType = BUILD_STATUS_MESSAGES.SKIP_VIRTUAL_JOB.statusMessageType;
+        // The virtual job does not inherit metadata because the Launcher is not executed.
+        // Therefore, it is necessary to take over the metadata from the previous build.
+        newBuild.meta = merge({}, newBuild.meta, currentBuild.meta);
 
         return newBuild.update();
     }
