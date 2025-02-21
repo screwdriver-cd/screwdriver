@@ -86,7 +86,7 @@ const decoratePipelineMock = pipeline => {
     mock.sync = sinon.stub();
     mock.addWebhooks = sinon.stub();
     mock.syncPRs = sinon.stub();
-    mock.update = sinon.stub().returns(pipeline);
+    mock.update = sinon.stub().returns();
     mock.toJson = sinon.stub().returns(pipeline);
     mock.jobs = sinon.stub();
     mock.getJobs = sinon.stub();
@@ -348,6 +348,13 @@ describe('pipeline plugin test', () => {
                 }
             }
         ]);
+        server.ext('onPreResponse', (request, h) => {
+            const response = request.response;
+            if (response.isBoom) {
+                response.output.payload.message = response.message;
+            }
+            return h.continue;
+        });
     });
 
     afterEach(() => {
@@ -4246,11 +4253,12 @@ describe('pipeline plugin test', () => {
 
     describe('PUT /pipelines/{id}/buildCluster', () => {
         const id = 123;
+        const buildClusterName = 'aws.west2';
         let options;
 
         const testBuildCluster = require('./data/buildCluster.json');
-        // const testBuildClusters = require('./data/buildClusters.json');
-        // const updatedBuildCluster = require('./data/updatedBuildCluster.json');
+        const testBuildClusterInactive = require('./data/buildClusterInactive.json');
+
         beforeEach(() => {
             options = {
                 method: 'PUT',
@@ -4295,15 +4303,57 @@ describe('pipeline plugin test', () => {
             });
         });
 
-        it('returns 200 when pipeline exists', () => {
+        it('returns 400 when buildCluster does not exist', () => {
+            const pipelineMock = getPipelineMocks(testPipeline);
+            pipelineMock.getConfiguration.resolves(PARSED_CONFIG);
+            pipelineFactoryMock.get.resolves(pipelineMock);
+            buildClusterFactoryMock.get.resolves(null);
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 400);
+                assert.equal(reply.result.message, `Build cluster ${buildClusterName} does not exist`);
+            });
+        });
+
+        it('returns 400 when buildCluster is not active', () => {
+            const pipelineMock = getPipelineMocks(testPipeline);
+            pipelineMock.getConfiguration.resolves(PARSED_CONFIG);
+            pipelineFactoryMock.get.resolves(pipelineMock);
+            buildClusterFactoryMock.get.resolves(testBuildClusterInactive);
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 400);
+                assert.equal(reply.result.message, `Build cluster ${buildClusterName} is not active`);
+            });
+        });
+
+        it('returns 200 and update the buildClusterName', () => {
             const pipelineMock = getPipelineMocks(testPipeline);
             pipelineMock.getConfiguration.resolves(PARSED_CONFIG);
             pipelineFactoryMock.get.resolves(pipelineMock);
             buildClusterFactoryMock.get.resolves(getMockBuildClusters(testBuildCluster));
-
+            pipelineMock.update.returns({
+                toJson: sinon.stub().returns({})
+            });
             return server.inject(options).then(reply => {
-                // console.log(reply);
-                // assert.equal(reply.result.message, 'User foo does not have Screwdriver administrative privileges to update the buildCluster');
+                assert.equal(reply.statusCode, 200);
+            });
+        });
+
+        it('returns 500 when updating the buildCluster fails', () => {
+            const pipelineMock = getPipelineMocks(testPipeline);
+            pipelineMock.getConfiguration.resolves(PARSED_CONFIG);
+            pipelineFactoryMock.get.resolves(pipelineMock);
+            buildClusterFactoryMock.get.resolves(getMockBuildClusters(testBuildCluster));
+        
+            // Simulate failure when updating pipeline
+            const updateError = new Error('Database update failed');
+            pipelineMock.update.rejects(updateError);
+        
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 500);
+                assert.equal(
+                    reply.result.message, 
+                    `Failed to update screwdriver.cd/buildCluster for pipeline ${id}`
+                );
             });
         });
 
