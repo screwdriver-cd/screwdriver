@@ -86,7 +86,7 @@ const decoratePipelineMock = pipeline => {
     mock.sync = sinon.stub();
     mock.addWebhooks = sinon.stub();
     mock.syncPRs = sinon.stub();
-    mock.update = sinon.stub().returns();
+    mock.update = sinon.stub();
     mock.toJson = sinon.stub().returns(pipeline);
     mock.jobs = sinon.stub();
     mock.getJobs = sinon.stub();
