@@ -1177,6 +1177,7 @@ describe('handleNewBuild function', () => {
     const handleNewBuild = RewiredTriggerHelper.__get__('handleNewBuild');
 
     let newBuildMock;
+    let currentBuildMock;
     let jobMock;
     let eventMock;
 
@@ -1184,6 +1185,15 @@ describe('handleNewBuild function', () => {
         newBuildMock = {
             id: 123,
             status: Status.CREATED,
+            eventId: 456,
+            update: sinon.stub().resolves(),
+            start: sinon.stub().resolvesThis(),
+            remove: sinon.stub().resolves()
+        };
+
+        currentBuildMock = {
+            id: 234,
+            status: Status.SUCCESS,
             eventId: 456,
             update: sinon.stub().resolves(),
             start: sinon.stub().resolvesThis(),
@@ -1211,7 +1221,8 @@ describe('handleNewBuild function', () => {
             hasFailure: false,
             newBuild: newBuildMock,
             job: jobMock,
-            event: eventMock
+            event: eventMock,
+            currentBuild: currentBuildMock
         });
 
         assert.isNull(result);
@@ -1228,7 +1239,8 @@ describe('handleNewBuild function', () => {
             hasFailure: false,
             newBuild: newBuildMock,
             job: jobMock,
-            event: eventMock
+            event: eventMock,
+            currentBuild: currentBuildMock
         });
 
         assert.strictEqual(result.status, Status.QUEUED);
@@ -1245,7 +1257,8 @@ describe('handleNewBuild function', () => {
             job: jobMock,
             pipelineId: 1,
             stage: { name: 'deploy' },
-            event: eventMock
+            event: eventMock,
+            currentBuild: currentBuildMock
         });
 
         assert.isNull(result);
@@ -1265,7 +1278,8 @@ describe('handleNewBuild function', () => {
             job: jobMock,
             pipelineId: 1,
             stageName: 'deploy',
-            event: eventMock
+            event: eventMock,
+            currentBuild: currentBuildMock
         });
 
         assert.isNull(result);
@@ -1281,7 +1295,8 @@ describe('handleNewBuild function', () => {
             hasFailure: false,
             newBuild: newBuildMock,
             job: jobMock,
-            event: eventMock
+            event: eventMock,
+            currentBuild: currentBuildMock
         });
 
         assert.strictEqual(result.status, Status.QUEUED);
@@ -1297,7 +1312,8 @@ describe('handleNewBuild function', () => {
             hasFailure: false,
             newBuild: newBuildMock,
             job: jobMock,
-            event: eventMock
+            event: eventMock,
+            currentBuild: currentBuildMock
         });
 
         assert.strictEqual(newBuildMock.status, Status.SUCCESS);
@@ -1316,7 +1332,8 @@ describe('handleNewBuild function', () => {
             hasFailure: false,
             newBuild: newBuildMock,
             job: jobMock,
-            event: eventMock
+            event: eventMock,
+            currentBuild: currentBuildMock
         });
 
         assert.strictEqual(newBuildMock.status, Status.SUCCESS);
@@ -1333,7 +1350,8 @@ describe('handleNewBuild function', () => {
             hasFailure: false,
             newBuild: newBuildMock,
             job: jobMock,
-            event: eventMock
+            event: eventMock,
+            currentBuild: currentBuildMock
         });
 
         assert.strictEqual(newBuildMock.status, Status.QUEUED);

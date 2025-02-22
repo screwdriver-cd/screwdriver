@@ -1,5 +1,6 @@
 'use strict';
 
+const merge = require('lodash.mergewith');
 const { createInternalBuild, Status, BUILD_STATUS_MESSAGES, isVirtualJob, hasFreezeWindows } = require('./helpers');
 
 /**
@@ -60,6 +61,7 @@ class OrBase {
                 nextBuild.status = Status.SUCCESS;
                 nextBuild.statusMessage = BUILD_STATUS_MESSAGES.SKIP_VIRTUAL_JOB.statusMessage;
                 nextBuild.statusMessageType = BUILD_STATUS_MESSAGES.SKIP_VIRTUAL_JOB.statusMessageType;
+                nextBuild.meta = merge({}, nextBuild.meta, this.currentBuild.meta);
 
                 return nextBuild.update();
             }
@@ -91,6 +93,7 @@ class OrBase {
             nextBuild.status = Status.SUCCESS;
             nextBuild.statusMessage = BUILD_STATUS_MESSAGES.SKIP_VIRTUAL_JOB.statusMessage;
             nextBuild.statusMessageType = BUILD_STATUS_MESSAGES.SKIP_VIRTUAL_JOB.statusMessageType;
+            nextBuild.meta = merge({}, nextBuild.meta, this.currentBuild.meta);
 
             await nextBuild.update();
         }

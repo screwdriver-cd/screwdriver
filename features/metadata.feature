@@ -95,3 +95,22 @@ Feature: Metadata
         And the build succeeded
         And the "BAR" job is started
         Then in the build, the value of "foo" is either "foobar" or "barbaz" from metadata
+
+    Scenario: Inherit metadata by or triggered virtual job based on priority
+        Given an existing pipeline on branch "virtual-job-or"
+        And start the "hub" job
+        Then the "virtual" job is started for virtual job test
+        And the build succeeded
+        And { "foo": "success" } metadata in build
+        Then the "target" job is started for virtual job test
+        And the build succeeded
+
+    Scenario: Inherit metadata by and triggered virtual job based on priority
+        Given an existing pipeline on branch "virtual-job-and"
+        And start the "hub" job
+        Then the "virtual" job is started for virtual job test
+        And the build succeeded
+        And { "foo": { "bar": "success" } } metadata in build
+        And { "foo": { "baz": "success" } } metadata in build
+        Then the "target" job is started for virtual job test
+        And the build succeeded

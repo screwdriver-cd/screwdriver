@@ -168,3 +168,66 @@ When(/^the (detached )?"(BAM|BOOZ)" job is started$/, { timeout: TIMEOUT }, func
             this.buildId = resp.body[0].id;
         });
 });
+
+Given(
+    /^an existing pipeline on branch "([^"]*)"$/,
+    {
+        timeout: TIMEOUT
+    },
+    async function step(branchName) {
+        await this.ensurePipelineExists({
+            repoName: this.repoName,
+            branch: branchName,
+            shouldNotDeletePipeline: true
+        });
+    }
+);
+
+Then(
+    /^start the "([^"]*)" job$/,
+    {
+        timeout: TIMEOUT
+    },
+    function step(jobName) {
+        const jobId = this.jobs.filter(job => job.name === jobName)[0].id;
+
+        return request({
+            url: `${this.instance}/${this.namespace}/builds`,
+            method: 'POST',
+            json: {
+                jobId
+            },
+            context: {
+                token: this.jwt
+            }
+        }).then(resp => {
+            Assert.equal(resp.statusCode, 201);
+            this.buildId = resp.body.id;
+        });
+    }
+);
+
+Then(/^the "([^"]*)" job is started for virtual job test$/, { timeout: TIMEOUT }, function step(jobName) {
+    this.jobName = jobName;
+
+    return sdapi
+        .searchForBuild({
+            instance: this.instance,
+            pipelineId: this.pipelineId,
+            desiredSha: this.sha,
+            desiredStatus: ['QUEUED', 'RUNNING', 'SUCCESS', 'FAILURE'],
+            jobName: this.jobName,
+            jwt: this.jwt
+        })
+        .then(build => {
+            this.buildId = build.id;
+        });
+});
+
+Then(/^{ "(.*)": "(.*)" } metadata in build/, function step(key, value) {
+    Assert.equal(this.buildMeta[key], value);
+});
+
+Then(/^{ "(.*)": { "(.*)": "(.*)" } } metadata in build/, function step(key1, key2, value) {
+    Assert.equal(this.buildMeta[key1][key2], value);
+});

@@ -103,7 +103,8 @@ class JoinBase {
             job: nextJob,
             pipelineId,
             stageName: nextJobStageName,
-            event
+            event,
+            currentBuild: this.currentBuild
         });
     }
 }
