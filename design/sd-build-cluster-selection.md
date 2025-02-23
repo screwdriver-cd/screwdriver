@@ -74,8 +74,9 @@ graph TD
   click C "https://github.com/screwdriver-cd/models/blob/7eac5d79e11620793ab8936cf6e06971a2c04eea/lib/buildFactory.js#L221-L226"
   click D "https://github.com/screwdriver-cd/models/blob/7eac5d79e11620793ab8936cf6e06971a2c04eea/lib/buildFactory.js#L213"
   click E "https://github.com/screwdriver-cd/models/blob/7eac5d79e11620793ab8936cf6e06971a2c04eea/lib/buildFactory.js#L214"
+  click F "https://github.com/screwdriver-cd/models/blob/7eac5d79e11620793ab8936cf6e06971a2c04eea/lib/buildFactory.js#L215-L219"
   click H "https://github.com/screwdriver-cd/models/blob/7eac5d79e11620793ab8936cf6e06971a2c04eea/lib/helper.js#L245-L248"
-  click I "https://github.com/screwdriver-cd/models/blob/7eac5d79e11620793ab8936cf6e06971a2c04eea/lib/helper.js#L235-L237"
+  click J "https://github.com/screwdriver-cd/models/blob/7eac5d79e11620793ab8936cf6e06971a2c04eea/lib/helper.js#L235-L237"
   click L "https://github.com/screwdriver-cd/models/blob/7eac5d79e11620793ab8936cf6e06971a2c04eea/lib/helper.js#L239-L241"
   click M "https://github.com/screwdriver-cd/models/blob/7eac5d79e11620793ab8936cf6e06971a2c04eea/lib/helper.js#L259-L265"
 ```
