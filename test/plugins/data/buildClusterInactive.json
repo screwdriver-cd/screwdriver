@@ -1,0 +1,12 @@
+{
+    "id": 12345,
+    "name": "iOS",
+    "scmOrganizations": ["screwdriver-cd"],
+    "scmContext": "github:github.com",
+    "managedByScrewdriver": false,
+    "maintainer": "foo@bar.com",
+    "isActive": false,
+    "description": "Build cluster for iOS team",
+    "weightage": 100,
+    "group": "on-prem"
+}
