@@ -23,6 +23,8 @@ const testEventsWithGroupEventId = require('./data/eventsWithGroupEventId.json')
 const testEventsPr = require('./data/eventsPr.json');
 const testTokens = require('./data/pipeline-tokens.json');
 const PARSED_CONFIG = require('./data/github.parsedyaml.json');
+const testBuildCluster = require('./data/buildCluster.json');
+const testBuildClusterInactive = require('./data/buildClusterInactive.json');
 
 sinon.assert.expose(assert, { prefix: '' });
 
@@ -182,7 +184,9 @@ const getCollectionMock = collection => {
 
 const decorateBuildClusterObject = buildCluster => {
     const decorated = hoek.clone(buildCluster);
+
     decorated.toJson = sinon.stub().returns(buildCluster);
+
     return decorated;
 };
 
@@ -349,10 +353,12 @@ describe('pipeline plugin test', () => {
             }
         ]);
         server.ext('onPreResponse', (request, h) => {
-            const response = request.response;
+            const { response } = request;
+
             if (response.isBoom) {
                 response.output.payload.message = response.message;
             }
+
             return h.continue;
         });
     });
@@ -4256,15 +4262,12 @@ describe('pipeline plugin test', () => {
         const buildClusterName = 'aws.west2';
         let options;
 
-        const testBuildCluster = require('./data/buildCluster.json');
-        const testBuildClusterInactive = require('./data/buildClusterInactive.json');
-
         beforeEach(() => {
             options = {
                 method: 'PUT',
                 url: `/pipelines/${id}/buildCluster`,
                 payload: {
-                    'screwdriver.cd/buildCluster': 'aws.west2',
+                    'screwdriver.cd/buildCluster': 'aws.west2'
                 },
                 auth: {
                     credentials: {
@@ -4281,6 +4284,7 @@ describe('pipeline plugin test', () => {
 
         it('returns 400 because of bad payload', () => {
             delete options.payload['screwdriver.cd/buildCluster'];
+
             return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 400);
                 assert.equal(reply.result.message, 'Payload must contain screwdriver.cd/buildCluster');
@@ -4289,14 +4293,19 @@ describe('pipeline plugin test', () => {
 
         it('returns 403 because user is not SD admin', () => {
             screwdriverAdminDetailsMock.returns({ isAdmin: false });
+
             return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 403);
-                assert.equal(reply.result.message, 'User foo does not have Screwdriver administrative privileges to update the buildCluster');
+                assert.equal(
+                    reply.result.message,
+                    'User foo does not have Screwdriver administrative privileges to update the buildCluster'
+                );
             });
         });
 
         it('returns 404 when pipeline does not exist', () => {
             pipelineFactoryMock.get.resolves(null);
+
             return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 404);
                 assert.equal(reply.result.message, `Pipeline ${id} does not exist`);
@@ -4305,9 +4314,11 @@ describe('pipeline plugin test', () => {
 
         it('returns 400 when buildCluster does not exist', () => {
             const pipelineMock = getPipelineMocks(testPipeline);
+
             pipelineMock.getConfiguration.resolves(PARSED_CONFIG);
             pipelineFactoryMock.get.resolves(pipelineMock);
             buildClusterFactoryMock.get.resolves(null);
+
             return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 400);
                 assert.equal(reply.result.message, `Build cluster ${buildClusterName} does not exist`);
@@ -4316,9 +4327,11 @@ describe('pipeline plugin test', () => {
 
         it('returns 400 when buildCluster is not active', () => {
             const pipelineMock = getPipelineMocks(testPipeline);
+
             pipelineMock.getConfiguration.resolves(PARSED_CONFIG);
             pipelineFactoryMock.get.resolves(pipelineMock);
             buildClusterFactoryMock.get.resolves(testBuildClusterInactive);
+
             return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 400);
                 assert.equal(reply.result.message, `Build cluster ${buildClusterName} is not active`);
@@ -4327,12 +4340,14 @@ describe('pipeline plugin test', () => {
 
         it('returns 200 and update the buildClusterName', () => {
             const pipelineMock = getPipelineMocks(testPipeline);
+
             pipelineMock.getConfiguration.resolves(PARSED_CONFIG);
             pipelineFactoryMock.get.resolves(pipelineMock);
             buildClusterFactoryMock.get.resolves(getMockBuildClusters(testBuildCluster));
             pipelineMock.update.returns({
                 toJson: sinon.stub().returns({})
             });
+
             return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 200);
             });
@@ -4340,23 +4355,20 @@ describe('pipeline plugin test', () => {
 
         it('returns 500 when updating the buildCluster fails', () => {
             const pipelineMock = getPipelineMocks(testPipeline);
+
             pipelineMock.getConfiguration.resolves(PARSED_CONFIG);
             pipelineFactoryMock.get.resolves(pipelineMock);
             buildClusterFactoryMock.get.resolves(getMockBuildClusters(testBuildCluster));
-        
+
             // Simulate failure when updating pipeline
             const updateError = new Error('Database update failed');
+
             pipelineMock.update.rejects(updateError);
-        
+
             return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 500);
-                assert.equal(
-                    reply.result.message, 
-                    `Failed to update screwdriver.cd/buildCluster for pipeline ${id}`
-                );
+                assert.equal(reply.result.message, `Failed to update screwdriver.cd/buildCluster for pipeline ${id}`);
             });
         });
-
     });
-
 });
