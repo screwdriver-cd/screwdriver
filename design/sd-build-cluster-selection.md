@@ -56,9 +56,13 @@ graph TD
   E@{ shape: lean-r, label: "Pipeline annotations" }
   F@{ shape: lean-r, label: "Job provider" }
   end
+  subgraph new
+  Y@{ shape: lean-r, label: "Custom Job mapper" }
+  end
   D --> C
   E --> C
   F --> C
+  Y --> C
   C --> G{Is provider present?}
   G -->|Yes| H[Derive build cluster based on provider]
   H --> Z@{ shape: stadium, label: "Done" }
