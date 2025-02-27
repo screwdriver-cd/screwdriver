@@ -8,6 +8,7 @@ const testBuilds = require('./data/builds.json');
 const testBuild = require('./data/buildWithSteps.json');
 const testJob = require('./data/job.json');
 const testPipeline = require('./data/pipeline.json');
+const testBuildClusters = require('./data/buildClusters.json');
 
 sinon.assert.expose(assert, { prefix: '' });
 
@@ -63,12 +64,32 @@ const getPipelineMocks = pipeline => {
     return decoratePipelineMock(pipeline);
 };
 
+const decorateBuildClusterObject = buildCluster => {
+    const decorated = hoek.clone(buildCluster);
+
+    decorated.toJson = sinon.stub().returns(buildCluster);
+
+    return decorated;
+};
+
+const getMockBuildClusters = buildClusters => {
+    if (Array.isArray(buildClusters)) {
+        return buildClusters.map(decorateBuildClusterObject);
+    }
+
+    return decorateBuildClusterObject(buildClusters);
+};
+
 describe('job plugin test', () => {
     let jobFactoryMock;
     let pipelineFactoryMock;
     let pipelineMock;
     let userFactoryMock;
     let userMock;
+    let bannerFactoryMock;
+    let bannerMock;
+    let screwdriverAdminDetailsMock;
+    let buildClusterFactoryMock;
     let plugin;
     let server;
     const dateNow = 1552597858211;
@@ -102,6 +123,25 @@ describe('job plugin test', () => {
             get: sinon.stub().resolves(userMock)
         };
 
+        bannerFactoryMock = {
+            scm: {
+                getDisplayName: sinon.stub().returns()
+            }
+        };
+
+        screwdriverAdminDetailsMock = sinon.stub();
+
+        bannerMock = {
+            name: 'banners',
+            register: s => {
+                s.expose('screwdriverAdminDetails', screwdriverAdminDetailsMock);
+            }
+        };
+
+        buildClusterFactoryMock = {
+            get: sinon.stub()
+        };
+
         /* eslint-disable global-require */
         plugin = require('../../plugins/jobs');
         /* eslint-enable global-require */
@@ -112,7 +152,9 @@ describe('job plugin test', () => {
         server.app = {
             jobFactory: jobFactoryMock,
             pipelineFactory: pipelineFactoryMock,
-            userFactory: userFactoryMock
+            userFactory: userFactoryMock,
+            bannerFactory: bannerFactoryMock,
+            buildClusterFactory: buildClusterFactoryMock
         };
 
         server.auth.scheme('custom', () => ({
@@ -126,6 +168,7 @@ describe('job plugin test', () => {
         server.auth.strategy('token', 'custom');
 
         server.register([
+            { plugin: bannerMock },
             {
                 plugin
             },
@@ -694,6 +737,253 @@ describe('job plugin test', () => {
 
             return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 500);
+            });
+        });
+    });
+
+    describe('Job Build Cluster APIs', () => {
+        const id = 1234;
+        const adminBuildClusterAnnotation = 'screwdriver.cd/sdAdminBuildClusterOverride';
+        const buildClusterName = 'aws.west2';
+        const pipelineId = 123;
+        const scmContext = 'github:github.com';
+        const scmDisplayName = 'GitHub';
+        const testBuildCluster = testBuildClusters[2];
+        const annotationObj = { [adminBuildClusterAnnotation]: buildClusterName };
+        let jobMock;
+        let options;
+
+        beforeEach(() => {
+            screwdriverAdminDetailsMock.returns({ isAdmin: true });
+            jobMock = getJobMocks({ id, pipelineId, permutations: [{}] });
+            jobMock.update.resolves(jobMock);
+            jobFactoryMock.get.resolves(jobMock);
+            pipelineMock = getPipelineMocks(testPipeline);
+            pipelineFactoryMock.get.resolves(pipelineMock);
+            bannerFactoryMock.scm.getDisplayName.withArgs({ scmContext }).returns(scmDisplayName);
+            buildClusterFactoryMock.get.resolves(getMockBuildClusters(testBuildCluster));
+        });
+
+        afterEach(() => {
+            pipelineFactoryMock.get.withArgs(pipelineId).reset();
+            screwdriverAdminDetailsMock.reset();
+            jobFactoryMock.get.reset();
+            jobMock.update.reset();
+            buildClusterFactoryMock.get.reset();
+        });
+
+        describe('PUT /jobs/{id}/buildCluster', async () => {
+            beforeEach(() => {
+                options = {
+                    method: 'PUT',
+                    url: `/jobs/${id}/buildCluster`,
+                    payload: annotationObj,
+                    auth: {
+                        credentials: {
+                            username: 'foo',
+                            scmContext,
+                            scmUserId: 1312,
+                            scope: ['user']
+                        },
+                        strategy: ['token']
+                    }
+                };
+            });
+            afterEach(() => {
+                jobFactoryMock.get.reset();
+                jobMock.update.reset();
+            });
+            it('returns 200 for adding a job buildCluster annotation when other annotation exist', async () => {
+                const localJobMock = getJobMocks({
+                    id,
+                    pipelineId,
+                    permutations: [{ annotations: { 'screwdriver.cd/timeout': 10 } }]
+                });
+
+                jobFactoryMock.get.reset();
+                jobFactoryMock.get.resolves(localJobMock);
+
+                const updateJobMock = getJobMocks({
+                    id,
+                    pipelineId,
+                    permutations: [{ annotations: { 'screwdriver.cd/timeout': 10, ...annotationObj } }]
+                });
+
+                localJobMock.update.resolves(updateJobMock);
+
+                const reply = await server.inject(options);
+
+                assert.equal(reply.statusCode, 200);
+                assert.deepEqual(reply.result, {
+                    id,
+                    pipelineId,
+                    permutations: [{ annotations: { 'screwdriver.cd/timeout': 10, ...annotationObj } }]
+                });
+            });
+            it('returns 200 for updating a job buildCluster annotation', async () => {
+                const localJobMock = getJobMocks({ id, pipelineId, permutations: [{ annotations: annotationObj }] });
+
+                jobMock.update.resolves(localJobMock);
+
+                const reply = await server.inject(options);
+
+                assert.equal(reply.statusCode, 200);
+                assert.deepEqual(reply.result, {
+                    id,
+                    pipelineId,
+                    permutations: [{ annotations: annotationObj }]
+                });
+            });
+            it('returns 500 if datastore returns an error', () => {
+                jobMock.update.rejects(new Error('error'));
+
+                return server.inject(options).then(reply => {
+                    assert.equal(reply.statusCode, 500);
+                });
+            });
+            it('returns 404 if job does not exist', () => {
+                jobFactoryMock.get.resolves(null);
+
+                return server.inject(options).then(reply => {
+                    assert.equal(reply.statusCode, 404);
+                });
+            });
+            it('returns 404 if pipeline does not exist', () => {
+                pipelineFactoryMock.get.resolves(null);
+
+                return server.inject(options).then(reply => {
+                    assert.equal(reply.statusCode, 404);
+                });
+            });
+            it('returns 404 if user does not exist', () => {
+                userFactoryMock.get.resolves(null);
+
+                return server.inject(options).then(reply => {
+                    assert.equal(reply.statusCode, 404);
+                });
+            });
+            it('returns 403 if user has no admin privileges', () => {
+                screwdriverAdminDetailsMock.returns({ isAdmin: false });
+
+                return server.inject(options).then(reply => {
+                    assert.equal(reply.statusCode, 403);
+                });
+            });
+            it('returns 400 if buildCluster does not exist', () => {
+                buildClusterFactoryMock.get.resolves(null);
+
+                return server.inject(options).then(reply => {
+                    assert.equal(reply.statusCode, 400);
+                });
+            });
+            it('returns 400 if buildCluster is not active', () => {
+                testBuildCluster.isActive = false;
+
+                return server.inject(options).then(reply => {
+                    assert.equal(reply.statusCode, 400);
+                });
+            });
+            it('returns 400 for updating a job buildCluster annotation with non-existing annotation', async () => {
+                options.payload = {
+                    'screwdriver.cd/someOtherAnnotation': 'aws.west2'
+                };
+                const reply = await server.inject(options);
+
+                assert.equal(reply.statusCode, 400);
+            });
+        });
+        describe('DELETE /jobs/{id}/buildCluster', () => {
+            beforeEach(() => {
+                options = {
+                    method: 'DELETE',
+                    url: `/jobs/${id}/buildCluster`,
+                    auth: {
+                        credentials: {
+                            username: 'foo',
+                            scmContext,
+                            scmUserId: 1312,
+                            scope: ['user']
+                        },
+                        strategy: ['token']
+                    }
+                };
+                jobMock.permutations = [{ annotations: annotationObj }];
+                jobFactoryMock.get.resolves(jobMock);
+            });
+            afterEach(() => {
+                jobFactoryMock.get.reset();
+                jobMock.update.reset();
+            });
+            it('returns 200 for removing a job buildCluster annotation when other annotation exist', async () => {
+                const localJobMock = getJobMocks({
+                    id,
+                    pipelineId,
+                    permutations: [{ annotations: { 'screwdriver.cd/timeout': 10, ...annotationObj } }]
+                });
+
+                jobFactoryMock.get.resolves(localJobMock);
+
+                const updateJobMock = getJobMocks({
+                    id,
+                    pipelineId,
+                    permutations: [{ annotations: { 'screwdriver.cd/timeout': 10 } }]
+                });
+
+                localJobMock.update.resolves(updateJobMock);
+
+                const reply = await server.inject(options);
+
+                assert.equal(reply.statusCode, 200);
+                assert.deepEqual(reply.result, {
+                    id,
+                    pipelineId,
+                    permutations: [{ annotations: { 'screwdriver.cd/timeout': 10 } }]
+                });
+            });
+            it('returns 200 for removing a job buildCluster annotation', async () => {
+                const localJobMock = getJobMocks({ id, pipelineId, permutations: [{ annotations: annotationObj }] });
+
+                localJobMock.update.resolves(jobMock);
+                jobFactoryMock.get.resolves(localJobMock);
+
+                const reply = await server.inject(options);
+
+                assert.equal(reply.statusCode, 200);
+                assert.deepEqual(reply.result, {
+                    id,
+                    pipelineId,
+                    permutations: [{}]
+                });
+            });
+
+            it('returns 500 if datastore returns an error', () => {
+                jobMock.update.rejects(new Error('error'));
+
+                return server.inject(options).then(reply => {
+                    assert.equal(reply.statusCode, 500);
+                });
+            });
+
+            it('returns 404 if job does not exist', () => {
+                jobFactoryMock.get.resolves(null);
+
+                return server.inject(options).then(reply => {
+                    assert.equal(reply.statusCode, 404);
+                });
+            });
+
+            it('returns 403 if user has no admin privileges', () => {
+                screwdriverAdminDetailsMock.returns({ isAdmin: false });
+
+                return server.inject(options).then(reply => {
+                    assert.equal(reply.statusCode, 403);
+                });
+            });
+
+            it('returns 204 for removing a job buildCluster annotation with non-existing annotation', async () => {
+                const reply = await server.inject(options);
+
+                assert.equal(reply.statusCode, 204);
             });
         });
     });
