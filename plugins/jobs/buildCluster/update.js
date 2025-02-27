@@ -62,8 +62,6 @@ module.exports = () => ({
                 );
             }
             permutation.annotations[adminAnnotation] = buildClusterName;
-            job.stateChanger = username;
-            job.stateChangeTime = new Date().toISOString();
 
             try {
                 const result = await job.update();

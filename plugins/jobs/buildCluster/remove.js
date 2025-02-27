@@ -50,9 +50,6 @@ module.exports = () => ({
 
             delete permutation.annotations[adminAnnotation];
 
-            job.stateChanger = username;
-            job.stateChangeTime = new Date().toISOString();
-
             try {
                 const result = await job.update();
 
