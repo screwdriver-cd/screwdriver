@@ -19,8 +19,7 @@ module.exports = () => ({
         },
 
         handler: async (request, h) => {
-            const { jobFactory, bannerFactory } = request.server.app;
-            const { userFactory, pipelineFactory } = request.server.app;
+            const { jobFactory, bannerFactory, userFactory, pipelineFactory } = request.server.app;
             const { username, scmContext, scmUserId } = request.auth.credentials;
             const { id } = request.params;
             const adminAnnotation = 'screwdriver.cd/sdAdminBuildClusterOverride';
