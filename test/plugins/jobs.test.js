@@ -35,6 +35,7 @@ const decorateJobMock = job => {
     decorated.getBuilds = sinon.stub();
     decorated.getLatestBuild = sinon.stub();
     decorated.update = sinon.stub();
+    decorated.updateBuildCluster = sinon.stub();
     decorated.toJson = sinon.stub().returns(job);
 
     return decorated;
@@ -734,7 +735,7 @@ describe('job plugin test', () => {
 
         beforeEach(() => {
             jobMock = getJobMocks({ id, pipelineId, permutations: [{}] });
-            jobMock.update.resolves(jobMock);
+            jobMock.updateBuildCluster.resolves(jobMock);
             jobFactoryMock.get.resolves(jobMock);
             pipelineMock = getPipelineMocks(testPipeline);
             pipelineFactoryMock.get.resolves(pipelineMock);
@@ -744,7 +745,7 @@ describe('job plugin test', () => {
         afterEach(() => {
             pipelineFactoryMock.get.withArgs(pipelineId).reset();
             jobFactoryMock.get.reset();
-            jobMock.update.reset();
+            jobMock.updateBuildCluster.reset();
             buildClusterFactoryMock.get.reset();
         });
 
@@ -767,7 +768,7 @@ describe('job plugin test', () => {
             });
             afterEach(() => {
                 jobFactoryMock.get.reset();
-                jobMock.update.reset();
+                jobMock.updateBuildCluster.reset();
             });
             it('returns 200 for adding a job buildCluster annotation when other annotation exist', async () => {
                 const localJobMock = getJobMocks({
@@ -785,7 +786,7 @@ describe('job plugin test', () => {
                     permutations: [{ annotations: { 'screwdriver.cd/timeout': 10, ...annotationObj } }]
                 });
 
-                localJobMock.update.resolves(updateJobMock);
+                localJobMock.updateBuildCluster.resolves(updateJobMock);
 
                 const reply = await server.inject(options);
 
@@ -799,7 +800,7 @@ describe('job plugin test', () => {
             it('returns 200 for updating a job buildCluster annotation', async () => {
                 const localJobMock = getJobMocks({ id, pipelineId, permutations: [{ annotations: annotationObj }] });
 
-                jobMock.update.resolves(localJobMock);
+                jobMock.updateBuildCluster.resolves(localJobMock);
 
                 const reply = await server.inject(options);
 
@@ -811,7 +812,7 @@ describe('job plugin test', () => {
                 });
             });
             it('returns 500 if datastore returns an error', () => {
-                jobMock.update.rejects(new Error('error'));
+                jobMock.updateBuildCluster.rejects(new Error('error'));
 
                 return server.inject(options).then(reply => {
                     assert.equal(reply.statusCode, 500);
@@ -887,7 +888,7 @@ describe('job plugin test', () => {
             });
             afterEach(() => {
                 jobFactoryMock.get.reset();
-                jobMock.update.reset();
+                jobMock.updateBuildCluster.reset();
             });
             it('returns 200 for removing a job buildCluster annotation when other annotation exist', async () => {
                 const localJobMock = getJobMocks({
@@ -904,7 +905,7 @@ describe('job plugin test', () => {
                     permutations: [{ annotations: { 'screwdriver.cd/timeout': 10 } }]
                 });
 
-                localJobMock.update.resolves(updateJobMock);
+                localJobMock.updateBuildCluster.resolves(updateJobMock);
 
                 const reply = await server.inject(options);
 
@@ -918,7 +919,7 @@ describe('job plugin test', () => {
             it('returns 200 for removing a job buildCluster annotation', async () => {
                 const localJobMock = getJobMocks({ id, pipelineId, permutations: [{ annotations: annotationObj }] });
 
-                localJobMock.update.resolves(jobMock);
+                localJobMock.updateBuildCluster.resolves(jobMock);
                 jobFactoryMock.get.resolves(localJobMock);
 
                 const reply = await server.inject(options);
@@ -932,7 +933,7 @@ describe('job plugin test', () => {
             });
 
             it('returns 500 if datastore returns an error', () => {
-                jobMock.update.rejects(new Error('error'));
+                jobMock.updateBuildCluster.rejects(new Error('error'));
 
                 return server.inject(options).then(reply => {
                     assert.equal(reply.statusCode, 500);

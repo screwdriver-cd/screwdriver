@@ -64,7 +64,7 @@ module.exports = () => ({
             permutation.annotations[adminAnnotation] = buildClusterName;
 
             try {
-                const result = await job.update();
+                const result = await job.updateBuildCluster();
 
                 logger.info(
                     `[Audit] user ${username} updates ${adminAnnotation} for jobId:${id} to ${buildClusterName}.`

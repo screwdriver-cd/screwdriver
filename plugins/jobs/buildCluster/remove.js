@@ -51,7 +51,7 @@ module.exports = () => ({
             delete permutation.annotations[adminAnnotation];
 
             try {
-                const result = await job.update();
+                const result = await job.updateBuildCluster();
 
                 logger.info(`[Audit] user ${username} deleted ${adminAnnotation} for jobId:${id}.`);
 
