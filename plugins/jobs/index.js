@@ -7,6 +7,8 @@ const lastSuccessfulMeta = require('./lastSuccessfulMeta');
 const latestBuild = require('./latestBuild');
 const metrics = require('./metrics');
 const notify = require('./notify');
+const addBuildCluster = require('./buildCluster/update');
+const removeBuildCluster = require('./buildCluster/remove');
 
 /**
  * Job API Plugin
@@ -23,7 +25,9 @@ const jobsPlugin = {
             lastSuccessfulMeta(),
             metrics(),
             latestBuild(),
-            notify()
+            notify(),
+            addBuildCluster(),
+            removeBuildCluster()
         ]);
     }
 };
