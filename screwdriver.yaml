@@ -8,7 +8,7 @@ shared:
 
 jobs:
     main:
-        image: node:18
+        image: node:22
         annotations:
             screwdriver.cd/ram: TURBO
             screwdriver.cd/cpu: TURBO
@@ -33,7 +33,7 @@ jobs:
             - COVERALLS_REPO_TOKEN
 
     publish:
-        image: node:18
+        image: node:22
         requires: [main]
         steps:
             - setup-ci: git clone https://github.com/screwdriver-cd/toolbox.git ci
@@ -54,7 +54,7 @@ jobs:
     # Deploy to our beta environment and run tests
     beta:
         requires: [docker-publish]
-        image: node:18
+        image: node:22
         environment:
             K8S_CONTAINER: screwdriver-api
             K8S_IMAGE: screwdrivercd/screwdriver
@@ -88,7 +88,7 @@ jobs:
 
     # Deploy to our prod environment and run tests
     prod:
-        image: node:18
+        image: node:22
         requires: [beta]
         steps:
             - setup-ci: git clone https://github.com/screwdriver-cd/toolbox.git ci
