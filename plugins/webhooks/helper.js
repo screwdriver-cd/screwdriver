@@ -1008,6 +1008,9 @@ async function createEvents(server, userFactory, pipelineFactory, pipelines, par
                     ref,
                     isReleaseOrTagFiltering
                 );
+
+                await updateAdmins(userFactory, username, scmContext, pTuple.pipeline, pipelineFactory);
+
                 const token = await pTuple.pipeline.token;
                 const scmConfig = {
                     scmUri: pTuple.pipeline.scmUri,
@@ -1082,8 +1085,6 @@ async function createEvents(server, userFactory, pipelineFactory, pipelines, par
                 if (skipMessage) {
                     eventConfig.skipMessage = skipMessage;
                 }
-
-                await updateAdmins(userFactory, username, scmContext, pTuple.pipeline, pipelineFactory);
 
                 return eventConfig;
             } catch (err) {
