@@ -23,12 +23,16 @@ module.exports = () => ({
         },
         handler: async (request, h) => {
             const { bannerFactory } = request.server.app;
-            const { scope } = request.query;
+            const { scope, isActive } = request.query;
 
             if (scope !== 'GLOBAL') {
                 if (!request.auth.isAuthenticated) {
                     throw boom.unauthorized('Authentication required');
                 }
+            }
+
+            if (isActive !== undefined) {
+                request.query.isActive = ['true', true, '1', 1].includes(isActive);
             }
 
             // list params defaults to empty object in models if undefined
