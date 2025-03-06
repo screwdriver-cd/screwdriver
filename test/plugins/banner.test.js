@@ -213,6 +213,7 @@ describe('banner plugin test', () => {
             bannerFactoryMock.list.resolves(getBannerMock(testBannersActive));
 
             return server.inject(options).then(reply => {
+                assert.calledWith(bannerFactoryMock.list, { params: { isActive: true, scope: 'GLOBAL' } });
                 assert.equal(reply.statusCode, 200);
                 assert.deepEqual(reply.result, testBannersActive);
             });
