@@ -15,12 +15,12 @@ module.exports = () => ({
         tags: ['api', 'jobs'],
         auth: {
             strategies: ['token'],
-            scope: ['admin', '!guest']
+            scope: ['user', '!guest']
         },
 
         handler: async (request, h) => {
-            const { jobFactory, pipelineFactory } = request.server.app;
-            const { username } = request.auth.credentials;
+            const { jobFactory, bannerFactory, userFactory, pipelineFactory } = request.server.app;
+            const { username, scmContext, scmUserId } = request.auth.credentials;
             const { id } = request.params;
             const adminAnnotation = 'screwdriver.cd/sdAdminBuildClusterOverride';
             const job = await jobFactory.get(id);
@@ -29,10 +29,30 @@ module.exports = () => ({
                 throw boom.notFound(`Job ${id} does not exist`);
             }
 
-            const pipeline = await pipelineFactory.get(job.pipelineId);
+            const [pipeline, user] = await Promise.all([
+                pipelineFactory.get(job.pipelineId),
+                userFactory.get({ username, scmContext })
+            ]);
 
             if (!pipeline) {
                 throw boom.notFound('Pipeline does not exist');
+            }
+
+            if (!user) {
+                throw boom.notFound(`User ${username} does not exist`);
+            }
+
+            const scmDisplayName = bannerFactory.scm.getDisplayName({ scmContext });
+            const adminDetails = request.server.plugins.banners.screwdriverAdminDetails(
+                username,
+                scmDisplayName,
+                scmUserId
+            );
+
+            if (!adminDetails.isAdmin) {
+                throw boom.forbidden(
+                    `User ${username} does not have Screwdriver administrative privileges to update the buildCluster`
+                );
             }
 
             // remove buildClusterOverride annotation from job
@@ -49,6 +69,8 @@ module.exports = () => ({
             logger.info(`[Audit] ${adminAnnotation} for jobId:${id} set to ${buildClusterOverride}, deleting.`);
 
             delete permutation.annotations[adminAnnotation];
+
+            job.permutations = [permutation];
 
             try {
                 const result = await job.updateBuildCluster();

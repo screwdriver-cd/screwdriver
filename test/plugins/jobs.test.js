@@ -87,6 +87,9 @@ describe('job plugin test', () => {
     let pipelineMock;
     let userFactoryMock;
     let userMock;
+    let bannerFactoryMock;
+    let bannerMock;
+    let screwdriverAdminDetailsMock;
     let buildClusterFactoryMock;
     let plugin;
     let server;
@@ -121,6 +124,21 @@ describe('job plugin test', () => {
             get: sinon.stub().resolves(userMock)
         };
 
+        bannerFactoryMock = {
+            scm: {
+                getDisplayName: sinon.stub().returns()
+            }
+        };
+
+        screwdriverAdminDetailsMock = sinon.stub();
+
+        bannerMock = {
+            name: 'banners',
+            register: s => {
+                s.expose('screwdriverAdminDetails', screwdriverAdminDetailsMock);
+            }
+        };
+
         buildClusterFactoryMock = {
             get: sinon.stub()
         };
@@ -136,6 +154,7 @@ describe('job plugin test', () => {
             jobFactory: jobFactoryMock,
             pipelineFactory: pipelineFactoryMock,
             userFactory: userFactoryMock,
+            bannerFactory: bannerFactoryMock,
             buildClusterFactory: buildClusterFactoryMock
         };
 
@@ -150,6 +169,7 @@ describe('job plugin test', () => {
         server.auth.strategy('token', 'custom');
 
         server.register([
+            { plugin: bannerMock },
             {
                 plugin
             },
@@ -728,22 +748,26 @@ describe('job plugin test', () => {
         const buildClusterName = 'aws.west2';
         const pipelineId = 123;
         const scmContext = 'github:github.com';
+        const scmDisplayName = 'GitHub';
         const testBuildCluster = testBuildClusters[2];
         const annotationObj = { [adminBuildClusterAnnotation]: buildClusterName };
         let jobMock;
         let options;
 
         beforeEach(() => {
+            screwdriverAdminDetailsMock.returns({ isAdmin: true });
             jobMock = getJobMocks({ id, pipelineId, permutations: [{}] });
             jobMock.updateBuildCluster.resolves(jobMock);
             jobFactoryMock.get.resolves(jobMock);
             pipelineMock = getPipelineMocks(testPipeline);
             pipelineFactoryMock.get.resolves(pipelineMock);
             buildClusterFactoryMock.get.resolves(getMockBuildClusters(testBuildCluster));
+            bannerFactoryMock.scm.getDisplayName.withArgs({ scmContext }).returns(scmDisplayName);
         });
 
         afterEach(() => {
             pipelineFactoryMock.get.withArgs(pipelineId).reset();
+            screwdriverAdminDetailsMock.reset();
             jobFactoryMock.get.reset();
             jobMock.updateBuildCluster.reset();
             buildClusterFactoryMock.get.reset();
@@ -760,7 +784,7 @@ describe('job plugin test', () => {
                             username: 'foo',
                             scmContext,
                             scmUserId: 1312,
-                            scope: ['admin']
+                            scope: ['user']
                         },
                         strategy: ['token']
                     }
@@ -832,17 +856,18 @@ describe('job plugin test', () => {
                     assert.equal(reply.statusCode, 404);
                 });
             });
+            it('returns 404 if user does not exist', () => {
+                userFactoryMock.get.resolves(null);
+
+                return server.inject(options).then(reply => {
+                    assert.equal(reply.statusCode, 404);
+                });
+            });
             it('returns 403 if user has no admin privileges', () => {
-                options.auth.credentials.scope = ['user'];
-                const error = {
-                    statusCode: 403,
-                    error: 'Forbidden',
-                    message: 'Insufficient scope'
-                };
+                screwdriverAdminDetailsMock.returns({ isAdmin: false });
 
                 return server.inject(options).then(reply => {
                     assert.equal(reply.statusCode, 403);
-                    assert.deepEqual(reply.result, error);
                 });
             });
             it('returns 400 if buildCluster does not exist', () => {
@@ -878,7 +903,7 @@ describe('job plugin test', () => {
                             username: 'foo',
                             scmContext,
                             scmUserId: 1312,
-                            scope: ['admin']
+                            scope: ['user']
                         },
                         strategy: ['token']
                     }
@@ -949,16 +974,10 @@ describe('job plugin test', () => {
             });
 
             it('returns 403 if user has no admin privileges', () => {
-                options.auth.credentials.scope = ['user'];
-                const error = {
-                    statusCode: 403,
-                    error: 'Forbidden',
-                    message: 'Insufficient scope'
-                };
+                screwdriverAdminDetailsMock.returns({ isAdmin: false });
 
                 return server.inject(options).then(reply => {
                     assert.equal(reply.statusCode, 403);
-                    assert.deepEqual(reply.result, error);
                 });
             });
 
