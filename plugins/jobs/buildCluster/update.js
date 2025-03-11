@@ -15,7 +15,7 @@ module.exports = () => ({
         tags: ['api', 'jobs'],
         auth: {
             strategies: ['token'],
-            scope: ['admin', '!guest']
+            scope: ['user', '!guest']
         },
         handler: async (request, h) => {
             const adminAnnotation = 'screwdriver.cd/sdAdminBuildClusterOverride';
@@ -26,8 +26,8 @@ module.exports = () => ({
                 throw boom.badRequest(`Payload must contain ${adminAnnotation}`);
             }
 
-            const { jobFactory, buildClusterFactory, pipelineFactory } = request.server.app;
-            const { scmContext, username } = request.auth.credentials;
+            const { jobFactory, bannerFactory, buildClusterFactory, pipelineFactory, userFactory } = request.server.app;
+            const { scmContext, username, scmUserId } = request.auth.credentials;
 
             const job = await jobFactory.get(id);
 
@@ -35,10 +35,30 @@ module.exports = () => ({
                 throw boom.notFound(`Job ${id} does not exist`);
             }
 
-            const pipeline = await pipelineFactory.get(job.pipelineId);
+            const [pipeline, user] = await Promise.all([
+                pipelineFactory.get(job.pipelineId),
+                userFactory.get({ username, scmContext })
+            ]);
 
             if (!pipeline) {
                 throw boom.notFound('Pipeline does not exist');
+            }
+
+            if (!user) {
+                throw boom.notFound(`User ${username} does not exist`);
+            }
+
+            const scmDisplayName = bannerFactory.scm.getDisplayName({ scmContext });
+            const adminDetails = request.server.plugins.banners.screwdriverAdminDetails(
+                username,
+                scmDisplayName,
+                scmUserId
+            );
+
+            if (!adminDetails.isAdmin) {
+                throw boom.forbidden(
+                    `User ${username} does not have Screwdriver administrative privileges to update the buildCluster`
+                );
             }
 
             // ensure that the buildCluster is a valid cluster
@@ -62,6 +82,7 @@ module.exports = () => ({
                 );
             }
             permutation.annotations[adminAnnotation] = buildClusterName;
+            job.permutations = [permutation];
 
             try {
                 const result = await job.updateBuildCluster();
