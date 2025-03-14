@@ -26,9 +26,10 @@ function getPermissionsForOldPipeline({ scmContexts, pipeline, user }) {
         if (pipeline.admins[user.username]) {
             permission.admin = true;
         }
+
         return Promise.resolve(permission);
     }
-    
+
     return user.getPermissions(pipeline.scmUri);
 }
 
