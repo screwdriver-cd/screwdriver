@@ -19,7 +19,8 @@ const ANNOTATION_USE_DEPLOY_KEY = 'screwdriver.cd/useDeployKey';
  */
 function getPermissionsForOldPipeline({ scmContexts, pipeline, user }) {
     // this pipeline's scmContext has been removed, allow current admin to change it
-    if (!scmContexts.includes(pipeline.scmContext)) {
+    // also allow pipeline admins from other scmContexts to change it
+    if (!scmContexts.includes(pipeline.scmContext) || user.scmContext !== pipeline.scmContext) {
         const permission = { admin: false };
 
         if (pipeline.admins[user.username]) {

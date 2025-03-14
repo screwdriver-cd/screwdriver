@@ -2942,6 +2942,32 @@ describe('pipeline plugin test', () => {
             });
         });
 
+        it('returns 200 when the user is admin from different scmContext', () => {
+            userMock.scmContext = 'gitlab:mygitlab';
+            pipelineMock.admins = { [username]: true };
+
+            return server.inject(options).then(reply => {
+                // Only call once to get permissions on the new repo
+                assert.calledOnce(userMock.getPermissions);
+                assert.calledWith(userMock.getPermissions, scmUri);
+                assert.calledOnce(updatedPipelineMock.addWebhooks);
+                assert.equal(reply.statusCode, 200);
+            });
+        });
+
+        it('returns 403 when the user is not admin from different scmContext', () => {
+            userMock.scmContext = 'gitlab:mygitlab';
+            pipelineMock.admins = { ohno: true };
+
+            return server.inject(options).then(reply => {
+                // Only call once to get permissions on the new repo
+                assert.calledOnce(userMock.getPermissions);
+                assert.calledWith(userMock.getPermissions, scmUri);
+                assert.notCalled(updatedPipelineMock.addWebhooks);
+                assert.equal(reply.statusCode, 403);
+            });
+        });
+
         it('returns 401 when the pipeline token does not have permission', () => {
             options.auth.credentials = {
                 username,
