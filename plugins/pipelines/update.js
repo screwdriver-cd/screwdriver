@@ -41,7 +41,7 @@ module.exports = () => ({
         notes: 'Update a specific pipeline',
         tags: ['api', 'pipelines'],
         auth: {
-            strategies: ['token'], // basically this only accepts jwt tokens
+            strategies: ['token'],
             scope: ['user', '!guest', 'pipeline']
         },
 

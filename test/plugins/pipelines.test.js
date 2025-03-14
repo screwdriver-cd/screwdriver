@@ -164,8 +164,6 @@ const getStagesMocks = stages => {
 const getUserMock = user => {
     const mock = hoek.clone(user);
 
-    console.log(mock);
-
     mock.getPermissions = sinon.stub();
     mock.getFullDisplayName = sinon.stub().returns('batman');
     mock.update = sinon.stub();
