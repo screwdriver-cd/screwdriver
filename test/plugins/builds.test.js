@@ -2662,7 +2662,8 @@ describe('build plugin test', () => {
                     eventMock.groupEventId = 9999;
 
                     options.payload.meta = {
-                        sameKey: 'job-a',
+                        allKey: 'job-a',
+                        acKey: 'job-a',
                         jobA: 'test'
                     };
 
@@ -2703,7 +2704,7 @@ describe('build plugin test', () => {
                         jobId: jobB.id,
                         eventId: '8888',
                         status: 'SUCCESS',
-                        meta: { sameKey: 'job-b', jobB: 'test' }
+                        meta: { allKey: 'job-b', jobB: 'test' }
                     };
                     const buildC = {
                         id: 3,
@@ -2711,7 +2712,7 @@ describe('build plugin test', () => {
                         eventId: '8888',
                         status: 'SUCCESS',
                         endTime: '2020-03-17T04:47:03.207Z',
-                        meta: { sameKey: 'job-c', jobC: 'test' }
+                        meta: { allKey: 'job-c', acKey: 'job-c', jobC: 'test' }
                     };
                     const buildD = {
                         // Trigger this virtual build with metadata
@@ -2802,7 +2803,8 @@ describe('build plugin test', () => {
                             jobA: 'test',
                             jobB: 'test',
                             jobC: 'test',
-                            sameKey: 'job-b'
+                            acKey: 'job-a',
+                            allKey: 'job-b'
                         });
 
                         // Virtual job triggers its downstream jobs
@@ -2818,7 +2820,8 @@ describe('build plugin test', () => {
                             jobA: 'test',
                             jobB: 'test',
                             jobC: 'test',
-                            sameKey: 'job-b'
+                            acKey: 'job-a',
+                            allKey: 'job-b'
                         });
                     });
                 });
