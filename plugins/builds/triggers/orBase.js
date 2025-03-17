@@ -61,7 +61,10 @@ class OrBase {
                 nextBuild.status = Status.SUCCESS;
                 nextBuild.statusMessage = BUILD_STATUS_MESSAGES.SKIP_VIRTUAL_JOB.statusMessage;
                 nextBuild.statusMessageType = BUILD_STATUS_MESSAGES.SKIP_VIRTUAL_JOB.statusMessageType;
-                nextBuild.meta = merge({}, nextBuild.meta, this.currentBuild.meta);
+
+                // Overwrite metadata by current build's
+                nextBuild.parentBuildId = [this.currentBuild.id];
+                nextBuild.meta = merge({}, this.currentBuild.meta);
 
                 return nextBuild.update();
             }
@@ -83,7 +86,7 @@ class OrBase {
             event,
             baseBranch: event.baseBranch || null,
             parentBuilds,
-            parentBuildId: this.currentBuild.id,
+            parentBuildId: [this.currentBuild.id],
             start: hasWindows || !isNextJobVirtual,
             causeMessage
         });
@@ -93,7 +96,9 @@ class OrBase {
             nextBuild.status = Status.SUCCESS;
             nextBuild.statusMessage = BUILD_STATUS_MESSAGES.SKIP_VIRTUAL_JOB.statusMessage;
             nextBuild.statusMessageType = BUILD_STATUS_MESSAGES.SKIP_VIRTUAL_JOB.statusMessageType;
-            nextBuild.meta = merge({}, nextBuild.meta, this.currentBuild.meta);
+
+            // Overwrite metadata by current build's
+            nextBuild.meta = merge({}, this.currentBuild.meta);
 
             await nextBuild.update();
         }
