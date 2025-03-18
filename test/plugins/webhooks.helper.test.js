@@ -1382,6 +1382,16 @@ describe('startHookEvent test', () => {
             });
         });
 
+        it('returns 204 no event creation on success for pipelines with rootDir', () => {
+            pipelineMock.scmUri = `${pipelineMock.scmUri}:lib`;
+            pipelineFactoryMock.scm.getChangedFiles.resolves(['library']);
+
+            return startHookEvent(request, responseHandler, parsed).then(reply => {
+                assert.equal(reply.statusCode, 204);
+                assert.notCalled(eventFactoryMock.create);
+            });
+        });
+
         it('returns 201 on success for pipelines when mixed forward matching branch', () => {
             const pMock = getPipelineMocks({
                 id: 'pipelineHash1',
