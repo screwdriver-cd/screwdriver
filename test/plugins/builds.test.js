@@ -1629,7 +1629,7 @@ describe('build plugin test', () => {
                         assert.calledWith(buildFactoryMock.create, {
                             jobId: publishJobId,
                             sha: testBuild.sha,
-                            parentBuildId: [id],
+                            parentBuildId: id,
                             parentBuilds: { 123: { eventId: '8888', jobs: { 'PR-15:main': 12345 } } },
                             username,
                             scmContext,
@@ -2580,7 +2580,7 @@ describe('build plugin test', () => {
                     jobBconfig = {
                         jobId: 2,
                         sha: '58393af682d61de87789fb4961645c42180cec5a',
-                        parentBuildId: [12345],
+                        parentBuildId: 12345,
                         parentBuilds: { 123: { eventId: '8888', jobs: { a: 12345 } } },
                         start: true,
                         eventId: '8888',
@@ -2741,7 +2741,7 @@ describe('build plugin test', () => {
                         eventId: '8888',
                         status: 'CREATED',
                         endTime: '',
-                        parentBuildId: [buildD.id],
+                        parentBuildId: buildD.id,
                         meta: {},
                         update: sinon.stub()
                     };
@@ -2749,7 +2749,7 @@ describe('build plugin test', () => {
                     const jobEConfig = {
                         ...jobBconfig,
                         start: true,
-                        parentBuildId: [buildD.id],
+                        parentBuildId: buildD.id,
                         parentBuilds: {
                             123: {
                                 eventId: '8888',
@@ -2762,7 +2762,7 @@ describe('build plugin test', () => {
                     const jobFConfig = {
                         ...jobBconfig,
                         start: false,
-                        parentBuildId: [buildD.id],
+                        parentBuildId: buildD.id,
                         parentBuilds: {
                             123: {
                                 eventId: '8888',
@@ -2815,7 +2815,7 @@ describe('build plugin test', () => {
                         assert.equal(buildF.status, 'SUCCESS');
                         assert.equal(buildF.statusMessage, 'Skipped execution of the virtual job');
                         assert.equal(buildF.statusMessageType, 'INFO');
-                        assert.deepEqual(buildF.parentBuildId, [buildD.id]);
+                        assert.deepEqual(buildF.parentBuildId, buildD.id);
                         assert.deepEqual(buildF.meta, {
                             jobA: 'test',
                             jobB: 'test',
@@ -3298,7 +3298,7 @@ describe('build plugin test', () => {
                     jobBconfig = {
                         jobId: 2,
                         sha: '58393af682d61de87789fb4961645c42180cec5a',
-                        parentBuildId: [12345],
+                        parentBuildId: 12345,
                         start: true,
                         eventId: '8888',
                         username: 12345,
@@ -3498,7 +3498,7 @@ describe('build plugin test', () => {
                     };
                     const expectedBuildArgs = {
                         jobId: 2,
-                        parentBuildId: [12345],
+                        parentBuildId: 12345,
                         parentBuilds: {
                             123: {
                                 eventId: '8888',
@@ -3895,7 +3895,7 @@ describe('build plugin test', () => {
                         }
                     };
 
-                    buildFactoryMock.get.withArgs(5555).resolves({ endTime: new Date(), status: 'SUCCESS' }); // d is done
+                    buildFactoryMock.get.withArgs(5555).resolves({ status: 'SUCCESS' }); // d is done
                     buildFactoryMock.get.withArgs(3).resolves(buildC);
 
                     return newServer.inject(options).then(() => {
@@ -4183,7 +4183,7 @@ describe('build plugin test', () => {
                         configPipelineSha: 'abc123',
                         eventId: 8887,
                         jobId: 6,
-                        parentBuildId: [12345],
+                        parentBuildId: 12345,
                         parentBuilds: {
                             123: { eventId: '8888', jobs: { a: 12345 } },
                             2: { eventId: '8887', jobs: { a: 12345 } }
@@ -4320,7 +4320,7 @@ describe('build plugin test', () => {
                         configPipelineSha: 'abc123',
                         eventId: 8887,
                         jobId: 6,
-                        parentBuildId: [12345],
+                        parentBuildId: 12345,
                         parentBuilds: {
                             123: { eventId: '8888', jobs: { a: 12345 } },
                             2: { eventId: '8887', jobs: { a: 12345, b: null } }
@@ -4816,7 +4816,7 @@ describe('build plugin test', () => {
                         }
                     };
 
-                    buildFactoryMock.get.withArgs(5555).resolves({ endTime: new Date(), status: 'SUCCESS' }); // d is done
+                    buildFactoryMock.get.withArgs(5555).resolves({ status: 'SUCCESS' }); // d is done
                     buildFactoryMock.get.withArgs(3).resolves(buildC); // d is done
 
                     return newServer.inject(options).then(() => {
@@ -4984,7 +4984,7 @@ describe('build plugin test', () => {
                     jobCconfig.parentBuilds = parentBuilds;
                     jobCconfig.causeMessage = undefined;
                     buildC.update = sinon.stub().resolves(buildC);
-                    buildFactoryMock.get.withArgs(4).resolves({ endTime: new Date(), status: 'SUCCESS' });
+                    buildFactoryMock.get.withArgs(4).resolves({ status: 'SUCCESS' });
 
                     return newServer.inject(options).then(() => {
                         assert.calledOnce(buildFactoryMock.create);
@@ -5803,7 +5803,7 @@ describe('build plugin test', () => {
                         assert.calledWith(buildFactoryMock.create, {
                             jobId: 55,
                             sha: '58393af682d61de87789fb4961645c42180cec5a',
-                            parentBuildId: [12345],
+                            parentBuildId: 12345,
                             parentBuilds: {
                                 123: {
                                     eventId: '8888',
@@ -5907,7 +5907,7 @@ describe('build plugin test', () => {
                         eventId: '8888',
                         id: 7004,
                         status: 'CREATED',
-                        parentBuildId: [7003],
+                        parentBuildId: 7003,
                         parentBuilds: {
                             123: {
                                 eventId: '8888',

@@ -86,7 +86,7 @@ class OrBase {
             event,
             baseBranch: event.baseBranch || null,
             parentBuilds,
-            parentBuildId: [this.currentBuild.id],
+            parentBuildId: this.currentBuild.id,
             start: hasWindows || !isNextJobVirtual,
             causeMessage
         });

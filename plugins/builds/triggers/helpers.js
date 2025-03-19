@@ -949,7 +949,7 @@ async function createJoinObject(nextJobNames, current, eventFactory) {
         let isExternal = false;
 
         if (isExternalTrigger(jobName)) {
-            const { externalPipelineId, externalJobName } = getExternalPipelineAndJob(jobName);
+            const { externalJobName, externalPipelineId } = getExternalPipelineAndJob(jobName);
 
             nextJobPipelineId = externalPipelineId;
             nextJobName = externalJobName;
@@ -1025,7 +1025,7 @@ async function ensureStageTeardownBuildExists({
             username,
             scmContext,
             parentBuilds,
-            parentBuildId: [current.build.id],
+            parentBuildId: current.build.id,
             event: current.event, // this is the parentBuild for the next build
             baseBranch: current.event.baseBranch || null,
             start: false

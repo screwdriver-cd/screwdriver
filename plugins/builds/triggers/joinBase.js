@@ -61,7 +61,7 @@ class JoinBase {
                 event, // this is the parentBuild for the next build
                 baseBranch: event.baseBranch || null,
                 parentBuilds,
-                parentBuildId: [this.currentBuild.id],
+                parentBuildId: this.currentBuild.id,
                 start: false
             });
         } else {
