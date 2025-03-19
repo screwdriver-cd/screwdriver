@@ -56,6 +56,8 @@ class OrBase {
                 return nextBuild;
             }
 
+            nextBuild.parentBuildId = [this.currentBuild.id];
+
             // Bypass execution of the build if the job is virtual
             if (isNextJobVirtual && !hasWindows) {
                 nextBuild.status = Status.SUCCESS;
@@ -63,7 +65,6 @@ class OrBase {
                 nextBuild.statusMessageType = BUILD_STATUS_MESSAGES.SKIP_VIRTUAL_JOB.statusMessageType;
 
                 // Overwrite metadata by current build's
-                nextBuild.parentBuildId = [this.currentBuild.id];
                 nextBuild.meta = merge({}, this.currentBuild.meta);
 
                 return nextBuild.update();
