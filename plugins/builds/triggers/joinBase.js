@@ -43,6 +43,7 @@ class JoinBase {
      * @param {import('./helpers').ParentBuilds} parentBuilds
      * @param {String} parentBuildId
      * @param {String[]} joinListNames
+     * @param {Boolean} isNextJobVirtual
      * @param {String} nextJobStageName
      * @returns {Promise<Build[]|null>}
      */
@@ -54,6 +55,7 @@ class JoinBase {
         parentBuilds,
         parentBuildId,
         joinListNames,
+        isNextJobVirtual,
         nextJobStageName
     }) {
         let newBuild;
@@ -102,6 +104,7 @@ class JoinBase {
             newBuild,
             job: nextJob,
             pipelineId,
+            isVirtualJob: isNextJobVirtual,
             stageName: nextJobStageName,
             event,
             currentBuild: this.currentBuild
