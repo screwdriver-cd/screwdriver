@@ -5880,7 +5880,7 @@ describe('build plugin test', () => {
                             const { lock, unlock } = lockMock;
 
                             assert.calledOnce(lock);
-                            assert.calledTwice(unlock);
+                            assert.calledOnce(unlock);
                         });
                     });
 
@@ -5892,7 +5892,7 @@ describe('build plugin test', () => {
                             const { lock, unlock } = lockMock;
 
                             assert.calledOnce(lock);
-                            assert.calledTwice(unlock);
+                            assert.calledOnce(unlock);
                         });
                     });
                 });
