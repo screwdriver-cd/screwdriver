@@ -439,7 +439,7 @@ function createParentBuildsObj(config) {
         let parentBuildJobName = name;
 
         if (isExternalTrigger(name)) {
-            const { externalJobName, externalPipelineId } = getExternalPipelineAndJob(name);
+            const { externalPipelineId, externalJobName } = getExternalPipelineAndJob(name);
 
             parentBuildPipelineId = externalPipelineId;
             parentBuildJobName = externalJobName;
