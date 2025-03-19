@@ -439,7 +439,7 @@ function createParentBuildsObj(config) {
         let parentBuildJobName = name;
 
         if (isExternalTrigger(name)) {
-            const { externalPipelineId, externalJobName } = getExternalPipelineAndJob(name);
+            const { externalJobName, externalPipelineId } = getExternalPipelineAndJob(name);
 
             parentBuildPipelineId = externalPipelineId;
             parentBuildJobName = externalJobName;
@@ -576,7 +576,7 @@ async function getJoinBuilds({ newBuild, joinListNames, pipelineId, buildFactory
         let upstreamJobName = jobName;
 
         if (isExternalTrigger(upstreamJobName)) {
-            const { externalJobName, externalPipelineId } = getExternalPipelineAndJob(jobName);
+            const { externalPipelineId, externalJobName } = getExternalPipelineAndJob(jobName);
 
             upstreamPipelineId = externalPipelineId;
             upstreamJobName = externalJobName;
@@ -949,7 +949,7 @@ async function createJoinObject(nextJobNames, current, eventFactory) {
         let isExternal = false;
 
         if (isExternalTrigger(jobName)) {
-            const { externalJobName, externalPipelineId } = getExternalPipelineAndJob(jobName);
+            const { externalPipelineId, externalJobName } = getExternalPipelineAndJob(jobName);
 
             nextJobPipelineId = externalPipelineId;
             nextJobName = externalJobName;
