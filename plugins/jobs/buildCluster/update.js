@@ -74,7 +74,7 @@ module.exports = () => ({
 
             permutation.annotations = permutation.annotations || {};
 
-            const annotations = permutation.annotations;
+            const { annotations } = permutation;
 
             if (annotations[adminAnnotation]) {
                 logger.info(

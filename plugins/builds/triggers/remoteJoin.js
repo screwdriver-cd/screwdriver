@@ -1,6 +1,6 @@
 'use strict';
 
-const { mergeParentBuilds, getParentBuildIds } = require('./helpers');
+const { mergeParentBuilds } = require('./helpers');
 const { JoinBase } = require('./joinBase');
 
 /**
@@ -45,20 +45,12 @@ class RemoteJoin extends JoinBase {
 
         const newParentBuilds = mergeParentBuilds(parentBuilds, groupEventBuilds, this.currentEvent, externalEvent);
 
-        const parentBuildId = getParentBuildIds({
-            currentBuildId: this.currentBuild.id,
-            parentBuilds: newParentBuilds,
-            joinListNames,
-            pipelineId: externalEvent.pipelineId
-        });
-
         return this.processNextBuild({
             pipelineId: externalEvent.pipelineId,
             event: externalEvent,
             nextBuild,
             nextJob,
             parentBuilds: newParentBuilds,
-            parentBuildId,
             joinListNames,
             isNextJobVirtual,
             nextJobStageName

@@ -56,12 +56,16 @@ class OrBase {
                 return nextBuild;
             }
 
+            nextBuild.parentBuildId = [this.currentBuild.id];
+
             // Bypass execution of the build if the job is virtual
             if (isNextJobVirtual && !hasWindows) {
                 nextBuild.status = Status.SUCCESS;
                 nextBuild.statusMessage = BUILD_STATUS_MESSAGES.SKIP_VIRTUAL_JOB.statusMessage;
                 nextBuild.statusMessageType = BUILD_STATUS_MESSAGES.SKIP_VIRTUAL_JOB.statusMessageType;
-                nextBuild.meta = merge({}, nextBuild.meta, this.currentBuild.meta);
+
+                // Overwrite metadata by current build's
+                nextBuild.meta = merge({}, this.currentBuild.meta);
 
                 return nextBuild.update();
             }
@@ -93,7 +97,9 @@ class OrBase {
             nextBuild.status = Status.SUCCESS;
             nextBuild.statusMessage = BUILD_STATUS_MESSAGES.SKIP_VIRTUAL_JOB.statusMessage;
             nextBuild.statusMessageType = BUILD_STATUS_MESSAGES.SKIP_VIRTUAL_JOB.statusMessageType;
-            nextBuild.meta = merge({}, nextBuild.meta, this.currentBuild.meta);
+
+            // Overwrite metadata by current build's
+            nextBuild.meta = merge({}, this.currentBuild.meta);
 
             await nextBuild.update();
         }

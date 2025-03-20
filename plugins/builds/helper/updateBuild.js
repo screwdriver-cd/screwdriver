@@ -135,18 +135,26 @@ async function getStage({ stageFactory, workflowGraph, jobName, pipelineId }) {
 }
 
 /**
- * Checks if all builds in stage are done running
+ * Get all builds in stage
  *
  * @param  {Stage}      stage   Stage
  * @param  {Event}      event   Event
- * @return {Boolean}            Flag if stage is done
+ * @return {Promise<Build[]>}   Builds in stage
  */
-async function isStageDone({ stage, event }) {
+async function getStageJobBuilds({ stage, event }) {
     // Get all jobIds for jobs in the stage
     const stageJobIds = [...stage.jobIds, stage.setup];
 
     // Get all builds in a stage for this event
-    const stageJobBuilds = await event.getBuilds({ params: { jobId: stageJobIds } });
+    return event.getBuilds({ params: { jobId: stageJobIds } });
+}
+
+/**
+ * Checks if all builds in stage are done running
+ * @param {Build[]} stageJobBuilds Builds in stage
+ * @returns {Boolean}              Flag if stage is done
+ */
+function isStageDone(stageJobBuilds) {
     let stageIsDone = false;
 
     if (stageJobBuilds && stageJobBuilds.length !== 0) {
@@ -292,10 +300,13 @@ async function updateBuildAndTriggerDownstreamJobs(config, build, server, userna
 
         // Start stage teardown build if stage is done
         if (stageTeardownBuild && stageTeardownBuild.status === 'CREATED') {
-            const stageIsDone = await isStageDone({ stage, event: newEvent });
+            const stageJobBuilds = await getStageJobBuilds({ stage, event: newEvent });
+            const stageIsDone = isStageDone(stageJobBuilds);
 
             if (stageIsDone) {
                 stageTeardownBuild.status = 'QUEUED';
+                stageTeardownBuild.parentBuildId = stageJobBuilds.map(b => b.id);
+
                 await stageTeardownBuild.update();
                 await stageTeardownBuild.start();
             }
