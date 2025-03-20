@@ -229,7 +229,7 @@ function hasChangesUnderRootDir(pipeline, changedFiles) {
 
     // Only check if rootDir is set
     if (rootDir) {
-        return changes.some(file => file.startsWith(rootDir));
+        return changes.some(file => file.startsWith(`${rootDir}/`));
     }
 
     return true;
