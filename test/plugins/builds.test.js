@@ -2641,9 +2641,9 @@ describe('build plugin test', () => {
                             { name: 'a', id: 1 },
                             { name: 'b', id: 2 },
                             { name: 'c', id: 3 },
-                            { name: 'd', id: 4 },
+                            { name: 'd', id: 4, virtual: true },
                             { name: 'e', id: 5 },
-                            { name: 'f', id: 6 }
+                            { name: 'f', id: 6, virtual: true }
                         ],
                         edges: [
                             { src: '~pr', dest: 'a' },
@@ -2670,12 +2670,6 @@ describe('build plugin test', () => {
                     const jobD = {
                         ...jobB,
                         id: 4,
-                        permutations: [
-                            {
-                                ...jobB.permutations[0],
-                                annotations: { 'screwdriver.cd/virtualJob': true }
-                            }
-                        ],
                         name: 'd'
                     };
 
@@ -2685,7 +2679,7 @@ describe('build plugin test', () => {
                         name: 'e'
                     };
                     const jobF = {
-                        ...jobD,
+                        ...jobB,
                         id: 6,
                         name: 'f'
                     };
@@ -6060,7 +6054,7 @@ describe('build plugin test', () => {
                             const { lock, unlock } = lockMock;
 
                             assert.calledOnce(lock);
-                            assert.calledTwice(unlock);
+                            assert.calledOnce(unlock);
                         });
                     });
 
@@ -6072,7 +6066,7 @@ describe('build plugin test', () => {
                             const { lock, unlock } = lockMock;
 
                             assert.calledOnce(lock);
-                            assert.calledTwice(unlock);
+                            assert.calledOnce(unlock);
                         });
                     });
                 });

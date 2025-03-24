@@ -57,8 +57,7 @@ describe('createJoinObject function', () => {
                             { id: 11, name: 'jobA' },
                             { id: 12, name: 'jobB' }
                         ],
-                        isExternal: false,
-                        stageName: null
+                        isExternal: false
                     }
                 }
             }
@@ -123,8 +122,7 @@ describe('createJoinObject function', () => {
                             { id: 22, name: 'sd@2:jobB' },
                             { id: 23, name: 'sd@2:jobC' }
                         ],
-                        isExternal: true,
-                        stageName: null
+                        isExternal: true
                     }
                 }
             }
@@ -160,8 +158,8 @@ describe('createJoinObject function', () => {
         const expected = {
             1: {
                 jobs: {
-                    jobB: { id: 12, join: [], isExternal: false, stageName: null },
-                    jobC: { id: 13, join: [], isExternal: false, stageName: null }
+                    jobB: { id: 12, join: [], isExternal: false },
+                    jobC: { id: 13, join: [], isExternal: false }
                 }
             }
         };
@@ -179,7 +177,7 @@ describe('createJoinObject function', () => {
                         { name: '~commit' },
                         { name: 'jobA', id: 11 },
                         { name: 'jobB', id: 12 },
-                        { name: 'jobC', id: 13, stageName: 'red' }
+                        { name: 'jobC', id: 13, virtual: true, stageName: 'red' }
                     ],
                     edges: [
                         { src: '~commit', dest: 'jobA' },
@@ -203,8 +201,7 @@ describe('createJoinObject function', () => {
                             { id: 11, name: 'jobA' },
                             { id: 12, name: 'jobB' }
                         ],
-                        isExternal: false,
-                        stageName: 'red'
+                        isExternal: false
                     }
                 }
             }
@@ -1255,13 +1252,12 @@ describe('handleNewBuild function', () => {
     });
 
     it('should skip the execution of virtual job and mark the build as successful', async () => {
-        jobMock.permutations[0].annotations = { 'screwdriver.cd/virtualJob': true };
-
         await handleNewBuild({
             joinListNames,
             newBuild: newBuildMock,
             job: jobMock,
             pipelineId: 123,
+            isVirtualJob: true,
             event: eventMock,
             buildFactory: buildFactoryMock
         });
@@ -1274,7 +1270,6 @@ describe('handleNewBuild function', () => {
     });
 
     it('should skip the execution of virtual job when freeze windows is empty', async () => {
-        jobMock.permutations[0].annotations = { 'screwdriver.cd/virtualJob': true };
         jobMock.permutations[0].freezeWindows = [];
 
         await handleNewBuild({
@@ -1282,6 +1277,7 @@ describe('handleNewBuild function', () => {
             newBuild: newBuildMock,
             job: jobMock,
             pipelineId: 123,
+            isVirtualJob: true,
             event: eventMock,
             buildFactory: buildFactoryMock
         });
@@ -1292,7 +1288,6 @@ describe('handleNewBuild function', () => {
     });
 
     it('should add virtual job to the execution queue when the job has freeze windows', async () => {
-        jobMock.permutations[0].annotations = { 'screwdriver.cd/virtualJob': true };
         jobMock.permutations[0].freezeWindows = ['* 10-21 ? * *'];
 
         await handleNewBuild({
@@ -1300,6 +1295,7 @@ describe('handleNewBuild function', () => {
             newBuild: newBuildMock,
             job: jobMock,
             pipelineId: 123,
+            isVirtualJob: true,
             event: eventMock,
             buildFactory: buildFactoryMock
         });

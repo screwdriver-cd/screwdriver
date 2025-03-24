@@ -39,8 +39,7 @@ const {
     getParallelBuilds,
     isStartFromMiddleOfCurrentStage,
     Status,
-    getSameParentEvents,
-    isVirtualJob
+    getSameParentEvents
 } = require('./triggers/helpers');
 const { getFullStageJobName } = require('../helper');
 
@@ -96,9 +95,11 @@ async function triggerNextJobs(config, app) {
 
     const downstreamOfNextJobsToBeProcessed = [];
 
-    for (const [nextJobName, nextJobInfo] of Object.entries(currentPipelineNextJobs)) {
+    for (const [nextJobName] of Object.entries(currentPipelineNextJobs)) {
         const nextJob = await getJob(nextJobName, currentPipeline.id, jobFactory);
-        const { stageName: nextJobStageName } = nextJobInfo;
+        const node = currentEvent.workflowGraph.nodes.find(n => n.name === trimJobName(nextJobName));
+        const isNextJobVirtual = node.virtual || false;
+        const nextJobStageName = node.stageName || null;
         const resource = `pipeline:${currentPipeline.id}:groupEvent:${currentEvent.groupEventId}`;
         let lock;
         let nextBuild;
@@ -124,12 +125,24 @@ async function triggerNextJobs(config, app) {
                 isOrTrigger(currentEvent.workflowGraph, originalCurrentJobName, trimJobName(nextJobName)) ||
                 isStartFromMiddleOfCurrentStage(currentJob.name, currentEvent.startFrom, currentEvent.workflowGraph)
             ) {
-                nextBuild = await orTrigger.execute(currentEvent, currentPipeline.id, nextJob, parentBuilds);
+                nextBuild = await orTrigger.execute(
+                    currentEvent,
+                    currentPipeline.id,
+                    nextJob,
+                    parentBuilds,
+                    isNextJobVirtual
+                );
             } else {
-                nextBuild = await andTrigger.execute(nextJob, parentBuilds, joinListNames, nextJobStageName);
+                nextBuild = await andTrigger.execute(
+                    nextJob,
+                    parentBuilds,
+                    joinListNames,
+                    isNextJobVirtual,
+                    nextJobStageName
+                );
             }
 
-            if (isVirtualJob(nextJob) && nextBuild && nextBuild.status === Status.SUCCESS) {
+            if (isNextJobVirtual && nextBuild && nextBuild.status === Status.SUCCESS) {
                 downstreamOfNextJobsToBeProcessed.push({
                     build: nextBuild,
                     event: currentEvent,
@@ -274,7 +287,9 @@ async function triggerNextJobs(config, app) {
         if (externalEvent) {
             for (const [nextJobName, nextJobInfo] of Object.entries(joinedPipeline.jobs)) {
                 const nextJob = await getJob(nextJobName, joinedPipelineId, jobFactory);
-                const { stageName: nextJobStageName } = nextJobInfo;
+                const node = externalEvent.workflowGraph.nodes.find(n => n.name === trimJobName(nextJobName));
+                const isNextJobVirtual = node.virtual || false;
+                const nextJobStageName = node.stageName || null;
 
                 const { parentBuilds } = parseJobInfo({
                     joinObj: joinedPipeline.jobs,
@@ -295,7 +310,8 @@ async function triggerNextJobs(config, app) {
                             externalEvent,
                             externalEvent.pipelineId,
                             nextJob,
-                            parentBuilds
+                            parentBuilds,
+                            isNextJobVirtual
                         );
                     } else {
                         // Re get join list when first time remote trigger since external event was empty and cannot get workflow graph then
@@ -311,11 +327,12 @@ async function triggerNextJobs(config, app) {
                             parentBuilds,
                             groupEventBuilds,
                             joinListNames,
+                            isNextJobVirtual,
                             nextJobStageName
                         );
                     }
 
-                    if (isVirtualJob(nextJob) && nextBuild && nextBuild.status === Status.SUCCESS) {
+                    if (isNextJobVirtual && nextBuild && nextBuild.status === Status.SUCCESS) {
                         downstreamOfNextJobsToBeProcessed.push({
                             build: nextBuild,
                             event: currentEvent,

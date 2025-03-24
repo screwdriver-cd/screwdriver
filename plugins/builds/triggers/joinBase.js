@@ -42,10 +42,20 @@ class JoinBase {
      * @param {Job} nextJob
      * @param {import('./helpers').ParentBuilds} parentBuilds
      * @param {String[]} joinListNames
+     * @param {Boolean} isNextJobVirtual
      * @param {String} nextJobStageName
      * @returns {Promise<Build[]|null>}
      */
-    async processNextBuild({ pipelineId, event, nextBuild, nextJob, parentBuilds, joinListNames, nextJobStageName }) {
+    async processNextBuild({
+        pipelineId,
+        event,
+        nextBuild,
+        nextJob,
+        parentBuilds,
+        joinListNames,
+        isNextJobVirtual,
+        nextJobStageName
+    }) {
         let newBuild;
 
         // Create next build
@@ -83,6 +93,7 @@ class JoinBase {
             newBuild,
             job: nextJob,
             pipelineId,
+            isVirtualJob: isNextJobVirtual,
             stageName: nextJobStageName,
             event,
             buildFactory: this.buildFactory

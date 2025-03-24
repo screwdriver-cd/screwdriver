@@ -1,7 +1,7 @@
 'use strict';
 
 const merge = require('lodash.mergewith');
-const { createInternalBuild, Status, BUILD_STATUS_MESSAGES, isVirtualJob, hasFreezeWindows } = require('./helpers');
+const { createInternalBuild, Status, BUILD_STATUS_MESSAGES, hasFreezeWindows } = require('./helpers');
 
 /**
  * @typedef {import('screwdriver-models').BuildFactory} BuildFactory
@@ -39,15 +39,15 @@ class OrBase {
      * @param {Number} pipelineId
      * @param {Job} nextJob
      * @param {import('./helpers').ParentBuilds} parentBuilds
+     * @param {Boolean} isNextJobVirtual
      * @return {Promise<Build|null>}
      */
-    async trigger(event, pipelineId, nextJob, parentBuilds) {
+    async trigger(event, pipelineId, nextJob, parentBuilds, isNextJobVirtual) {
         let nextBuild = await this.buildFactory.get({
             eventId: event.id,
             jobId: nextJob.id
         });
 
-        const isNextJobVirtual = isVirtualJob(nextJob);
         const hasWindows = hasFreezeWindows(nextJob);
         const causeMessage = nextJob.name === event.startFrom ? event.causeMessage : '';
 
