@@ -534,10 +534,9 @@ async function getBuildsForGroupEvent(groupEventId, buildFactory) {
  * @param {Object} arg
  * @param {ParentBuilds} arg.joinParentBuilds Parent builds object for join job
  * @param {Build} arg.nextBuild Next build
- * @param {Build} arg.build Build for current completed job
  * @returns {Promise<Build>} Updated next build
  */
-async function updateParentBuilds({ joinParentBuilds, nextBuild, build }) {
+async function updateParentBuilds({ joinParentBuilds, nextBuild }) {
     // Override old parentBuilds info
     const newParentBuilds = merge({}, joinParentBuilds, nextBuild.parentBuilds, (objVal, srcVal) =>
         // passthrough objects, else mergeWith mutates source
@@ -545,59 +544,69 @@ async function updateParentBuilds({ joinParentBuilds, nextBuild, build }) {
     );
 
     nextBuild.parentBuilds = newParentBuilds;
-    // nextBuild.parentBuildId may be int or Array, so it needs to be flattened
-    nextBuild.parentBuildId = Array.from(new Set([build.id, nextBuild.parentBuildId || []].flat()));
 
     return nextBuild.update();
 }
 
 /**
- * Check if all parent builds of the new build are done
- * @param {Object} arg
- * @param {Build} arg.newBuild Updated build
+ * Get builds in join list from parent builds
+ * @param {newBuild} arg.newBuild Updated build
  * @param {String[]} arg.joinListNames Join list names
  * @param {Number} arg.pipelineId Pipeline ID
  * @param {BuildFactory} arg.buildFactory Build factory
- * @returns {Promise<{hasFailure: Boolean, done: Boolean}>} Object with done and hasFailure statuses
+ * @returns {Promise<Map<String, Build>>} Join builds
  */
-async function getParentBuildStatus({ newBuild, joinListNames, pipelineId, buildFactory }) {
+async function getJoinBuilds({ newBuild, joinListNames, pipelineId, buildFactory }) {
     const upstream = newBuild.parentBuilds || {};
+    const joinBuilds = {};
 
-    // Get buildId
-    const joinBuildIds = joinListNames.map(name => {
+    for (const jobName of joinListNames) {
         let upstreamPipelineId = pipelineId;
-        let upstreamJobName = name;
+        let upstreamJobName = jobName;
 
-        if (isExternalTrigger(name)) {
-            const { externalPipelineId, externalJobName } = getExternalPipelineAndJob(name);
+        if (isExternalTrigger(upstreamJobName)) {
+            const { externalPipelineId, externalJobName } = getExternalPipelineAndJob(jobName);
 
             upstreamPipelineId = externalPipelineId;
             upstreamJobName = externalJobName;
         }
 
         if (upstream[upstreamPipelineId] && upstream[upstreamPipelineId].jobs[upstreamJobName]) {
-            return upstream[upstreamPipelineId].jobs[upstreamJobName];
+            const buildId = upstream[upstreamPipelineId].jobs[upstreamJobName];
+
+            const build = await buildFactory.get(buildId);
+
+            if (typeof build.endTime === 'string') {
+                build.endTime = new Date(build.endTime);
+            }
+
+            joinBuilds[jobName] = build;
         }
+    }
 
-        return undefined;
-    });
+    return joinBuilds;
+}
 
+/**
+ * Check if all parent builds of the new build are done
+ * @param {Object} arg
+ * @param {String[]} arg.joinListNames Join list names
+ * @param {String[]} arg.joinBuilds Join builds
+ * @returns {Promise<{hasFailure: Boolean, done: Boolean}>} Object with done and hasFailure statuses
+ */
+async function getParentBuildStatus({ joinListNames, joinBuilds }) {
     // If buildId is empty, the job hasn't executed yet and the join is not done
-    const isExecuted = !joinBuildIds.includes(undefined);
+    const isExecuted = joinListNames.every(name => joinBuilds[name] !== undefined);
+    const parentBuilds = Object.values(joinBuilds);
 
-    // Get the status of the builds
-    const buildIds = joinBuildIds.filter(buildId => buildId !== undefined);
-    const promisesToAwait = buildIds.map(buildId => buildFactory.get(buildId));
-    const joinedBuilds = await Promise.all(promisesToAwait);
-
-    const hasFailure = joinedBuilds
+    const hasFailure = parentBuilds
         .map(build => {
             // Do not need to run the next build; terminal status
             return [Status.FAILURE, Status.ABORTED, Status.COLLAPSED, Status.UNSTABLE].includes(build.status);
         })
         .includes(true);
 
-    const isDoneStatus = joinedBuilds.every(build => {
+    const isDoneStatus = parentBuilds.every(build => {
         // All builds are done
         return [Status.FAILURE, Status.SUCCESS, Status.ABORTED, Status.UNSTABLE, Status.COLLAPSED].includes(
             build.status
@@ -616,40 +625,40 @@ async function getParentBuildStatus({ newBuild, joinListNames, pipelineId, build
  *          if no failure, start new build
  * Otherwise, do nothing
  * @param {Object} arg If the build is done or not
- * @param {Boolean} arg.done If the build is done or not
- * @param {Boolean} arg.hasFailure If the build has a failure or not
+ * @param {String[]} arg.joinListNames Join list names
  * @param {Build} arg.newBuild Next build
  * @param {Job} arg.job Next job
  * @param {String|undefined} arg.pipelineId Pipeline ID
  * @param {String|undefined} arg.stageName Stage name
  * @param {Boolean} arg.isVirtualJob If the job is virtual or not
  * @param {Event} arg.event Event
- * @param {Build} arg.currentBuild Current build
+ * @param {BuildFactory} arg.buildFactory Build factory
  * @returns {Promise<Build|null>} The newly updated/created build
  */
 async function handleNewBuild({
-    done,
-    hasFailure,
+    joinListNames,
     newBuild,
     job,
     pipelineId,
     stageName,
     isVirtualJob,
     event,
-    currentBuild
+    buildFactory
 }) {
+    const joinBuilds = await getJoinBuilds({
+        newBuild,
+        joinListNames,
+        pipelineId,
+        buildFactory
+    });
+
+    /* CHECK IF ALL PARENT BUILDS OF NEW BUILD ARE DONE */
+    const { hasFailure, done } = await getParentBuildStatus({
+        joinBuilds,
+        joinListNames
+    });
+
     if (!done || Status.isStarted(newBuild.status)) {
-        // The virtual job does not inherit metadata because the Launcher is not executed.
-        // Therefore, it is necessary to take over the metadata from the previous build.
-
-        // TODO There is a bug when virtual job requires [a, b] and if "a" and "b" are completed simultaneously.
-        // https://github.com/screwdriver-cd/screwdriver/issues/3287
-        if (isVirtualJob && !hasFreezeWindows(job)) {
-            newBuild.meta = merge({}, newBuild.meta, currentBuild.meta);
-
-            await newBuild.update();
-        }
-
         return null;
     }
 
@@ -668,14 +677,28 @@ async function handleNewBuild({
         return null;
     }
 
+    /* Prepare to execute the build */
+    const parentBuilds = Object.values(joinBuilds);
+
+    parentBuilds.sort((l, r) => {
+        if (l.endTime && r.endTime) {
+            return l.endTime.getTime() - r.endTime.getTime();
+        }
+
+        // Move to tail if endTime is not set
+        return (l.endTime ? 0 : 1) - (r.endTime ? 0 : 1);
+    });
+    newBuild.parentBuildId = parentBuilds.map(build => build.id);
+
     // Bypass execution of the build if the job is virtual
     if (isVirtualJob && !hasFreezeWindows(job)) {
         newBuild.status = Status.SUCCESS;
         newBuild.statusMessage = BUILD_STATUS_MESSAGES.SKIP_VIRTUAL_JOB.statusMessage;
         newBuild.statusMessageType = BUILD_STATUS_MESSAGES.SKIP_VIRTUAL_JOB.statusMessageType;
+
         // The virtual job does not inherit metadata because the Launcher is not executed.
         // Therefore, it is necessary to take over the metadata from the previous build.
-        newBuild.meta = merge({}, newBuild.meta, currentBuild.meta);
+        newBuild.meta = parentBuilds.reduce((acc, build) => merge(acc, build.meta), {});
 
         return newBuild.update();
     }
@@ -1016,38 +1039,6 @@ async function ensureStageTeardownBuildExists({
 }
 
 /**
- * Get parentBuildId from parentBuilds object
- * @param {Object} arg
- * @param {ParentBuilds} arg.parentBuilds Builds that triggered this build
- * @param {String[]} arg.joinListNames Array of join job name
- * @param {Number} arg.pipelineId Pipeline ID
- * @returns {String[]} Array of parentBuildId
- */
-function getParentBuildIds({ currentBuildId, parentBuilds, joinListNames, pipelineId }) {
-    const parentBuildIds = joinListNames
-        .map(name => {
-            let parentBuildPipelineId = pipelineId;
-            let parentBuildJobName = name;
-
-            if (isExternalTrigger(name)) {
-                const { externalPipelineId, externalJobName } = getExternalPipelineAndJob(name);
-
-                parentBuildPipelineId = externalPipelineId;
-                parentBuildJobName = externalJobName;
-            }
-
-            if (parentBuilds[parentBuildPipelineId] && parentBuilds[parentBuildPipelineId].jobs[parentBuildJobName]) {
-                return parentBuilds[parentBuildPipelineId].jobs[parentBuildJobName];
-            }
-
-            return null;
-        })
-        .filter(Boolean); // Remove undefined or null values
-
-    return Array.from(new Set([currentBuildId, ...parentBuildIds]));
-}
-
-/**
  * Extract a current pipeline's next jobs from pipeline join data
  * (Next jobs triggered as external are not included)
  *
@@ -1206,13 +1197,13 @@ module.exports = {
     getSameParentEvents,
     mergeParentBuilds,
     updateParentBuilds,
+    getJoinBuilds,
     getParentBuildStatus,
     handleNewBuild,
     ensureStageTeardownBuildExists,
     getBuildsForGroupEvent,
     createJoinObject,
     createExternalEvent,
-    getParentBuildIds,
     strToInt,
     createEvent,
     deleteBuild,

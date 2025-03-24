@@ -1034,12 +1034,9 @@ describe('updateParentBuilds function', () => {
             }
         };
 
-        const expectedParentBuildId = [3001, 2001];
-
         const result = await updateParentBuilds({ joinParentBuilds, nextBuild, build });
 
         assert.deepEqual(result.parentBuilds, expectedParentBuilds);
-        assert.deepEqual(result.parentBuildId, expectedParentBuildId);
         sinon.assert.calledOnce(nextBuildMock.update);
     });
 });
@@ -1047,123 +1044,75 @@ describe('updateParentBuilds function', () => {
 describe('getParentBuildStatus function', () => {
     const getParentBuildStatus = RewiredTriggerHelper.__get__('getParentBuildStatus');
 
-    let buildFactoryMock;
-
-    beforeEach(() => {
-        buildFactoryMock = {
-            get: sinon.stub()
-        };
-    });
-
-    afterEach(() => {
-        sinon.restore();
-    });
-
     it('should return done and no failure when all parent builds are successful', async () => {
-        const newBuild = {
-            parentBuilds: {
-                1: { jobs: { jobA: 1001, jobB: 1002 } }
-            }
-        };
         const joinListNames = ['jobA', 'jobB'];
-        const pipelineId = 1;
-
-        buildFactoryMock.get.withArgs(1001).resolves({ status: Status.SUCCESS });
-        buildFactoryMock.get.withArgs(1002).resolves({ status: Status.SUCCESS });
+        const joinBuilds = {
+            jobA: { status: Status.SUCCESS },
+            jobB: { status: Status.SUCCESS }
+        };
 
         const result = await getParentBuildStatus({
-            newBuild,
             joinListNames,
-            pipelineId,
-            buildFactory: buildFactoryMock
+            joinBuilds
         });
 
         assert.deepEqual(result, { hasFailure: false, done: true });
     });
 
     it('should return not done and no failure when some parent builds are not executed', async () => {
-        const newBuild = {
-            parentBuilds: {
-                1: { jobs: { jobA: 1001 } }
-            }
-        };
         const joinListNames = ['jobA', 'jobB'];
-        const pipelineId = 1;
-
-        buildFactoryMock.get.withArgs(1001).resolves({ status: Status.SUCCESS });
+        const joinBuilds = {
+            jobA: { status: Status.SUCCESS }
+        };
 
         const result = await getParentBuildStatus({
-            newBuild,
             joinListNames,
-            pipelineId,
-            buildFactory: buildFactoryMock
+            joinBuilds
         });
 
         assert.deepEqual(result, { hasFailure: false, done: false });
     });
 
     it('should return done and has failure when any parent build has failed', async () => {
-        const newBuild = {
-            parentBuilds: {
-                1: { jobs: { jobA: 1001, jobB: 1002 } }
-            }
-        };
         const joinListNames = ['jobA', 'jobB'];
-        const pipelineId = 1;
-
-        buildFactoryMock.get.withArgs(1001).resolves({ status: Status.SUCCESS });
-        buildFactoryMock.get.withArgs(1002).resolves({ status: Status.FAILURE });
+        const joinBuilds = {
+            jobA: { status: Status.SUCCESS },
+            jobB: { status: Status.FAILURE }
+        };
 
         const result = await getParentBuildStatus({
-            newBuild,
             joinListNames,
-            pipelineId,
-            buildFactory: buildFactoryMock
+            joinBuilds
         });
 
         assert.deepEqual(result, { hasFailure: true, done: true });
     });
 
     it('should handle external triggers correctly', async () => {
-        const newBuild = {
-            parentBuilds: {
-                1: { jobs: { jobA: 1001 } },
-                2: { jobs: { jobB: 1002 } }
-            }
-        };
         const joinListNames = ['jobA', 'sd@2:jobB'];
-        const pipelineId = 1;
-
-        buildFactoryMock.get.withArgs(1001).resolves({ status: Status.SUCCESS });
-        buildFactoryMock.get.withArgs(1002).resolves({ status: Status.SUCCESS });
+        const joinBuilds = {
+            jobA: { status: Status.SUCCESS },
+            'sd@2:jobB': { status: Status.SUCCESS }
+        };
 
         const result = await getParentBuildStatus({
-            newBuild,
             joinListNames,
-            pipelineId,
-            buildFactory: buildFactoryMock
+            joinBuilds
         });
 
         assert.deepEqual(result, { hasFailure: false, done: true });
     });
 
     it('should return not done and no failure when some parent builds are in progress', async () => {
-        const newBuild = {
-            parentBuilds: {
-                1: { jobs: { jobA: 1001, jobB: 1002 } }
-            }
-        };
         const joinListNames = ['jobA', 'jobB'];
-        const pipelineId = 1;
-
-        buildFactoryMock.get.withArgs(1001).resolves({ status: Status.SUCCESS });
-        buildFactoryMock.get.withArgs(1002).resolves({ status: Status.IN_PROGRESS });
+        const joinBuilds = {
+            jobA: { status: Status.SUCCESS },
+            jobB: { status: Status.IN_PROGRESS }
+        };
 
         const result = await getParentBuildStatus({
-            newBuild,
             joinListNames,
-            pipelineId,
-            buildFactory: buildFactoryMock
+            joinBuilds
         });
 
         assert.deepEqual(result, { hasFailure: false, done: false });
@@ -1172,26 +1121,19 @@ describe('getParentBuildStatus function', () => {
 
 describe('handleNewBuild function', () => {
     const handleNewBuild = RewiredTriggerHelper.__get__('handleNewBuild');
+    const joinListNames = ['a'];
 
     let newBuildMock;
-    let currentBuildMock;
     let jobMock;
     let eventMock;
+    let buildFactoryMock;
 
     beforeEach(() => {
         newBuildMock = {
             id: 123,
             status: Status.CREATED,
             eventId: 456,
-            update: sinon.stub().resolves(),
-            start: sinon.stub().resolvesThis(),
-            remove: sinon.stub().resolves()
-        };
-
-        currentBuildMock = {
-            id: 234,
-            status: Status.SUCCESS,
-            eventId: 456,
+            parentBuilds: { 123: { jobs: { a: 1 } } },
             update: sinon.stub().resolves(),
             start: sinon.stub().resolvesThis(),
             remove: sinon.stub().resolves()
@@ -1205,6 +1147,10 @@ describe('handleNewBuild function', () => {
 
         eventMock = {};
 
+        buildFactoryMock = {
+            get: sinon.stub().resolves({ status: Status.SUCCESS })
+        };
+
         sinon.stub(logger, 'info');
     });
 
@@ -1213,13 +1159,15 @@ describe('handleNewBuild function', () => {
     });
 
     it('should return null if not done', async () => {
+        buildFactoryMock.get.resolves({ status: Status.RUNNING });
+
         const result = await handleNewBuild({
-            done: false,
-            hasFailure: false,
+            joinListNames,
             newBuild: newBuildMock,
             job: jobMock,
+            pipelineId: 123,
             event: eventMock,
-            currentBuild: currentBuildMock
+            buildFactory: buildFactoryMock
         });
 
         assert.isNull(result);
@@ -1229,33 +1177,35 @@ describe('handleNewBuild function', () => {
     });
 
     it('should return null if new build is already started', async () => {
-        newBuildMock.status = Status.STARTED;
+        newBuildMock.status = Status.RUNNING;
 
         const result = await handleNewBuild({
-            done: true,
-            hasFailure: false,
+            joinListNames,
             newBuild: newBuildMock,
             job: jobMock,
+            pipelineId: 123,
             event: eventMock,
-            currentBuild: currentBuildMock
+            buildFactory: buildFactoryMock
         });
 
-        assert.strictEqual(result.status, Status.QUEUED);
-        sinon.assert.calledOnce(newBuildMock.update);
-        sinon.assert.calledOnce(newBuildMock.start);
+        assert.isNull(result);
+        assert.strictEqual(newBuildMock.status, Status.RUNNING);
+        sinon.assert.notCalled(newBuildMock.update);
+        sinon.assert.notCalled(newBuildMock.start);
         sinon.assert.notCalled(newBuildMock.remove);
     });
 
     it('should remove new build if there is a failure and it is not a stage teardown job', async () => {
+        buildFactoryMock.get.resolves({ status: Status.FAILURE });
+
         const result = await handleNewBuild({
-            done: true,
-            hasFailure: true,
+            joinListNames,
             newBuild: newBuildMock,
             job: jobMock,
-            pipelineId: 1,
+            pipelineId: 123,
             stage: { name: 'deploy' },
             event: eventMock,
-            currentBuild: currentBuildMock
+            buildFactory: buildFactoryMock
         });
 
         assert.isNull(result);
@@ -1267,16 +1217,16 @@ describe('handleNewBuild function', () => {
 
     it('should not remove new build if there is a failure and it is a stage teardown job', async () => {
         jobMock.name = 'stage@deploy:teardown';
+        buildFactoryMock.get.resolves({ status: Status.FAILURE });
 
         const result = await handleNewBuild({
-            done: true,
-            hasFailure: true,
+            joinListNames,
             newBuild: newBuildMock,
             job: jobMock,
-            pipelineId: 1,
+            pipelineId: 123,
             stageName: 'deploy',
             event: eventMock,
-            currentBuild: currentBuildMock
+            buildFactory: buildFactoryMock
         });
 
         assert.isNull(result);
@@ -1288,12 +1238,12 @@ describe('handleNewBuild function', () => {
 
     it('should start new build if all join builds finished successfully', async () => {
         const result = await handleNewBuild({
-            done: true,
-            hasFailure: false,
+            joinListNames,
             newBuild: newBuildMock,
             job: jobMock,
+            pipelineId: 123,
             event: eventMock,
-            currentBuild: currentBuildMock
+            buildFactory: buildFactoryMock
         });
 
         assert.strictEqual(result.status, Status.QUEUED);
@@ -1303,13 +1253,13 @@ describe('handleNewBuild function', () => {
 
     it('should skip the execution of virtual job and mark the build as successful', async () => {
         await handleNewBuild({
-            done: true,
-            hasFailure: false,
+            joinListNames,
             newBuild: newBuildMock,
             job: jobMock,
+            pipelineId: 123,
             isVirtualJob: true,
             event: eventMock,
-            currentBuild: currentBuildMock
+            buildFactory: buildFactoryMock
         });
 
         assert.strictEqual(newBuildMock.status, Status.SUCCESS);
@@ -1323,13 +1273,13 @@ describe('handleNewBuild function', () => {
         jobMock.permutations[0].freezeWindows = [];
 
         await handleNewBuild({
-            done: true,
-            hasFailure: false,
+            joinListNames,
             newBuild: newBuildMock,
             job: jobMock,
+            pipelineId: 123,
             isVirtualJob: true,
             event: eventMock,
-            currentBuild: currentBuildMock
+            buildFactory: buildFactoryMock
         });
 
         assert.strictEqual(newBuildMock.status, Status.SUCCESS);
@@ -1341,13 +1291,13 @@ describe('handleNewBuild function', () => {
         jobMock.permutations[0].freezeWindows = ['* 10-21 ? * *'];
 
         await handleNewBuild({
-            done: true,
-            hasFailure: false,
+            joinListNames,
             newBuild: newBuildMock,
             job: jobMock,
+            pipelineId: 123,
             isVirtualJob: true,
             event: eventMock,
-            currentBuild: currentBuildMock
+            buildFactory: buildFactoryMock
         });
 
         assert.strictEqual(newBuildMock.status, Status.QUEUED);
@@ -1849,73 +1799,56 @@ describe('createExternalEvent function', () => {
     });
 });
 
-describe('getParentBuildIds function', () => {
-    const getParentBuildIds = RewiredTriggerHelper.__get__('getParentBuildIds');
-    const currentBuildId = '1001';
-    const pipelineId = 1;
+describe('getJoinBuilds', () => {
+    const getJoinBuilds = RewiredTriggerHelper.__get__('getJoinBuilds');
 
-    it('should return parent build IDs including current build ID', () => {
-        const parentBuilds = {
-            1: {
-                jobs: {
-                    jobA: '2001',
-                    jobB: '2002'
-                }
-            }
+    let buildFactoryMock;
+
+    beforeEach(() => {
+        buildFactoryMock = {
+            get: sinon.stub(),
+            remove: sinon.stub().resolves()
         };
-        const joinListNames = ['jobA', 'jobB'];
-
-        const result = getParentBuildIds({ currentBuildId, parentBuilds, joinListNames, pipelineId });
-
-        assert.deepEqual(result, ['1001', '2001', '2002']);
     });
 
-    it('should handle external triggers correctly', () => {
-        const parentBuilds = {
-            1: {
-                jobs: {
-                    jobA: '2001'
-                }
-            },
-            2: {
-                jobs: {
-                    jobB: '3001'
-                }
-            }
-        };
-        const joinListNames = ['jobA', 'sd@2:jobB'];
-
-        const result = getParentBuildIds({ currentBuildId, parentBuilds, joinListNames, pipelineId });
-
-        assert.deepEqual(result, ['1001', '2001', '3001']);
+    afterEach(() => {
+        sinon.restore();
     });
 
-    it('should filter out null values', () => {
-        const parentBuilds = {
-            1: {
-                jobs: {
-                    jobA: '2001'
+    it('should get existing builds in join lisnt', async () => {
+        const build = {
+            parentBuilds: {
+                123: {
+                    jobs: {
+                        a: 1,
+                        b: 2,
+                        d: 4
+                    }
+                },
+                456: {
+                    jobs: {
+                        e: 5
+                    }
                 }
             }
         };
-        const joinListNames = ['jobA', 'jobB']; // jobB does not exist in parentBuilds
 
-        const result = getParentBuildIds({ currentBuildId, parentBuilds, joinListNames, pipelineId });
+        buildFactoryMock.get.withArgs(1).resolves({ id: 1, endTime: '2025-03-17T04:47:03.207Z' });
+        buildFactoryMock.get.withArgs(2).resolves({ id: 2, endTime: '2025-03-18T04:47:03.207Z' });
+        buildFactoryMock.get.withArgs(5).resolves({ id: 5, endTime: '2025-03-19T04:47:03.207Z' });
 
-        assert.deepEqual(result, ['1001', '2001']);
-    });
+        const result = await getJoinBuilds({
+            newBuild: build,
+            joinListNames: ['a', 'b', 'c', 'sd@456:e'],
+            pipelineId: 123,
+            buildFactory: buildFactoryMock
+        });
 
-    it('should handle joinListNames with no matching parent builds', () => {
-        const parentBuilds = {
-            1: {
-                jobs: {}
-            }
-        };
-        const joinListNames = ['jobA', 'jobB']; // Neither jobA nor jobB exist in parentBuilds
-
-        const result = getParentBuildIds({ currentBuildId, parentBuilds, joinListNames, pipelineId });
-
-        assert.deepEqual(result, ['1001']);
+        assert.deepEqual(result, {
+            a: { id: 1, endTime: new Date('2025-03-17T04:47:03.207Z') },
+            b: { id: 2, endTime: new Date('2025-03-18T04:47:03.207Z') },
+            'sd@456:e': { id: 5, endTime: new Date('2025-03-19T04:47:03.207Z') }
+        });
     });
 });
 

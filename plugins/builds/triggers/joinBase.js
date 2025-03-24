@@ -1,7 +1,7 @@
 'use strict';
 
 const logger = require('screwdriver-logger');
-const { createInternalBuild, updateParentBuilds, getParentBuildStatus, handleNewBuild } = require('./helpers');
+const { createInternalBuild, updateParentBuilds, handleNewBuild } = require('./helpers');
 
 /**
  * @typedef {import('screwdriver-models').EventFactory} EventFactory
@@ -41,7 +41,6 @@ class JoinBase {
      * @param {Build} nextBuild
      * @param {Job} nextJob
      * @param {import('./helpers').ParentBuilds} parentBuilds
-     * @param {String} parentBuildId
      * @param {String[]} joinListNames
      * @param {Boolean} isNextJobVirtual
      * @param {String} nextJobStageName
@@ -53,7 +52,6 @@ class JoinBase {
         nextBuild,
         nextJob,
         parentBuilds,
-        parentBuildId,
         joinListNames,
         isNextJobVirtual,
         nextJobStageName
@@ -73,7 +71,7 @@ class JoinBase {
                 event, // this is the parentBuild for the next build
                 baseBranch: event.baseBranch || null,
                 parentBuilds,
-                parentBuildId,
+                parentBuildId: this.currentBuild.id,
                 start: false
             });
         } else {
@@ -90,24 +88,15 @@ class JoinBase {
             return null;
         }
 
-        /* CHECK IF ALL PARENT BUILDS OF NEW BUILD ARE DONE */
-        const { hasFailure, done } = await getParentBuildStatus({
-            newBuild,
-            joinListNames,
-            pipelineId,
-            buildFactory: this.buildFactory
-        });
-
         return handleNewBuild({
-            done,
-            hasFailure,
+            joinListNames,
             newBuild,
             job: nextJob,
             pipelineId,
             isVirtualJob: isNextJobVirtual,
             stageName: nextJobStageName,
             event,
-            currentBuild: this.currentBuild
+            buildFactory: this.buildFactory
         });
     }
 }

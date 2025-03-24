@@ -98,7 +98,6 @@ class AndTrigger extends JoinBase {
             nextBuild,
             nextJob,
             parentBuilds: newParentBuilds,
-            parentBuildId: this.currentBuild.id,
             joinListNames,
             isNextJobVirtual,
             nextJobStageName
