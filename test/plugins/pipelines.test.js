@@ -2627,6 +2627,8 @@ describe('pipeline plugin test', () => {
         };
         const privateKey = 'testkey';
         const privateKeyB64 = Buffer.from(privateKey).toString('base64');
+        const USER_ID = 777;
+
         let pipelineMock;
         let updatedPipelineMock;
         let userMock;
@@ -2649,6 +2651,7 @@ describe('pipeline plugin test', () => {
             };
 
             userMock = getUserMock({ username, scmContext });
+            userMock.id = USER_ID;
             userMock.getPermissions.withArgs(scmUri).resolves({ admin: true });
             userMock.getPermissions.withArgs(oldScmUri).resolves({ admin: true });
             userMock.unsealToken.resolves(token);
@@ -2926,12 +2929,42 @@ describe('pipeline plugin test', () => {
                 assert.calledWith(userMock.getPermissions, scmUri);
                 assert.calledOnce(updatedPipelineMock.addWebhooks);
                 assert.equal(reply.statusCode, 200);
+                assert.deepEqual(pipelineMock.adminUserIds, [userMock.id]);
             });
         });
 
         it('returns 403 when the user is not admin of old repo with deprecated scmContext', () => {
             pipelineMock.admins = { ohno: true };
             pipelineMock.scmContext = 'deprecated';
+
+            return server.inject(options).then(reply => {
+                // Only call once to get permissions on the new repo
+                assert.calledOnce(userMock.getPermissions);
+                assert.calledWith(userMock.getPermissions, scmUri);
+                assert.notCalled(updatedPipelineMock.addWebhooks);
+                assert.equal(reply.statusCode, 403);
+            });
+        });
+
+        it('returns 200 when the user is admin from different scmContext', () => {
+            userMock.scmContext = 'gitlab:mygitlab';
+            pipelineMock.admins = {};
+            pipelineMock.adminUserIds = [userMock.id];
+
+            return server.inject(options).then(reply => {
+                // Only call once to get permissions on the new repo
+                assert.calledOnce(userMock.getPermissions);
+                assert.calledWith(userMock.getPermissions, scmUri);
+                assert.calledOnce(updatedPipelineMock.addWebhooks);
+                assert.equal(reply.statusCode, 200);
+                assert.deepEqual(pipelineMock.adminUserIds, [userMock.id]);
+            });
+        });
+
+        it('returns 403 when the user is not admin from different scmContext', () => {
+            userMock.scmContext = 'gitlab:mygitlab';
+            pipelineMock.admins = {};
+            pipelineMock.adminUserIds = [888];
 
             return server.inject(options).then(reply => {
                 // Only call once to get permissions on the new repo
