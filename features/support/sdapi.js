@@ -215,19 +215,23 @@ function searchForBuild(config, retry = 1000, retryCount = 0) {
  * It is the same as searchForBuild but returns all matching builds in an array.
  *
  * @method searchForBuilds
- * @param  {Object}  config                     Configuration object
- * @param  {String}  config.instance            Screwdriver instance to test against
- * @param  {String}  config.jwt                 JWT
- * @param  {String}  config.pipelineId          Pipeline ID to find the build in
- * @param  {String}  [config.pullRequestNumber] The PR number associated with build we're looking for
- * @param  {String}  [config.desiredSha]        The SHA that the build is running against
- * @param  {String}  [config.desiredStatus]     The build status that the build should have
- * @param  {String}  [config.jobName]           The job name we're looking for
- * @param  {String}  [config.parentBuildId]     Parent build ID
- * @return {Promise}                            A build that fulfills the given criteria
- * @param  {String}  [config.eventId]           Event ID
+ * @param  {Object}  config                             Configuration object
+ * @param  {String}  config.instance                    Screwdriver instance to test against
+ * @param  {String}  config.jwt                         JWT
+ * @param  {String}  config.pipelineId                  Pipeline ID to find the build in
+ * @param  {String}  [config.pullRequestNumber]         The PR number associated with build we're looking for
+ * @param  {String}  [config.desiredSha]                The SHA that the build is running against
+ * @param  {String}  [config.desiredStatus]             The build status that the build should have
+ * @param  {String}  [config.jobName]                   The job name we're looking for
+ * @param  {String|String[]}  [config.parentBuildId]    Parent build ID
+ * @return {Promise}                                    A build that fulfills the given criteria
+ * @param  {String}  [config.eventId]                   Event ID
  */
 function searchForBuilds(config) {
+    const parseParentBuildId = parentBuildId => {
+        return Array.isArray(parentBuildId) ? parentBuildId.map(Number) : [Number(parentBuildId)];
+    };
+
     const { instance, pipelineId, pullRequestNumber, desiredSha, desiredStatus, jwt, parentBuildId, eventId } = config;
     const jobName = config.jobName || 'main';
 
@@ -249,7 +253,13 @@ function searchForBuilds(config) {
         }
 
         if (parentBuildId) {
-            result = result.filter(item => item.parentBuildId === parentBuildId);
+            const configParentBuildId = parseParentBuildId(parentBuildId);
+
+            result = result.filter(item => {
+                const itemParentBuildId = parseParentBuildId(item.parentBuildId);
+
+                return configParentBuildId.every(id => itemParentBuildId.includes(id));
+            });
         }
 
         if (eventId) {
