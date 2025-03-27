@@ -19,15 +19,15 @@ const ANNOTATION_USE_DEPLOY_KEY = 'screwdriver.cd/useDeployKey';
  */
 function getPermissionsForOldPipeline({ scmContexts, pipeline, user }) {
     const isPipelineSCMContextObsolete = !scmContexts.includes(pipeline.scmContext);
+    const isUserFromAnotherSCMContext = user.scmContext !== pipeline.scmContext;
 
     // this pipeline's scmContext has been removed, allow current admin to change it
     // also allow pipeline admins from other scmContexts to change it
-    if (isPipelineSCMContextObsolete || user.scmContext !== pipeline.scmContext) {
-        let isAdmin = pipeline.adminUserIds.includes(user.id) || !!pipeline.admins[user.username];
+    if (isPipelineSCMContextObsolete || isUserFromAnotherSCMContext) {
+        const isUserIdInAdminList = pipeline.adminUserIds.includes(user.id);
+        const isSCMUsernameInAdminsObject = !!pipeline.admins[user.username];
 
-        if (!isAdmin && isPipelineSCMContextObsolete && pipeline.admins[user.username]) {
-            isAdmin = true;
-        }
+        const isAdmin = isUserIdInAdminList || (isPipelineSCMContextObsolete && isSCMUsernameInAdminsObject);
 
         return Promise.resolve({ admin: isAdmin });
     }
