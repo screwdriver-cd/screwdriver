@@ -6,5 +6,6 @@
   "admins": {
     "stjohn": true
   },
+  "adminUserIds": [],
   "state": "ACTIVE"
 }

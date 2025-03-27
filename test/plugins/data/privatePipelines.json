@@ -13,6 +13,7 @@
         "admins": {
             "stjohn": true
         },
+        "adminUserIds": [11],
         "lastEventId": 456,
         "state": "ACTIVE"
     },
@@ -30,6 +31,7 @@
         "admins": {
             "tkyi": true
         },
+        "adminUserIds": [22],
         "settings": {
             "public": true
         },
@@ -44,6 +46,7 @@
         "admins": {
             "d2lam": true
         },
+        "adminUserIds": [33],
         "state": "ACTIVE"
     },
     {
@@ -60,6 +63,7 @@
         "admins": {
             "foo": true
         },
+        "adminUserIds": [44],
         "lastEventId": 789,
         "state": "ACTIVE"
     }
