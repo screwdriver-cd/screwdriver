@@ -50,6 +50,37 @@ class AndTrigger extends JoinBase {
         return relatedBuilds;
     }
 
+    async fetchNextBuildInChildEvents(nextJob) {
+        const childEvents = await this.eventFactory.list({
+            params: {
+                parentEventId: this.currentEvent.id,
+                pipelineId: this.pipelineId
+            }
+        });
+
+        if (childEvents.length === 0) {
+            return null;
+        }
+
+        const childEventBuilds = await this.buildFactory.list({
+            params: {
+                eventId: childEvents.map(e => e.id),
+                jobId: nextJob.id
+            }
+        });
+
+        if (childEventBuilds.length === 0) {
+            return null;
+        }
+
+        // Get the build of the latest evnet
+        const childEventNextBuild = childEventBuilds.reduce((l, r) => {
+            return l.eventId > r.eventId ? l : r;
+        });
+
+        return childEventNextBuild;
+    }
+
     /**
      * Trigger the next jobs of the current job
      * @param {Job} nextJob
@@ -63,28 +94,31 @@ class AndTrigger extends JoinBase {
         logger.info(`Fetching finished builds for event ${this.currentEvent.id}`);
 
         const relatedBuilds = await this.fetchRelatedBuilds();
+        const childEventBuild = await this.fetchNextBuildInChildEvents(nextJob);
+        const groupEventsNextBuild = relatedBuilds.find(
+            b => b.jobId === nextJob.id && b.eventId > this.currentEvent.id
+        );
+        let currentEventNextBuild = relatedBuilds.find(
+            b => b.jobId === nextJob.id && b.eventId === this.currentEvent.id
+        );
 
-        // Find the next build from the related builds for this event
-        let nextBuild = relatedBuilds.find(b => b.jobId === nextJob.id && b.eventId === this.currentEvent.id);
-
-        if (!nextBuild) {
+        // Find the next build of this event
+        if (!currentEventNextBuild) {
             // If the build to join fails and it succeeds on restart, depending on the timing, the latest build will be that of a child event.
             // In that case, `nextBuild` will be null and will not be triggered even though there is a build that should be triggered.
             // Now we need to check for the existence of a build that should be triggered in its own event.
-            nextBuild = await this.buildFactory.get({
+            currentEventNextBuild = await this.buildFactory.get({
                 eventId: this.currentEvent.id,
                 jobId: nextJob.id
             });
 
-            if (nextBuild) {
-                relatedBuilds.push(nextBuild);
+            if (currentEventNextBuild) {
+                relatedBuilds.push(currentEventNextBuild);
             }
         }
 
-        if (!nextBuild) {
-            // If the build to join is in the child event, its event id is greater than current event.
-            nextBuild = relatedBuilds.find(b => b.jobId === nextJob.id && b.eventId > this.currentEvent.id);
-        }
+        const nextBuild = childEventBuild || currentEventNextBuild || groupEventsNextBuild;
+
         const newParentBuilds = mergeParentBuilds(parentBuilds, relatedBuilds, this.currentEvent, undefined);
         let nextEvent = this.currentEvent;
 
