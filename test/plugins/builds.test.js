@@ -408,6 +408,7 @@ describe('build plugin test', () => {
             buildMock = getBuildMock(testBuild);
             buildMock.update.resolves(buildMock);
             buildFactoryMock.get.resolves(buildMock);
+            buildFactoryMock.list.resolves([]);
             stepMock = getBuildMock({
                 buildId: id,
                 name: initStepName
@@ -462,6 +463,7 @@ describe('build plugin test', () => {
                 startFrom: '~commit'
             };
             eventFactoryMock.get.resolves(eventMock);
+            eventFactoryMock.list.resolves([]);
             eventMock.update.resolves(eventMock);
             jobFactoryMock.get.resolves(jobMock);
             bannerFactoryMock.scm.getDisplayName.withArgs({ scmContext }).returns(scmDisplayName);

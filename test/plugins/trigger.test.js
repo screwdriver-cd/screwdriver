@@ -936,7 +936,7 @@ describe('trigger tests', () => {
         assert.equal(restartEvent.getBuildOf('target').status, 'RUNNING');
     });
 
-    xit('[ a, b, c ] is triggered in restarted event when a fails once and then restarts and succeeds before c succeeds', async () => {
+    it('[ a, b, c ] is triggered in restarted event when a fails once and then restarts and succeeds before c succeeds', async () => {
         const pipeline = await pipelineFactoryMock.createFromFile('a_b_c.yaml');
         const event = await eventFactoryMock.create({
             pipelineId: pipeline.id,
@@ -952,8 +952,34 @@ describe('trigger tests', () => {
         await restartEvent.getBuildOf('a').complete('SUCCESS');
         await event.getBuildOf('c').complete('SUCCESS');
 
-        assert.isNull(event.getBuildOf('target'));
+        assert.equal(event.getBuildOf('target').status, 'CREATED');
         assert.equal(restartEvent.getBuildOf('target').status, 'RUNNING');
+    });
+
+    it('debug [ a, b, c ] is triggered in latest restarted event once', async () => {
+        const pipeline = await pipelineFactoryMock.createFromFile('a_b_c.yaml');
+        const event = await eventFactoryMock.create({
+            pipelineId: pipeline.id,
+            startFrom: 'hub'
+        });
+
+        await event.getBuildOf('hub').complete('SUCCESS');
+        await event.getBuildOf('a').complete('SUCCESS');
+        await event.getBuildOf('b').complete('SUCCESS');
+
+        const restartEventA = await event.restartFrom('a');
+        const restartEventB1 = await event.restartFrom('b');
+        const restartEventB2 = await restartEventB1.restartFrom('b');
+
+        await restartEventB1.getBuildOf('b').complete('SUCCESS');
+        await restartEventB2.getBuildOf('b').complete('SUCCESS');
+        await restartEventA.getBuildOf('a').complete('SUCCESS');
+        await event.getBuildOf('c').complete('SUCCESS');
+
+        assert.equal(event.getBuildOf('target').status, 'CREATED');
+        assert.isNull(restartEventA.getBuildOf('target'));
+        assert.equal(restartEventB1.getBuildOf('target').status, 'RUNNING');
+        assert.equal(restartEventB2.getBuildOf('target').status, 'CREATED');
     });
 
     it('[ ~a, a ] is triggered', async () => {
