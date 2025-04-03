@@ -956,7 +956,7 @@ describe('trigger tests', () => {
         assert.equal(restartEvent.getBuildOf('target').status, 'RUNNING');
     });
 
-    it('debug [ a, b, c ] is triggered in latest restarted event once', async () => {
+    it('[ a, b, c ] is triggered in latest restarted event once', async () => {
         const pipeline = await pipelineFactoryMock.createFromFile('a_b_c.yaml');
         const event = await eventFactoryMock.create({
             pipelineId: pipeline.id,
