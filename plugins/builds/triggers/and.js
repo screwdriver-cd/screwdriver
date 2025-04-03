@@ -50,6 +50,11 @@ class AndTrigger extends JoinBase {
         return relatedBuilds;
     }
 
+    /**
+     * Get next build in the latest child evnet
+     * @param {Job} nextJob next job
+     * @returns {Promise<Build|null>}
+     */
     async fetchNextBuildInChildEvents(nextJob) {
         const childEvents = await this.eventFactory.list({
             params: {
