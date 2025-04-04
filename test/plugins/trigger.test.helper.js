@@ -491,9 +491,15 @@ class EventFactoryMock {
      * @returns {Event[]}
      */
     async list({ params }) {
-        const { parentEventId } = params;
+        const { parentEventId, pipelineId } = params;
 
-        return this.getChildEvents(parentEventId);
+        const childEvents = this.getChildEvents(parentEventId);
+
+        if (pipelineId) {
+            return childEvents.filter(event => event && event.pipelineId === pipelineId);
+        }
+
+        return childEvents;
     }
 
     /**
@@ -615,6 +621,22 @@ class BuildFactoryMock {
         }
 
         return build;
+    }
+
+    /**
+     * Mock method: get builds
+     * @param {Object} config
+     * @returns {Build[]}
+     */
+    async list({ params }) {
+        const { eventId, jobId } = params;
+        let eventIds = eventId;
+
+        if (!Array.isArray(eventId)) {
+            eventIds = [eventId];
+        }
+
+        return this.records.filter(build => build && eventIds.includes(build.eventId) && build.jobId === jobId);
     }
 
     /**
