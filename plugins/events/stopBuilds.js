@@ -71,7 +71,7 @@ module.exports = () => ({
                 await updateAdmins({
                     permissions,
                     pipeline,
-                    username
+                    user
                 });
             }
 
