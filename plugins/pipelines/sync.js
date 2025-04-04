@@ -60,8 +60,11 @@ module.exports = () => ({
                 const newAdmins = pipeline.admins;
 
                 delete newAdmins[username];
+                const newAdminUserIds = pipeline.adminUserIds.filter(adminUserId => adminUserId !== user.id);
+
                 // This is needed to make admins dirty and update db
                 pipeline.admins = newAdmins;
+                pipeline.adminUserIds = newAdminUserIds;
 
                 await pipeline.update();
 
@@ -77,10 +80,16 @@ module.exports = () => ({
             // user has good permissions, add the user as an admin
             if (!pipeline.admins[username] && hasPushPermissions) {
                 const newAdmins = pipeline.admins;
+                const newAdminUserIds = pipeline.adminUserIds;
 
                 newAdmins[username] = true;
+                if (!newAdminUserIds.includes(user.id)) {
+                    newAdminUserIds.push(user.id);
+                }
+
                 // This is needed to make admins dirty and update db
                 pipeline.admins = newAdmins;
+                pipeline.adminUserIds = newAdminUserIds;
 
                 await pipeline.update();
             }

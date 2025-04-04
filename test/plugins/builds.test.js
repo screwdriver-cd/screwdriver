@@ -6078,6 +6078,7 @@ describe('build plugin test', () => {
 
     describe('POST /builds', () => {
         const username = 'myself';
+        const userId = 777;
         const buildId = 12345;
         const jobId = 1234;
         const pipelineId = 123;
@@ -6124,6 +6125,7 @@ describe('build plugin test', () => {
                 checkoutUrl,
                 scmUri,
                 admins: { foo: true, bar: true },
+                adminUserIds: [888, 999],
                 sync: sinon.stub().resolves(),
                 syncPR: sinon.stub().resolves(),
                 update: sinon.stub().resolves(),
@@ -6139,6 +6141,7 @@ describe('build plugin test', () => {
                 pipeline: sinon.stub().resolves(pipelineMock)()
             };
             userMock = {
+                id: userId,
                 username,
                 getPermissions: sinon.stub(),
                 unsealToken: sinon.stub()
@@ -6216,6 +6219,7 @@ describe('build plugin test', () => {
                 assert.calledWith(eventFactoryMock.create, eventConfig);
                 assert.calledWith(buildFactoryMock.create, params);
                 assert.deepEqual(pipelineMock.admins, { foo: true, bar: true, myself: true });
+                assert.deepEqual(pipelineMock.adminUserIds, [888, 999, 777]);
             });
         });
 
@@ -6254,6 +6258,7 @@ describe('build plugin test', () => {
                 assert.calledWith(eventFactoryMock.create, eventConfig);
                 assert.calledWith(buildFactoryMock.create, params);
                 assert.deepEqual(pipelineMock.admins, { foo: true, bar: true, myself: true });
+                assert.deepEqual(pipelineMock.adminUserIds, [888, 999, 777]);
             });
         });
 
@@ -6298,6 +6303,7 @@ describe('build plugin test', () => {
                 assert.calledWith(eventFactoryMock.create, eventConfig);
                 assert.calledWith(buildFactoryMock.create, params);
                 assert.deepEqual(pipelineMock.admins, { foo: true, bar: true, myself: true });
+                assert.deepEqual(pipelineMock.adminUserIds, [888, 999, 777]);
             });
         });
 
@@ -6313,11 +6319,13 @@ describe('build plugin test', () => {
 
         it('returns 403 forbidden error when user does not have push permission', () => {
             userMock.getPermissions.resolves({ push: false });
-            options.auth.credentials.username = 'bar';
+            pipelineMock.admins = { myself: true, foo: true, bar: true };
+            pipelineMock.adminUserIds = [777, 888, 999];
 
             return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 403);
-                assert.deepEqual(pipelineMock.admins, { foo: true });
+                assert.deepEqual(pipelineMock.admins, { foo: true, bar: true });
+                assert.deepEqual(pipelineMock.adminUserIds, [888, 999]);
             });
         });
 

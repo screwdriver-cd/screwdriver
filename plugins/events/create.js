@@ -152,7 +152,7 @@ module.exports = () => ({
 
             // Update admins
             if (!prNum) {
-                await updateAdmins({ permissions, pipeline, username });
+                await updateAdmins({ permissions, pipeline, user });
             }
 
             // Get scmConfig
@@ -201,7 +201,7 @@ module.exports = () => ({
                     await updateAdmins({
                         permissions,
                         pipeline,
-                        username
+                        user
                     });
                 }
             }

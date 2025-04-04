@@ -64,8 +64,13 @@ module.exports = () => ({
                                             const newAdmins = pipeline.admins;
 
                                             delete newAdmins[username];
+                                            const newAdminUserIds = pipeline.adminUserIds.filter(
+                                                adminUserId => adminUserId !== user.id
+                                            );
+
                                             // This is needed to make admins dirty and update db
                                             pipeline.admins = newAdmins;
+                                            pipeline.adminUserIds = newAdminUserIds;
 
                                             return pipeline.update().then(() => {
                                                 throw boom.forbidden(
@@ -83,9 +88,18 @@ module.exports = () => ({
                                             newAdmins[username] = true;
                                             // This is needed to make admins dirty and update db
                                             pipeline.admins = newAdmins;
-
-                                            return pipeline.update();
                                         }
+
+                                        const newAdminUserIds = pipeline.adminUserIds;
+
+                                        if (!newAdminUserIds.includes(user.id)) {
+                                            newAdminUserIds.push(user.id);
+
+                                            // This is needed to make admins dirty and update db
+                                            pipeline.adminUserIds = newAdminUserIds;
+                                        }
+
+                                        return pipeline.update();
                                     })
                                     // user has good permissions, sync and create a build
                                     .then(() => (job.isPR() ? pipeline.syncPR(job.prNum) : pipeline.sync()))
