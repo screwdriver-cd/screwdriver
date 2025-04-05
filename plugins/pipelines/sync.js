@@ -80,8 +80,7 @@ module.exports = () => ({
             // user has good permissions, add the user as an admin
             if (!pipeline.admins[username] && hasPushPermissions) {
                 const newAdmins = pipeline.admins;
-                const newAdminUserIds = pipeline.adminUserIds;
-
+                const newAdminUserIds = [...pipeline.adminUserIds];
                 newAdmins[username] = true;
                 if (!newAdminUserIds.includes(user.id)) {
                     newAdminUserIds.push(user.id);
