@@ -95,8 +95,11 @@ async function updateAdmins(userFactory, username, scmContext, pipeline, pipelin
             const newAdmins = pipeline.admins;
 
             delete newAdmins[username];
+            const newAdminUserIds = pipeline.adminUserIds.filter(adminUserId => adminUserId !== user.id);
+
             // This is needed to make admins dirty and update db
             pipeline.admins = newAdmins;
+            pipeline.adminUserIds = newAdminUserIds;
 
             return pipeline.update();
         }
@@ -110,7 +113,16 @@ async function updateAdmins(userFactory, username, scmContext, pipeline, pipelin
             newAdmins[name] = true;
         });
 
+        const newAdminUserIds = [user.id];
+
+        pipeline.adminUserIds.forEach(adminUserId => {
+            if (adminUserId !== user.id) {
+                newAdminUserIds.push(adminUserId);
+            }
+        });
+
         pipeline.admins = newAdmins;
+        pipeline.adminUserIds = newAdminUserIds;
 
         return pipeline.update();
     } catch (err) {
