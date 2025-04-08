@@ -266,6 +266,7 @@ describe('startHookEvent test', () => {
     const sha = '0d1a26e67d8f5eaf1f6ba5c57fc3c7d91ac0fd1c';
     const latestSha = 'a402964c054c610757794d9066c96cee1772daed';
     const username = 'baxterthehacker';
+    const userId = 777;
     const scmContext = 'github:github.com';
     const scmRepo = {
         branch: 'branch',
@@ -421,6 +422,7 @@ describe('startHookEvent test', () => {
             admins: {
                 baxterthehacker: false
             },
+            adminUserIds: [],
             workflowGraph,
             branch: Promise.resolve('master')
         });
@@ -431,6 +433,7 @@ describe('startHookEvent test', () => {
             update: sinon.stub()
         };
         userMock = {
+            id: userId,
             unsealToken: sinon.stub(),
             getPermissions: sinon.stub().resolves({
                 push: true
@@ -1608,6 +1611,7 @@ describe('startHookEvent test', () => {
             pipelineFactoryMock.scm.parseUrl.resolves(scmUri);
 
             const userMock1 = {
+                id: userId,
                 unsealToken: sinon.stub(),
                 getPermissions: sinon.stub().resolves({
                     push: true
@@ -1642,6 +1646,7 @@ describe('startHookEvent test', () => {
             pipelineFactoryMock.scm.parseUrl.resolves(scmUri);
 
             const userMock1 = {
+                id: userId,
                 unsealToken: sinon.stub(),
                 getPermissions: sinon.stub().resolves({
                     push: false
@@ -1713,6 +1718,8 @@ describe('startHookEvent test', () => {
                 bar: true
             };
 
+            pipelineMock.adminUserIds = [888, 999];
+
             return startHookEvent(request, responseHandler, parsed).then(reply => {
                 assert.equal(reply.statusCode, 201);
 
@@ -1720,6 +1727,7 @@ describe('startHookEvent test', () => {
 
                 assert.deepEqual({ baxterthehacker: true, foo: true, bar: true }, admins);
                 assert.deepEqual(['baxterthehacker', 'foo', 'bar'], Object.keys(admins));
+                assert.deepEqual([777, 888, 999], pipelineMock.adminUserIds);
             });
         });
 

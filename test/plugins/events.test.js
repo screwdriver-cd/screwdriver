@@ -301,6 +301,7 @@ describe('event plugin test', () => {
         let eventMock;
         let meta;
         const username = 'myself';
+        const userId = 777;
         const parentBuildId = 12345;
         const pipelineId = 123;
         const scmContext = 'github:github.com';
@@ -322,6 +323,7 @@ describe('event plugin test', () => {
 
         beforeEach(() => {
             userMock = {
+                id: userId,
                 username,
                 getPermissions: sinon.stub().resolves({ push: true }),
                 unsealToken: sinon.stub().resolves('iamtoken'),
@@ -334,6 +336,7 @@ describe('event plugin test', () => {
                 scmRepo,
                 update: sinon.stub().resolves(),
                 admins: { foo: true, bar: true },
+                adminUserIds: [888, 999],
                 admin: Promise.resolve({
                     username: 'foo',
                     unsealToken: sinon.stub().resolves('token')
@@ -1310,6 +1313,7 @@ describe('event plugin test', () => {
             checkoutUrl,
             update: sinon.stub().resolves(),
             admins: { foo: true, bar: true },
+            adminUserIds: [888, 999],
             admin: Promise.resolve({
                 username: 'foo',
                 unsealToken: sinon.stub().resolves('token')
@@ -1319,6 +1323,7 @@ describe('event plugin test', () => {
         };
         const id = 123;
         const username = 'myself';
+        const userId = 777;
         let expectedLocation;
         let builds;
         let event;
@@ -1327,6 +1332,7 @@ describe('event plugin test', () => {
 
         beforeEach(() => {
             userMock = {
+                id: userId,
                 username,
                 getPermissions: sinon.stub().resolves({ push: true }),
                 unsealToken: sinon.stub().resolves('iamtoken')

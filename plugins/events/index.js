@@ -23,17 +23,22 @@ const eventsPlugin = {
          * @method updateAdmins
          * @param  {Object}    permissions  User permissions
          * @param  {Pipeline}  pipeline     Pipeline object to update
-         * @param  {String}    username     Username of user
+         * @param  {String}    user         User object
          * @return {Promise}                Updates the pipeline admins and throws an error if not an admin
          */
-        server.expose('updateAdmins', ({ permissions, pipeline, username }) => {
+        server.expose('updateAdmins', ({ permissions, pipeline, user }) => {
+            const { username, id: userId } = user;
+
             // Delete user from admin list if bad permissions
             if (!permissions.push) {
                 const newAdmins = pipeline.admins;
 
                 delete newAdmins[username];
+                const newAdminUserIds = pipeline.adminUserIds.filter(adminUserId => adminUserId !== userId);
+
                 // This is needed to make admins dirty and update db
                 pipeline.admins = newAdmins;
+                pipeline.adminUserIds = newAdminUserIds;
 
                 return pipeline.update().then(() => {
                     throw boom.forbidden(`User ${username} does not have push permission for this repo`);
@@ -49,7 +54,16 @@ const eventsPlugin = {
                 newAdmins[name] = true;
             });
 
+            const newAdminUserIds = [userId];
+
+            pipeline.adminUserIds.forEach(adminUserId => {
+                if (adminUserId !== userId) {
+                    newAdminUserIds.push(adminUserId);
+                }
+            });
+
             pipeline.admins = newAdmins;
+            pipeline.adminUserIds = newAdminUserIds;
 
             return pipeline.update();
         });
