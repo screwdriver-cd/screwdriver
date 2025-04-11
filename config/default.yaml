@@ -385,6 +385,9 @@ log:
     enabled: false
     # add target scope tokens(pipeline, build, temporal, admin, guest, user)
     scope: []
+  payload:
+    # set true to enable payload logs for all API calls over 5s
+    enabled: true
 
 # default cluster environment variables to inject into builds
 build:
