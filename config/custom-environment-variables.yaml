@@ -484,6 +484,9 @@ log:
     scope:
       __name: LOG_AUDIT_SCOPE
       __format: json
+  payload:
+    # set true to enable payload logs for all API calls over 5s
+    enabled: LOG_PAYLOAD_ENABLED
 
 build:
   environment:
