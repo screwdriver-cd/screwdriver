@@ -52,6 +52,10 @@ module.exports = () => ({
                             if (!isValidToken(pipeline.id, request.auth.credentials)) {
                                 throw boom.unauthorized('Token does not have permission to this pipeline');
                             }
+                            // for mysql backward compatibility
+                            if (!pipeline.adminUserIds) {
+                                pipeline.adminUserIds = [];
+                            }
 
                             return (
                                 user

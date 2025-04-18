@@ -29,6 +29,10 @@ const eventsPlugin = {
         server.expose('updateAdmins', ({ permissions, pipeline, user }) => {
             const { username, id: userId } = user;
 
+            // for mysql backward compatibility
+            if (!pipeline.adminUserIds) {
+                pipeline.adminUserIds = [];
+            }
             // Delete user from admin list if bad permissions
             if (!permissions.push) {
                 const newAdmins = pipeline.admins;
