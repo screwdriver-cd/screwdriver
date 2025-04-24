@@ -21,6 +21,10 @@ function getPermissionsForOldPipeline({ scmContexts, pipeline, user }) {
     const isPipelineSCMContextObsolete = !scmContexts.includes(pipeline.scmContext);
     const isUserFromAnotherSCMContext = user.scmContext !== pipeline.scmContext;
 
+    // for mysql backward compatibility
+    if (!pipeline.adminUserIds) {
+        pipeline.adminUserIds = [];
+    }
     // this pipeline's scmContext has been removed, allow current admin to change it
     // also allow pipeline admins from other scmContexts to change it
     if (isPipelineSCMContextObsolete || isUserFromAnotherSCMContext) {
@@ -68,6 +72,11 @@ module.exports = () => ({
             // if the pipeline ID is invalid, reject
             if (!oldPipeline) {
                 throw boom.notFound(`Pipeline ${id} does not exist`);
+            }
+
+            // for mysql backward compatibility
+            if (!oldPipeline.adminUserIds) {
+                oldPipeline.adminUserIds = [];
             }
 
             if (oldPipeline.configPipelineId) {

@@ -90,6 +90,10 @@ async function updateAdmins(userFactory, username, scmContext, pipeline, pipelin
         const user = await userFactory.get({ username, scmContext });
         const userPermissions = await user.getPermissions(pipeline.scmUri, user.scmContext, pipeline.scmRepo);
 
+        // for mysql backward compatibility
+        if (!pipeline.adminUserIds) {
+            pipeline.adminUserIds = [];
+        }
         // Delete user from admin list if bad permissions
         if (!userPermissions.push) {
             const newAdmins = pipeline.admins;

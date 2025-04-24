@@ -41,6 +41,10 @@ module.exports = () => ({
             if (!user) {
                 throw boom.notFound(`User ${username} does not exist`);
             }
+            // for mysql backward compatibility
+            if (!pipeline.adminUserIds) {
+                pipeline.adminUserIds = [];
+            }
 
             // Use parent's scmUri if pipeline is child pipeline and using read-only SCM
             const scmUri = await getScmUri({ pipeline, pipelineFactory });
