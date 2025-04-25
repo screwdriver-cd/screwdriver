@@ -29,6 +29,10 @@ module.exports = () => ({
                 throw boom.notFound(`Pipeline ${request.payload.pipelineId} does not exist`);
             }
 
+            if (pipeline.state === 'DELETING') {
+                throw boom.conflict('This pipeline is being deleted.');
+            }
+
             // In pipeline scope, check if the token is allowed to the pipeline
             if (!isValidToken(pipeline.id, request.auth.credentials)) {
                 throw boom.forbidden('Token does not have permission to this pipeline');

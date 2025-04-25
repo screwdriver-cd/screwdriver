@@ -877,6 +877,15 @@ describe('pipeline plugin test', () => {
             });
         });
 
+        it('returns 409 when the pipeline is being deleted', () => {
+            pipeline.state = 'DELETING';
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 409);
+                assert.notCalled(pipeline.remove);
+            });
+        });
+
         it('returns 403 when user does not have admin permission and is not Screwdriver admin', () => {
             const error = {
                 statusCode: 403,
@@ -2012,6 +2021,16 @@ describe('pipeline plugin test', () => {
             });
         });
 
+        it('returns 409 for updating a pipeline is being deleted', () => {
+            pipelineMock.state = 'DELETING';
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 409);
+                assert.notCalled(pipelineMock.update);
+                assert.notCalled(pipelineMock.sync);
+            });
+        });
+
         it('returns 404 for updating a pipeline that does not exist', () => {
             pipelineFactoryMock.get.withArgs(id).resolves(null);
 
@@ -2132,6 +2151,14 @@ describe('pipeline plugin test', () => {
             });
         });
 
+        it('returns 409 for updating a pipeline is being deleted', () => {
+            pipelineMock.state = 'DELETING';
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 409);
+            });
+        });
+
         it('returns 404 when user does not exist', () => {
             const error = {
                 statusCode: 404,
@@ -2219,6 +2246,14 @@ describe('pipeline plugin test', () => {
 
             return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 404);
+            });
+        });
+
+        it('returns 409 for updating a pipeline that is being deleted', () => {
+            pipelineMock.state = 'DELETING';
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 409);
             });
         });
 
@@ -2880,6 +2915,15 @@ describe('pipeline plugin test', () => {
             return server.inject(options).then(reply => {
                 assert.notCalled(updatedPipelineMock.addWebhooks);
                 assert.equal(reply.statusCode, 404);
+            });
+        });
+
+        it('returns 409 when the pipeline is being deleted', () => {
+            pipelineMock.state = 'DELETING';
+
+            return server.inject(options).then(reply => {
+                assert.notCalled(updatedPipelineMock.addWebhooks);
+                assert.equal(reply.statusCode, 409);
             });
         });
 
@@ -3562,6 +3606,21 @@ describe('pipeline plugin test', () => {
             });
         });
 
+        it('returns 409 when pipeline is being deleted', () => {
+            const error = {
+                statusCode: 409,
+                error: 'Conflict',
+                message: 'This pipeline is being deleted.'
+            };
+
+            pipelineMock.state = 'DELETING';
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 409);
+                assert.deepEqual(reply.result, error);
+            });
+        });
+
         it('returns 404 when user does not exist', () => {
             const error = {
                 statusCode: 404,
@@ -3831,6 +3890,21 @@ describe('pipeline plugin test', () => {
 
             return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 404);
+                assert.deepEqual(reply.result, error);
+            });
+        });
+
+        it('returns 409 when pipeline is beeng deleted', () => {
+            const error = {
+                statusCode: 409,
+                error: 'Conflict',
+                message: 'This pipeline is being deleted.'
+            };
+
+            pipelineMock.state = 'DELETING';
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 409);
                 assert.deepEqual(reply.result, error);
             });
         });
@@ -4342,6 +4416,18 @@ describe('pipeline plugin test', () => {
             return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 404);
                 assert.equal(reply.result.message, `Pipeline ${id} does not exist`);
+            });
+        });
+
+        it('returns 409 when pipeline is being deleted', () => {
+            const pipelineMock = getPipelineMocks(testPipeline);
+
+            pipelineMock.state = 'DELETING';
+            pipelineFactoryMock.get.resolves(pipelineMock);
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 409);
+                assert.equal(reply.result.message, 'This pipeline is being deleted.');
             });
         });
 
