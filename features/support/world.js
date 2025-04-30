@@ -375,14 +375,34 @@ function CustomWorld({ attach, parameters }) {
 
         return request(createConfig);
     };
-    this.deletePipeline = pipelineId =>
-        request({
+    this.deletePipeline = async pipelineId => {
+        const response = await request({
+            url: `${this.instance}/${this.namespace}/pipelines/${pipelineId}/builds`,
+            method: 'GET',
+            context: {
+                token: this.jwt
+            }
+        });
+        const builds = response.body;
+
+        await Promise.all(
+            builds.map(build => {
+                if (!['QUEUED', 'RUNNING', 'BLOCKED'].includes(build.status)) {
+                    return Promise.resolve();
+                }
+
+                return this.stopBuild(build.id);
+            })
+        );
+
+        return request({
             url: `${this.instance}/${this.namespace}/pipelines/${pipelineId}`,
             method: 'DELETE',
             context: {
                 token: this.jwt
             }
         });
+    };
     this.ensurePipelineExists = ensurePipelineExists;
     this.ensureStageExists = ensureStageExists;
 }

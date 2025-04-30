@@ -189,21 +189,38 @@ Then(
         timeout: TIMEOUT
     },
     function step(jobName) {
-        const jobId = this.jobs.filter(job => job.name === jobName)[0].id;
+        const jobId = this.jobs.find(job => job.name === jobName).id;
 
         return request({
-            url: `${this.instance}/${this.namespace}/builds`,
+            url: `${this.instance}/${this.namespace}/events`,
             method: 'POST',
             json: {
-                jobId
+                pipelineId: this.pipelineId,
+                startFrom: jobName
             },
             context: {
                 token: this.jwt
             }
-        }).then(resp => {
-            Assert.equal(resp.statusCode, 201);
-            this.buildId = resp.body.id;
-        });
+        })
+            .then(resp => {
+                Assert.equal(resp.statusCode, 201);
+                this.eventId = resp.body.id;
+            })
+            .then(() =>
+                request({
+                    url: `${this.instance}/${this.namespace}/events/${this.eventId}/builds`,
+                    method: 'GET',
+                    context: {
+                        token: this.jwt
+                    }
+                })
+            )
+            .then(resp => {
+                Assert.equal(resp.statusCode, 200);
+                const build = resp.body.find(b => b.jobId === jobId);
+
+                this.buildId = build.id;
+            });
     }
 );
 
