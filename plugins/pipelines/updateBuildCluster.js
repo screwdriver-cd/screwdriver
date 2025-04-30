@@ -45,10 +45,13 @@ module.exports = () => ({
 
             const { id } = request.params;
             const pipeline = await pipelineFactory.get({ id });
-            // check if pipeline exists
 
+            // check if pipeline exists
             if (!pipeline) {
                 throw boom.notFound(`Pipeline ${id} does not exist`);
+            }
+            if (pipeline.state === 'DELETING') {
+                throw boom.conflict('This pipeline is being deleted.');
             }
 
             const pipelineConfig = await pipeline.getConfiguration({});

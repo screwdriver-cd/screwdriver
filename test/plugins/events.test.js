@@ -331,6 +331,7 @@ describe('event plugin test', () => {
             };
             pipelineMock = {
                 id: pipelineId,
+                state: 'ACTIVE',
                 checkoutUrl,
                 scmContext: 'github:github.com',
                 scmRepo,
@@ -1021,11 +1022,28 @@ describe('event plugin test', () => {
             const error = {
                 statusCode: 400,
                 error: 'Bad Request',
-                message: 'Cannot create an event for an inactive pipeline'
+                message: 'Cannot create an event for a(n) INACTIVE pipeline'
             };
             const pipeline = { ...pipelineMock };
 
             pipeline.state = 'INACTIVE';
+
+            pipelineFactoryMock.get.resolves(pipeline);
+
+            return server.inject(options).then(reply => {
+                assert.deepEqual(reply.result, error);
+            });
+        });
+
+        it('returns 400 when it the pipeline is being deleted', () => {
+            const error = {
+                statusCode: 400,
+                error: 'Bad Request',
+                message: 'Cannot create an event for a(n) DELETING pipeline'
+            };
+            const pipeline = { ...pipelineMock };
+
+            pipeline.state = 'DELETING';
 
             pipelineFactoryMock.get.resolves(pipeline);
 

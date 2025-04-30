@@ -73,6 +73,9 @@ module.exports = () => ({
             if (!oldPipeline) {
                 throw boom.notFound(`Pipeline ${id} does not exist`);
             }
+            if (oldPipeline.state === 'DELETING') {
+                throw boom.conflict('This pipeline is being deleted.');
+            }
 
             // for mysql backward compatibility
             if (!oldPipeline.adminUserIds) {

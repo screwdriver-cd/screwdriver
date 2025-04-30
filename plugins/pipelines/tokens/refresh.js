@@ -39,6 +39,10 @@ module.exports = () => ({
                 throw boom.notFound('Pipeline does not exist');
             }
 
+            if (pipeline.state === 'DELETING') {
+                throw boom.conflict('This pipeline is being deleted.');
+            }
+
             if (!user) {
                 throw boom.notFound('User does not exist');
             }

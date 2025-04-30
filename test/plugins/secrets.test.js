@@ -204,6 +204,14 @@ describe('secret plugin test', () => {
             });
         });
 
+        it('returns 409 when the pipeline is being deleted', () => {
+            pipelineMock.state = 'DELETING';
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 409);
+            });
+        });
+
         it('returns 403 when the pipeline token does not have permission', () => {
             options.auth.credentials.pipelineId = 111;
             options.auth.credentials.scope = ['pipeline'];
