@@ -30,7 +30,7 @@ module.exports = () => ({
                         throw boom.notFound('Pipeline does not exist');
                     }
                     if (pipeline.state === 'DELETING') {
-                        throw boom.conflict('This pipeline is being deleted.');
+                        throw boom.conflict('This pipeline is already being deleted.');
                     }
                     if (pipeline.configPipelineId && pipeline.state !== 'INACTIVE') {
                         throw boom.forbidden(
