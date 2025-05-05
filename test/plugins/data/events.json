@@ -38,5 +38,6 @@
         "url": "https://github.com/stjohn",
         "username": "stjohn"
     },
-    "baseBranch": "master"
+    "baseBranch": "master",
+    "status": "SUCCESS"
 }]
