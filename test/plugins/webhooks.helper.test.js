@@ -3211,8 +3211,9 @@ describe('startHookEvent test', () => {
                 });
                 it('starts a pr-closed event when pr is closed and the trigger exists', () => {
                     parsed.prMerged = false;
+                    expected.meta.sd.pr.merged = false;
 
-                    startHookEvent(request, responseHandler, parsed).then(reply => {
+                    return startHookEvent(request, responseHandler, parsed).then(reply => {
                         assert.calledWith(eventFactoryMock.create, expected);
                         assert.equal(reply.statusCode, 201);
                         assert.calledOnce(pipelineMock.update);
@@ -3221,12 +3222,10 @@ describe('startHookEvent test', () => {
                 it('starts a pr-closed event when pr is merged and the trigger exists', () => {
                     parsed.prMerged = true;
 
-                    startHookEvent(request, responseHandler, parsed).then(reply => {
+                    return startHookEvent(request, responseHandler, parsed).then(reply => {
                         assert.calledWith(eventFactoryMock.create, expected);
                         assert.equal(reply.statusCode, 201);
                         assert.calledOnce(pipelineMock.update);
-                        // assert.calledOnce(pipelineFactoryMock.scm.getCommitRefSha);
-                        // assert.calledWith(pipelineFactoryMock.scm.getCommitRefSha, sinon.match({ refType: 'tags' }));
                         assert.calledTwice(pipelineFactoryMock.list);
                         assert.calledWith(pipelineFactoryMock.list.firstCall, {
                             params: { state: 'ACTIVE' },
