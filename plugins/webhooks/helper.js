@@ -310,6 +310,52 @@ const uriTrimmer = uri => {
 };
 
 /**
+ * Create metadata by the parsed event
+ * @param   {Object}   parsed   It has information to create metadata
+ * @returns {Object}            Metadata
+ */
+function createMeta(parsed) {
+    const { action, ref, releaseId, releaseName, releaseAuthor, prMerged, prNum, prRef } = parsed;
+
+    if (action === 'release') {
+        return {
+            sd: {
+                release: {
+                    id: releaseId,
+                    name: releaseName,
+                    author: releaseAuthor
+                },
+                tag: {
+                    name: ref
+                }
+            }
+        };
+    }
+    if (action === 'tag') {
+        return {
+            sd: {
+                tag: {
+                    name: ref
+                }
+            }
+        };
+    }
+    if (action.toLowerCase() === 'closed') {
+        return {
+            sd: {
+                pr: {
+                    name: prRef,
+                    merged: prMerged,
+                    number: prNum
+                }
+            }
+        };
+    }
+
+    return {};
+}
+
+/**
  * Get all pipelines which has triggered job
  * @method  triggeredPipelines
  * @param   {PipelineFactory}   pipelineFactory The pipeline factory to get the branch list from
@@ -698,6 +744,101 @@ async function pullRequestOpened(options, request, h) {
 }
 
 /**
+ * Create events for each pipeline
+ * @async  createPREvents
+ * @param  {Object}       options
+ * @param  {String}       options.username        User who created the PR
+ * @param  {String}       options.scmConfig       Has the token and scmUri to get branches
+ * @param  {String}       options.sha             Specific SHA1 commit to start the build with
+ * @param  {String}       options.prNum           Pull request number
+ * @param  {Array}        options.changedFiles    List of changed files
+ * @param  {String}       options.branch          The branch against which pr is opened
+ * @param  {String}       options.action          Event action
+ * @param  {String}       options.prSource      The origin of this PR
+ * @param  {String}       options.restrictPR    Restrict PR setting
+ * @param  {Boolean}      options.chainPR       Chain PR flag
+ * @param  {Boolean}      options.ref      Chain PR flag
+ * @param  {Hapi.request} request                 Request from user
+ * @return {Promise}
+ */
+async function createPrClosedEvent(options, request) {
+    const { username, scmConfig, prNum, pipelines, changedFiles, branch, action, ref, prSource, restrictPR, chainPR } =
+        options;
+
+    const { scm } = request.server.app.pipelineFactory;
+    const { pipelineFactory } = request.server.app;
+    const scmDisplayName = scm.getDisplayName({ scmContext: scmConfig.scmContext });
+    const userDisplayName = `${scmDisplayName}:${username}`;
+    const { sha } = options;
+
+    scmConfig.prNum = prNum;
+
+    const eventConfigs = await Promise.all(
+        pipelines.map(async p => {
+            try {
+                const b = await p.branch;
+                let eventConfig = {};
+
+                let configPipelineSha = '';
+
+                try {
+                    configPipelineSha = await pipelineFactory.scm.getCommitSha(scmConfig);
+                } catch (err) {
+                    if (err.status >= 500) {
+                        throw err;
+                    } else {
+                        logger.info(`skip create event for branch: ${p.branch}`);
+                    }
+                }
+
+                const { skipMessage, resolvedChainPR } = getSkipMessageAndChainPR({
+                    pipeline: !p.annotations ? { annotations: {}, ...p } : p,
+                    prSource,
+                    restrictPR,
+                    chainPR
+                });
+
+                const startFrom = `~pr-closed`;
+                const causeMessage = `PR-${prNum} ${action.toLowerCase()} by ${userDisplayName}`;
+                const isPipelineBranch = b === branch;
+
+                eventConfig = {
+                    pipelineId: p.id,
+                    type: 'pipeline',
+                    webhooks: true,
+                    username,
+                    scmContext: scmConfig.scmContext,
+                    sha,
+                    startFrom: isPipelineBranch ? startFrom : `${startFrom}:${branch}`,
+                    changedFiles,
+                    causeMessage: isPipelineBranch ? causeMessage : `${causeMessage} on branch ${branch}`,
+                    ref,
+                    baseBranch: branch,
+                    meta: createMeta(options),
+                    configPipelineSha,
+                    prNum,
+                    chainPR: resolvedChainPR
+                };
+
+                if (skipMessage) {
+                    eventConfig.skipMessage = skipMessage;
+                }
+
+                return eventConfig;
+            } catch (err) {
+                logger.warn(`pipeline:${p.id} error in starting event`, err);
+
+                return null;
+            }
+        })
+    );
+
+    const events = await startEvents(eventConfigs, request.server);
+
+    return events;
+}
+
+/**
  * Stop any running builds and disable the job for closed pull-request
  * @async  pullRequestClosed
  * @param  {Object}       options
@@ -722,23 +863,51 @@ async function pullRequestClosed(options, request, h) {
             })
             .then(() => request.log(['webhook', hookId, job.id], `${job.name} disabled and archived`));
 
-    return Promise.all(
-        pipelines.map(p =>
-            p.getJobs({ type: 'pr' }).then(jobs => {
-                const prJobs = jobs.filter(j => j.name.includes(name));
+    try {
+        await Promise.all(
+            pipelines.map(p =>
+                p.getJobs({ type: 'pr' }).then(jobs => {
+                    const prJobs = jobs.filter(j => j.name.includes(name));
 
-                return Promise.all(prJobs.map(j => updatePRJobs(j)));
-            })
-        )
-    )
-        .then(() => h.response().code(200))
-        .catch(err => {
-            logger.error(
-                `Failed to pullRequestClosed: [${hookId}, pipeline:${options.pipeline && options.pipeline.id}]: ${err}`
+                    return Promise.all(prJobs.map(j => updatePRJobs(j)));
+                })
+            )
+        );
+
+        const prClosedJobs = [];
+
+        for (const p of pipelines) {
+            const jobs = await p.getJobs({ type: 'pipeline' });
+            const filteredJobs = jobs.filter(
+                j =>
+                    j.permutations &&
+                    j.permutations.length > 0 &&
+                    j.permutations[0] &&
+                    j.permutations[0].requires &&
+                    j.permutations[0].requires.includes('~pr-closed')
             );
 
-            throw err;
+            prClosedJobs.push(...filteredJobs);
+        }
+
+        if (prClosedJobs.length === 0) {
+            return h.response().code(200);
+        }
+
+        const events = await createPrClosedEvent(options, request);
+
+        events.forEach(e => {
+            request.log(['webhook', hookId, e.id], `Event ${e.id} started`);
         });
+
+        return h.response().code(201);
+    } catch (err) {
+        logger.error(
+            `Failed to pullRequestClosed: [${hookId}, pipeline:${options.pipeline && options.pipeline.id}]: ${err}`
+        );
+
+        throw err;
+    }
 }
 
 /**
@@ -819,41 +988,6 @@ async function obtainScmToken({ pluginOptions, userFactory, username, scmContext
 }
 
 /**
- * Create metadata by the parsed event
- * @param   {Object}   parsed   It has information to create metadata
- * @returns {Object}            Metadata
- */
-function createMeta(parsed) {
-    const { action, ref, releaseId, releaseName, releaseAuthor } = parsed;
-
-    if (action === 'release') {
-        return {
-            sd: {
-                release: {
-                    id: releaseId,
-                    name: releaseName,
-                    author: releaseAuthor
-                },
-                tag: {
-                    name: ref
-                }
-            }
-        };
-    }
-    if (action === 'tag') {
-        return {
-            sd: {
-                tag: {
-                    name: ref
-                }
-            }
-        };
-    }
-
-    return {};
-}
-
-/**
  * Act on a Pull Request change (create, sync, close)
  *  - Opening a PR should sync the pipeline (creating the job) and start the new PR job
  *  - Syncing a PR should stop the existing PR job and start a new one
@@ -885,7 +1019,8 @@ function pullRequestEvent(pluginOptions, request, h, parsed, token) {
         changedFiles,
         type,
         releaseName,
-        ref
+        ref,
+        prMerged
     } = parsed;
     const fullCheckoutUrl = `${checkoutUrl}#${branch}`;
     const scmConfig = {
@@ -935,7 +1070,8 @@ function pullRequestEvent(pluginOptions, request, h, parsed, token) {
                 chainPR,
                 pipelines,
                 ref,
-                releaseName
+                releaseName,
+                prMerged
             };
 
             await batchUpdateAdmins({ userFactory, pipelines, username, scmContext, pipelineFactory });
