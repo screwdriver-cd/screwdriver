@@ -3058,12 +3058,14 @@ describe('startHookEvent test', () => {
                 model1 = {
                     id: 1,
                     isDone: sinon.stub().returns(false),
-                    update: sinon.stub().resolves(null)
+                    update: sinon.stub().resolves(null),
+                    permutations: []
                 };
                 model2 = {
                     id: 2,
                     isDone: sinon.stub().returns(false),
-                    update: sinon.stub().resolves(null)
+                    update: sinon.stub().resolves(null),
+                    permutations: []
                 };
 
                 parsed.action = 'closed';
@@ -3131,6 +3133,196 @@ describe('startHookEvent test', () => {
                         assert.calledOnce(jobMock.update);
                         assert.strictEqual(jobMock.state, 'ENABLED');
                     });
+            });
+
+            describe('pr-closed event', () => {
+                let job1;
+                let job2;
+                let job3;
+                let job4;
+                let expected;
+
+                beforeEach(() => {
+                    job1 = {
+                        id: 1,
+                        name: 'job1',
+                        isDone: sinon.stub().returns(false),
+                        update: sinon.stub().resolves(null),
+                        permutations: [{}]
+                    };
+                    job2 = {
+                        id: 2,
+                        name: 'PR-job2',
+                        isDone: sinon.stub().returns(false),
+                        update: sinon.stub().resolves(null),
+                        permutations: [{}]
+                    };
+
+                    job3 = {
+                        id: 3,
+                        name: 'job3',
+                        startFrom: '~pr-closed',
+                        isDone: sinon.stub().returns(false),
+                        update: sinon.stub().resolves(null),
+                        permutations: [
+                            {
+                                requires: ['~pr-closed']
+                            }
+                        ]
+                    };
+                    job4 = {
+                        id: 4,
+                        name: 'job4',
+                        startFrom: '~pr-closed:stable',
+                        isDone: sinon.stub().returns(false),
+                        update: sinon.stub().resolves(null),
+                        permutations: [
+                            {
+                                requires: ['~pr-closed:stable']
+                            }
+                        ]
+                    };
+
+                    parsed.action = 'closed';
+                    reqHeaders['x-github-event'] = 'pull_request';
+                    reqHeaders['x-github-delivery'] = parsed.hookId;
+                    reqHeaders['content-length'] = '21236';
+                    jobMock.getRunningBuilds.resolves([job1, job2, job3]);
+                    pipelineMock.getJobs.resolves([job1, job2, job3]);
+                    pipelineFactoryMock.scm.getDisplayName.withArgs({ scmContext }).returns(scmDisplayName);
+
+                    expected = {
+                        pipelineId,
+                        type: 'pipeline',
+                        webhooks: true,
+                        username,
+                        scmContext,
+                        sha,
+                        startFrom: '~pr-closed',
+                        changedFiles,
+                        causeMessage: `PR-${1} ${parsed.action} by ${scmDisplayName}:${username}`,
+                        ref: undefined,
+                        baseBranch: 'master',
+                        meta: { sd: { pr: { name: 'pull/1/merge', merged: true, number: 1 } } },
+                        configPipelineSha: 'a402964c054c610757794d9066c96cee1772daed',
+                        prNum: 1,
+                        chainPR: false
+                    };
+                });
+                it('starts a pr-closed event when pr is closed and the trigger exists', () => {
+                    parsed.prMerged = false;
+                    expected.meta.sd.pr.merged = false;
+
+                    return startHookEvent(request, responseHandler, parsed).then(reply => {
+                        assert.calledWith(eventFactoryMock.create, expected);
+                        assert.equal(reply.statusCode, 201);
+                        assert.calledOnce(pipelineMock.update);
+                    });
+                });
+                it('starts a pr-closed event when pr is merged and the trigger exists', () => {
+                    parsed.prMerged = true;
+
+                    return startHookEvent(request, responseHandler, parsed).then(reply => {
+                        assert.calledWith(eventFactoryMock.create, expected);
+                        assert.equal(reply.statusCode, 201);
+                        assert.calledOnce(pipelineMock.update);
+                        assert.calledTwice(pipelineFactoryMock.list);
+                        assert.calledWith(pipelineFactoryMock.list.firstCall, {
+                            params: { state: 'ACTIVE' },
+                            search: { field: 'scmUri', keyword: 'github.com:123456:%' }
+                        });
+                    });
+                });
+
+                it('does not start a pr-closed event when pr is closed and the trigger does not exist in configuration', () => {
+                    parsed.prMerged = false;
+                    jobMock.getRunningBuilds.resolves([job1, job2]);
+                    pipelineMock.getJobs.resolves([job1, job2]);
+
+                    return startHookEvent(request, responseHandler, parsed).then(reply => {
+                        assert.notCalled(eventFactoryMock.create);
+                        assert.equal(reply.statusCode, 200);
+                        assert.calledOnce(pipelineMock.update);
+                    });
+                });
+
+                it('does not start a pr-closed event when pr is merged and the trigger does not exist in configuration', () => {
+                    parsed.prMerged = true;
+                    jobMock.getRunningBuilds.resolves([job1, job2]);
+                    pipelineMock.getJobs.resolves([job1, job2]);
+
+                    return startHookEvent(request, responseHandler, parsed).then(reply => {
+                        assert.notCalled(eventFactoryMock.create);
+                        assert.equal(reply.statusCode, 200);
+                        assert.calledOnce(pipelineMock.update);
+                    });
+                });
+
+                it('creates empty event for pr-closed event if restricting all', () => {
+                    pipelineMock.annotations[ANNOT_RESTRICT_PR] = 'all';
+                    parsed.prMerged = true;
+                    expected.skipMessage =
+                        'Skipping build since pipeline is configured to restrict all and PR is branch';
+
+                    return startHookEvent(request, responseHandler, parsed).then(reply => {
+                        assert.calledOnce(eventFactoryMock.create);
+                        assert.calledWith(eventFactoryMock.create, expected);
+                        assert.equal(reply.statusCode, 201);
+                    });
+                });
+
+                it('creates empty event if pr from fork and restricting forks', () => {
+                    pipelineMock.getJobs.resolves([job1, job2, job3, job4]);
+                    parsed.prSource = 'fork';
+                    parsed.prMerged = true;
+                    pipelineMock.annotations[ANNOT_RESTRICT_PR] = 'fork';
+                    expected.skipMessage =
+                        'Skipping build since pipeline is configured to restrict fork and PR is fork';
+
+                    return startHookEvent(request, responseHandler, parsed).then(reply => {
+                        assert.calledOnce(eventFactoryMock.create);
+                        assert.calledWith(eventFactoryMock.create, expected);
+                        assert.equal(reply.statusCode, 201);
+                    });
+                });
+
+                it('returns success if pr-closed on branch and restricting forks', () => {
+                    pipelineMock.getJobs.resolves([job1, job2, job3, job4]);
+                    parsed.prSource = 'branch';
+                    parsed.prMerged = true;
+                    pipelineMock.annotations[ANNOT_RESTRICT_PR] = 'fork';
+
+                    return startHookEvent(request, responseHandler, parsed).then(reply => {
+                        assert.equal(reply.statusCode, 201);
+                        assert.calledOnce(eventFactoryMock.create);
+                        assert.calledWith(eventFactoryMock.create, expected);
+                    });
+                });
+
+                it('creates empty event if pr-closed on branch and restricting branches', () => {
+                    pipelineMock.getJobs.resolves([job1, job2, job3, job4]);
+                    parsed.prSource = 'branch';
+                    parsed.prMerged = true;
+                    pipelineMock.annotations[ANNOT_RESTRICT_PR] = 'branch';
+                    expected.skipMessage =
+                        'Skipping build since pipeline is configured to restrict branch and PR is branch';
+
+                    return startHookEvent(request, responseHandler, parsed).then(reply => {
+                        assert.calledWith(eventFactoryMock.create, expected);
+                        assert.equal(reply.statusCode, 201);
+                    });
+                });
+
+                it('returns success if pr-closed on fork and restricting branches', () => {
+                    parsed.prSource = 'fork';
+                    parsed.prMerged = true;
+                    pipelineMock.annotations[ANNOT_RESTRICT_PR] = 'branch';
+
+                    return startHookEvent(request, responseHandler, parsed).then(reply => {
+                        assert.calledWith(eventFactoryMock.create, expected);
+                        assert.equal(reply.statusCode, 201);
+                    });
+                });
             });
         });
     });
