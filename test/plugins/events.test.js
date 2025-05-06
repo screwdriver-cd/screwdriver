@@ -1172,7 +1172,10 @@ describe('event plugin test', () => {
                 scmContext,
                 pipelineId
             };
-            server.inject(options).then(reply => {
+
+            eventConfig.creator = { name: 'Pipeline Access Token', username: 'myself' };
+
+            return server.inject(options).then(reply => {
                 expectedLocation = {
                     host: reply.request.headers.host,
                     port: reply.request.headers.port,
