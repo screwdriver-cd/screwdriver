@@ -115,14 +115,10 @@ Then(/^they can start the "main" job$/, { timeout: TIMEOUT }, function step() {
         });
 });
 
-Then(/^they can delete the pipeline$/, { timeout: TIMEOUT }, function step() {
-    return request({
-        method: 'DELETE',
-        context: {
-            token: this.jwt
-        },
-        url: `${this.instance}/${this.namespace}/pipelines/${this.pipelineId}`
-    }).then(resp => {
-        Assert.strictEqual(resp.statusCode, 204);
-    });
+Then(/^they can delete the pipeline$/, { timeout: TIMEOUT }, async function step() {
+    const resp = await this.deletePipeline(this.pipelineId);
+
+    Assert.strictEqual(resp.statusCode, 204);
+
+    return null;
 });
