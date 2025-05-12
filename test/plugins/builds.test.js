@@ -457,7 +457,7 @@ describe('build plugin test', () => {
                     ]
                 },
                 pr: {},
-                getBuilds: sinon.stub().returns([buildMock]),
+                getBuilds: sinon.stub(),
                 update: sinon.stub(),
                 toJson: sinon.stub().returns({ id: 123 }),
                 startFrom: '~commit'
@@ -1159,7 +1159,7 @@ describe('build plugin test', () => {
                     assert.deepEqual(buildMock.meta, options.payload.meta);
                     assert.deepEqual(buildMock.statusMessage, statusMessage);
                     assert.isDefined(buildMock.endTime);
-                    assert.calledTwice(eventMock.update);
+                    assert.calledOnce(eventMock.update);
                     assert.deepEqual(eventMock.meta, {
                         foo: 'bar',
                         hello: 'bye',
@@ -2556,7 +2556,7 @@ describe('build plugin test', () => {
                                 { src: '~commit', dest: 'main' }
                             ]
                         },
-                        getBuilds: sinon.stub().returns(buildMocks)
+                        getBuilds: sinon.stub()
                     };
                     eventMock.workflowGraph = {
                         nodes: [
@@ -3236,7 +3236,7 @@ describe('build plugin test', () => {
                                 { src: '~commit', dest: 'main' }
                             ]
                         },
-                        getBuilds: sinon.stub().returns([])
+                        getBuilds: sinon.stub()
                     };
                     eventMock.workflowGraph = {
                         nodes: [
