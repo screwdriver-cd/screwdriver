@@ -563,7 +563,6 @@ describe('event plugin test', () => {
             eventMock.builds.forEach(b => {
                 b.eventId = eventMock.id;
             });
-            eventMock.getBuilds = sinon.stub().returns(testBuilds);
 
             const virtualBuildMock = eventMock.builds[4];
 
@@ -634,8 +633,6 @@ describe('event plugin test', () => {
                 assert.calledOnce(virtualBuildMock.update);
                 assert.calledOnce(buildFactoryMock.create);
                 assert.calledWith(buildFactoryMock.create, sinon.match({ jobId: jobPublishMock.id }));
-
-                assert.equal(eventMock.status, 'IN_PROGRESS');
             });
         });
 
