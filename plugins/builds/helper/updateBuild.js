@@ -165,6 +165,56 @@ function isStageDone(stageJobBuilds) {
 }
 
 /**
+ * Derives overall status of the event based on individual build statuses
+ *
+ * @param {Build[]} builds  Builds associated with the event
+ * @returns {String}        new status for the event
+ */
+function deriveEventStatusFromBuildStatuses(builds) {
+    let newEventStatus = null;
+
+    const BUILD_STATUS_TO_EVENT_STATUS_MAPPING = {
+        ABORTED: 'ABORTED',
+        CREATED: null,
+        FAILURE: 'FAILURE',
+        QUEUED: 'IN_PROGRESS',
+        RUNNING: 'IN_PROGRESS',
+        SUCCESS: 'SUCCESS',
+        BLOCKED: 'IN_PROGRESS',
+        UNSTABLE: 'SUCCESS',
+        COLLAPSED: null,
+        FROZEN: 'IN_PROGRESS'
+    };
+
+    const eventStatusToBuildCount = {
+        IN_PROGRESS: 0,
+        ABORTED: 0,
+        FAILURE: 0,
+        SUCCESS: 0
+    };
+
+    for (const b of builds) {
+        const eventStatus = BUILD_STATUS_TO_EVENT_STATUS_MAPPING[b.status];
+
+        if (eventStatus) {
+            eventStatusToBuildCount[eventStatus] += 1;
+        }
+    }
+
+    if (eventStatusToBuildCount.IN_PROGRESS) {
+        newEventStatus = 'IN_PROGRESS';
+    } else if (eventStatusToBuildCount.ABORTED) {
+        newEventStatus = 'ABORTED';
+    } else if (eventStatusToBuildCount.FAILURE) {
+        newEventStatus = 'FAILURE';
+    } else if (eventStatusToBuildCount.SUCCESS) {
+        newEventStatus = 'SUCCESS';
+    }
+
+    return newEventStatus;
+}
+
+/**
  * Updates the build and trigger its downstream jobs in the workflow
  *
  * @method updateBuildAndTriggerDownstreamJobs
@@ -313,9 +363,19 @@ async function updateBuildAndTriggerDownstreamJobs(config, build, server, userna
         }
     }
 
+    // update event status
+    const latestBuilds = await newEvent.getBuilds();
+    const newEventStatus = deriveEventStatusFromBuildStatuses(latestBuilds);
+
+    if (newEventStatus && newEvent.status !== newEventStatus) {
+        newEvent.status = newEventStatus;
+        await newEvent.update();
+    }
+
     return newBuild;
 }
 
 module.exports = {
-    updateBuildAndTriggerDownstreamJobs
+    updateBuildAndTriggerDownstreamJobs,
+    deriveEventStatusFromBuildStatuses
 };
