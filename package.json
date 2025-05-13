@@ -61,6 +61,7 @@
   "contributors": [
     "Dao Lam <daolam112@gmail.com>",
     "Darren Matsumoto <aeneascorrupt@gmail.com>",
+    "Dayanand Sagar <sagar1312@gmail.com>",
     "Filbert Jahja <filidillidally@gmail.com>",
     "Jeremiah Wuenschel <jeremiah.wuenschel@gmail.com>",
     "Min Zhang <minzhangcmu@gmail.com>",
@@ -111,7 +112,7 @@
     "screwdriver-config-parser": "^12.0.0",
     "screwdriver-coverage-bookend": "^3.0.0",
     "screwdriver-coverage-sonar": "^5.0.0",
-    "screwdriver-data-schema": "^25.5.0",
+    "screwdriver-data-schema": "^25.6.0",
     "screwdriver-datastore-sequelize": "^10.0.0",
     "screwdriver-executor-base": "^11.0.0",
     "screwdriver-executor-docker": "^8.0.1",
