@@ -97,6 +97,7 @@ datastore:
     ssl: false
     pool: {}
     retry: {}
+    dialectOptions: {}
     buildMetricsEnabled: "false"
     # readOnly datastore config
     # readOnly: {}
