@@ -95,6 +95,12 @@ datastore:
     retry:
       __name: DATASTORE_SEQUELIZE_RETRY
       __format: json
+    # An object of additional options, which are passed directly to the connection library
+    # Configure SSL/TLS connection settings
+    # https://sequelize.org/docs/v6/other-topics/dialect-specific-things/
+    dialectOptions:
+      __name: DATASTORE_DIALECT_OPTIONS
+      __format: json
     buildMetricsEnabled: DATASTORE_SEQUELIZE_CAPTURE_METRICS_ENABLED
     readOnly:
       __name: DATASTORE_SEQUELIZE_RO
