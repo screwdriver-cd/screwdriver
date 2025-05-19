@@ -101,6 +101,7 @@ datastore:
     dialectOptions:
       __name: DATASTORE_DIALECT_OPTIONS
       __format: json
+    caCert: DATASTORE_CA_CERT
     buildMetricsEnabled: DATASTORE_SEQUELIZE_CAPTURE_METRICS_ENABLED
     readOnly:
       __name: DATASTORE_SEQUELIZE_RO
