@@ -45,7 +45,15 @@ ecosystem.api = httpdConfig.uri;
 const release = config.get('release');
 
 // Logging config
-const log = config.get('log');
+const log = {...config.get('log')};
+if (log && log.audit && log.audit.enabled !== undefined) {
+    log.audit = {...log.audit}
+    log.audit.enabled = convertToBool(log.audit.enabled);
+}
+if (log && log.payload && log.payload.enabled !== undefined) {
+    log.payload = {...log.payload}
+    log.payload.enabled = convertToBool(log.payload.enabled);
+}
 
 // Notification config
 const notificationConfig = config.get('notifications');
