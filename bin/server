@@ -84,10 +84,10 @@ const datastoreROConfig = { ...datastorePluginConfig.readOnly };
 let datastoreRO;
 
 if (datastoreROConfig && Object.keys(datastoreROConfig).length > 0) {
-    if (datastorePluginConfig.dialectOptions) {
+    if (!datastoreROConfig.dialectOptions && datastorePluginConfig.dialectOptions) {
         datastoreROConfig.dialectOptions = datastorePluginConfig.dialectOptions;
     }
-    if (datastorePluginConfig.caCert) {
+    if (!datastoreROConfig.dialectOptions && datastorePluginConfig.caCert) {
         datastoreROConfig.caCert = datastorePluginConfig.caCert;
     }
     datastoreRO = new DatastorePlugin(hoek.applyToDefaults({ ecosystem }, datastoreROConfig));
