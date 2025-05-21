@@ -54,8 +54,8 @@ module.exports = () => ({
         handler: async (request, h) => {
             const { checkoutUrl, rootDir, settings, badges } = request.payload;
             const { id } = request.params;
-            const { pipelineFactory, userFactory, secretFactory } = request.server.app;
-            const { scmContext, username } = request.auth.credentials;
+            const { bannerFactory, pipelineFactory, userFactory, secretFactory } = request.server.app;
+            const { scmContext, username, scmUserId } = request.auth.credentials;
             const scmContexts = pipelineFactory.scm.getScmContexts();
             const { isValidToken } = request.server.plugins.pipelines;
             const deployKeySecret = 'SD_SCM_DEPLOY_KEY';
@@ -88,6 +88,15 @@ module.exports = () => ({
                 );
             }
 
+            // check if user is a screwdriver admin
+            const scmDisplayName = bannerFactory.scm.getDisplayName({ scmContext });
+            const adminDetails = request.server.plugins.banners.screwdriverAdminDetails(
+                username,
+                scmDisplayName,
+                scmUserId
+            );
+            const isSdAdmin = adminDetails.isAdmin;
+
             // get the user permissions for the repo
             let oldPermissions;
 
@@ -98,12 +107,18 @@ module.exports = () => ({
                     user
                 });
             } catch (err) {
-                throw boom.forbidden(`User ${user.getFullDisplayName()} does not have admin permission for this repo`);
+                if (!isSdAdmin) {
+                    throw boom.forbidden(
+                        `User ${user.getFullDisplayName()} does not have admin permission for this repo`
+                    );
+                }
             }
 
             let token;
             let formattedCheckoutUrl;
             const oldPipelineConfig = { ...oldPipeline };
+
+            let newRepositoryUserPermissions = { admin: false };
 
             if (checkoutUrl || rootDir) {
                 formattedCheckoutUrl = formatCheckoutUrl(request.payload.checkoutUrl);
@@ -120,7 +135,13 @@ module.exports = () => ({
                 });
 
                 // get the user permissions for the repo
-                await getUserPermissions({ user, scmUri });
+                try {
+                    newRepositoryUserPermissions = await getUserPermissions({ user, scmUri });
+                } catch (err) {
+                    if (!isSdAdmin) {
+                        throw err;
+                    }
+                }
 
                 // check if there is already a pipeline with the new checkoutUrl
                 const newPipeline = await pipelineFactory.get({ scmUri });
@@ -143,16 +164,18 @@ module.exports = () => ({
                 oldPipeline.name = scmRepo.name;
             }
 
-            if (!oldPermissions.admin) {
+            if (!oldPermissions.admin && !isSdAdmin) {
                 throw boom.forbidden(`User ${username} is not an admin of these repos`);
             }
 
-            oldPipeline.admins = {
-                [username]: true
-            };
+            if (oldPermissions.admin || newRepositoryUserPermissions.admin) {
+                oldPipeline.admins = {
+                    [username]: true
+                };
 
-            if (!oldPipeline.adminUserIds.includes(user.id)) {
-                oldPipeline.adminUserIds.push(user.id);
+                if (!oldPipeline.adminUserIds.includes(user.id)) {
+                    oldPipeline.adminUserIds.push(user.id);
+                }
             }
 
             if (settings) {

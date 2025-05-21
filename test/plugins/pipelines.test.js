@@ -2707,6 +2707,8 @@ describe('pipeline plugin test', () => {
             pipelineFactoryMock.scm.decorateUrl.resolves(scmRepo);
             pipelineFactoryMock.scm.getScmContexts.returns(['github:github.com', 'gitlab:mygitlab']);
             pipelineFactoryMock.scm.addDeployKey.resolves(privateKey);
+
+            screwdriverAdminDetailsMock.returns({ isAdmin: false });
         });
 
         it('returns 200 and correct pipeline data', () =>
@@ -2954,6 +2956,21 @@ describe('pipeline plugin test', () => {
             });
         });
 
+        it('returns 200 when the user does not have admin permissions on the old repo but is an SD admin', () => {
+            screwdriverAdminDetailsMock.returns({ isAdmin: true });
+            userMock.getPermissions.withArgs(oldScmUri).resolves({ admin: false });
+            userMock.getPermissions.withArgs(scmUri).resolves({ admin: false });
+
+            return server.inject(options).then(reply => {
+                assert.calledTwice(userMock.getPermissions);
+                assert.calledWith(userMock.getPermissions.firstCall, oldScmUri);
+                assert.calledWith(userMock.getPermissions.secondCall, scmUri);
+                assert.calledOnce(updatedPipelineMock.addWebhooks);
+                assert.equal(reply.statusCode, 200);
+                assert.deepEqual(pipelineMock.adminUserIds, []);
+            });
+        });
+
         it('returns 403 when get permission throws error', () => {
             userMock.getPermissions.withArgs(oldScmUri).rejects(new Error('Failed'));
 
@@ -2990,6 +3007,22 @@ describe('pipeline plugin test', () => {
             });
         });
 
+        it('returns 200 when the user is not admin of old repo with deprecated scmContext but is an SD admin', () => {
+            screwdriverAdminDetailsMock.returns({ isAdmin: true });
+            userMock.getPermissions.withArgs(oldScmUri).resolves({ admin: false });
+            userMock.getPermissions.withArgs(scmUri).resolves({ admin: false });
+            pipelineMock.admins = { ohno: true };
+            pipelineMock.scmContext = 'deprecated';
+
+            return server.inject(options).then(reply => {
+                assert.calledOnce(userMock.getPermissions);
+                assert.calledWith(userMock.getPermissions, scmUri);
+                assert.calledOnce(updatedPipelineMock.addWebhooks);
+                assert.equal(reply.statusCode, 200);
+                assert.deepEqual(pipelineMock.adminUserIds, []);
+            });
+        });
+
         it('returns 200 when the user is admin from different scmContext', () => {
             userMock.scmContext = 'gitlab:mygitlab';
             pipelineMock.admins = {};
@@ -3016,6 +3049,24 @@ describe('pipeline plugin test', () => {
                 assert.calledWith(userMock.getPermissions, scmUri);
                 assert.notCalled(updatedPipelineMock.addWebhooks);
                 assert.equal(reply.statusCode, 403);
+            });
+        });
+
+        it('returns 200 when the user is not admin from different scmContext but is an SD admin', () => {
+            screwdriverAdminDetailsMock.returns({ isAdmin: true });
+            userMock.getPermissions.withArgs(oldScmUri).resolves({ admin: false });
+            userMock.getPermissions.withArgs(scmUri).resolves({ admin: false });
+            userMock.scmContext = 'gitlab:mygitlab';
+            pipelineMock.admins = {};
+            pipelineMock.adminUserIds = [888];
+            screwdriverAdminDetailsMock.returns({ isAdmin: true });
+
+            return server.inject(options).then(reply => {
+                assert.calledOnce(userMock.getPermissions);
+                assert.calledWith(userMock.getPermissions, scmUri);
+                assert.calledOnce(updatedPipelineMock.addWebhooks);
+                assert.equal(reply.statusCode, 200);
+                assert.deepEqual(pipelineMock.adminUserIds, [888]);
             });
         });
 
