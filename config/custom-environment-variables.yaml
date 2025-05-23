@@ -96,11 +96,13 @@ datastore:
       __name: DATASTORE_SEQUELIZE_RETRY
       __format: json
     # An object of additional options, which are passed directly to the connection library
-    # Configure SSL/TLS connection settings
+    # In order to configure SSL/TLS connection settings, use this option and 'caCert' option
     # https://sequelize.org/docs/v6/other-topics/dialect-specific-things/
     dialectOptions:
       __name: DATASTORE_DIALECT_OPTIONS
       __format: json
+    # A file path of ca or a raw certificate string
+    caCert: DATASTORE_CA_CERT
     buildMetricsEnabled: DATASTORE_SEQUELIZE_CAPTURE_METRICS_ENABLED
     readOnly:
       __name: DATASTORE_SEQUELIZE_RO

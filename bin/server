@@ -88,10 +88,16 @@ const DatastorePlugin = require(`screwdriver-datastore-${datastoreConfig.plugin}
 const datastorePluginConfig = { ...datastoreConfig[datastoreConfig.plugin] };
 
 // Readonly Datastore
-const datastoreROConfig = datastorePluginConfig.readOnly;
+const datastoreROConfig = { ...datastorePluginConfig.readOnly };
 let datastoreRO;
 
 if (datastoreROConfig && Object.keys(datastoreROConfig).length > 0) {
+    if (!datastoreROConfig.dialectOptions && datastorePluginConfig.dialectOptions) {
+        datastoreROConfig.dialectOptions = datastorePluginConfig.dialectOptions;
+    }
+    if (!datastoreROConfig.dialectOptions && datastorePluginConfig.caCert) {
+        datastoreROConfig.caCert = datastorePluginConfig.caCert;
+    }
     datastoreRO = new DatastorePlugin(hoek.applyToDefaults({ ecosystem }, datastoreROConfig));
 }
 delete datastorePluginConfig.readOnly;
