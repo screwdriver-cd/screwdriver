@@ -95,7 +95,7 @@ if (datastoreROConfig && Object.keys(datastoreROConfig).length > 0) {
     if (!datastoreROConfig.dialectOptions && datastorePluginConfig.dialectOptions) {
         datastoreROConfig.dialectOptions = datastorePluginConfig.dialectOptions;
     }
-    if (!datastoreROConfig.dialectOptions && datastorePluginConfig.caCert) {
+    if (datastorePluginConfig.caCert) {
         datastoreROConfig.caCert = datastorePluginConfig.caCert;
     }
     datastoreRO = new DatastorePlugin(hoek.applyToDefaults({ ecosystem }, datastoreROConfig));
