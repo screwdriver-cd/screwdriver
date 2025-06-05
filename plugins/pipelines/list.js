@@ -4,6 +4,7 @@ const joi = require('joi');
 const schema = require('screwdriver-data-schema');
 const idSchema = schema.models.pipeline.base.extract('id');
 const scmUriSchema = schema.models.pipeline.base.extract('scmUri');
+const scmContextSchema = schema.models.pipeline.base.extract('scmContext');
 const listSchema = joi.array().items(schema.models.pipeline.get).label('List of Pipelines');
 const pipelineIdsSchema = joi.alternatives().try(joi.array().items(idSchema), idSchema).required();
 const IDS_KEY = 'ids[]';
@@ -23,12 +24,14 @@ module.exports = () => ({
         handler: async (request, h) => {
             const { pipelineFactory } = request.server.app;
             const { sort, configPipelineId, sortBy, search, scmUri, page, count } = request.query;
-            const scmContexts = pipelineFactory.scm.getScmContexts();
+            const scmContexts = request.query.scmContext
+                ? [request.query.scmContext]
+                : pipelineFactory.scm.getScmContexts();
             let pipelineArray = [];
 
-            scmContexts.forEach(scmContext => {
+            scmContexts.forEach(sc => {
                 const config = {
-                    params: { scmContext },
+                    params: { scmContext: sc },
                     sort
                 };
 
@@ -129,7 +132,8 @@ module.exports = () => ({
                 joi.object({
                     configPipelineId: idSchema,
                     'ids[]': pipelineIdsSchema.optional(),
-                    scmUri: scmUriSchema
+                    scmUri: scmUriSchema,
+                    scmContext: scmContextSchema.optional()
                 })
             )
         }

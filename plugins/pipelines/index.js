@@ -44,6 +44,7 @@ const removeTemplateTagRoute = require('./templates/removeTag');
 const removeTemplateVersionRoute = require('./templates/removeVersion');
 const updateTrustedRoute = require('./templates/updateTrusted');
 const updateBuildCluster = require('./updateBuildCluster');
+const updateAdminsRoute = require('./updateAdmins');
 
 /**
  * Pipeline API Plugin
@@ -278,7 +279,8 @@ const pipelinesPlugin = {
             removeTemplateTagRoute(),
             removeTemplateVersionRoute(),
             updateTrustedRoute(),
-            updateBuildCluster()
+            updateBuildCluster(),
+            updateAdminsRoute()
         ]);
     }
 };
