@@ -109,7 +109,7 @@
     "screwdriver-build-bookend": "^5.0.0",
     "screwdriver-cache-bookend": "^4.0.0",
     "screwdriver-command-validator": "^5.0.0",
-    "screwdriver-config-parser": "^12.0.0",
+    "screwdriver-config-parser": "^12.2.3",
     "screwdriver-coverage-bookend": "^3.0.0",
     "screwdriver-coverage-sonar": "^5.0.0",
     "screwdriver-data-schema": "^25.6.0",
