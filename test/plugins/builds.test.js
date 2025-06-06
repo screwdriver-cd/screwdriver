@@ -2102,6 +2102,9 @@ describe('build plugin test', () => {
 
                     return server.inject(options).then(reply => {
                         assert.equal(reply.statusCode, 200);
+                        const { params } = eventMock.getBuilds.getCall(0).args[0];
+
+                        assert.sameMembers(params.jobId, [stageMock.setup, ...stageMock.jobIds]);
                         assert.notCalled(buildFactoryMock.create);
                         assert.notCalled(stageBuildFactoryMock.create);
                     });
@@ -2258,6 +2261,10 @@ describe('build plugin test', () => {
 
                     return server.inject(options).then(reply => {
                         assert.equal(reply.statusCode, 200);
+
+                        const { params } = eventMock.getBuilds.getCall(0).args[0];
+
+                        assert.sameMembers(params.jobId, [stageMock.setup, ...stageMock.jobIds]);
                         assert.notCalled(buildFactoryMock.create);
                         assert.notCalled(stageBuildFactoryMock.create);
                         assert.calledOnce(stageTeardownBuildMock.start);
@@ -5684,7 +5691,11 @@ describe('build plugin test', () => {
 
                     // event
                     eventMock.workflowGraph = testWorkflowGraphWithStages;
+                    eventMock.workflowGraph.nodes.push({ name: 'append-alpha-job', stageName: 'alpha' });
                     eventFactoryMock.get.resolves(eventMock);
+                    jobFactoryMock.get
+                        .withArgs({ pipelineId: pipelineMock.id, name: 'append-alpha-job' })
+                        .resolves({ id: 999 });
 
                     // stage
                     stageFactoryMock.get.resolves(stageAlphaMock);
@@ -5795,6 +5806,9 @@ describe('build plugin test', () => {
                         assert.calledOnce(stageBuildMock.update);
                         assert.equal(stageBuildMock.status, 'FAILURE');
 
+                        const { params } = eventMock.getBuilds.getCall(0).args[0];
+
+                        assert.sameMembers(params.jobId, [stageMock.setup, ...stageMock.jobIds, 999]);
                         assert.calledOnce(buildFactoryMock.create);
                         assert.calledWith(buildFactoryMock.create, {
                             jobId: 55,
@@ -5947,8 +5961,12 @@ describe('build plugin test', () => {
 
                     return newServer.inject(localOptions).then(() => {
                         assert.notCalled(stageBuildMock.update);
-
                         assert.notCalled(buildFactoryMock.create);
+                        assert.calledTwice(eventMock.getBuilds);
+
+                        const { params } = eventMock.getBuilds.getCall(0).args[0];
+
+                        assert.sameMembers(params.jobId, [stageGammaMock.setup, ...stageGammaMock.jobIds]);
                         assert.calledTwice(buildGammaTeardown.update);
                         assert.deepEqual(buildGammaTeardown.parentBuildId, [7001, 7002, 7003, 12345]);
                         assert.deepEqual(buildGammaTeardown.parentBuilds, {
