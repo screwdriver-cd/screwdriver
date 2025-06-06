@@ -137,13 +137,29 @@ async function getStage({ stageFactory, workflowGraph, jobName, pipelineId }) {
 /**
  * Get all builds in stage
  *
- * @param  {Stage}      stage   Stage
- * @param  {Event}      event   Event
- * @return {Promise<Build[]>}   Builds in stage
+ * @param  {Stage}             stage       Stage
+ * @param  {Event}             event       Event
+ * @param  {JobFactory}        jobFactory  Job Factory instance
+ * @return {Promise<Build[]>}              Builds in stage
  */
-async function getStageJobBuilds({ stage, event }) {
+async function getStageJobBuilds({ stage, event, jobFactory }) {
     // Get all jobIds for jobs in the stage
-    const stageJobIds = [...stage.jobIds, stage.setup];
+    const stageNodes = event.workflowGraph.nodes.filter(n => {
+        const jobName = n.name.split(':')[1];
+
+        return n.stageName === stage.name && jobName !== 'teardown';
+    });
+    const stageJobIds = await Promise.all(
+        stageNodes.map(async n => {
+            if (n.id) {
+                return n.id;
+            }
+
+            const job = await jobFactory.get({ pipelineId: event.pipelineId, name: n.name });
+
+            return job.id;
+        })
+    );
 
     // Get all builds in a stage for this event
     return event.getBuilds({ params: { jobId: stageJobIds } });
@@ -350,7 +366,7 @@ async function updateBuildAndTriggerDownstreamJobs(config, build, server, userna
 
         // Start stage teardown build if stage is done
         if (stageTeardownBuild && stageTeardownBuild.status === 'CREATED') {
-            const stageJobBuilds = await getStageJobBuilds({ stage, event: newEvent });
+            const stageJobBuilds = await getStageJobBuilds({ stage, event: newEvent, jobFactory });
             const stageIsDone = isStageDone(stageJobBuilds);
 
             if (stageIsDone) {
