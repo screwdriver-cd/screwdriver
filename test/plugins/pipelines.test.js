@@ -250,7 +250,8 @@ describe('pipeline plugin test', () => {
             scm: {
                 parseUrl: sinon.stub(),
                 openPr: sinon.stub()
-            }
+            },
+            list: sinon.stub()
         };
         collectionFactoryMock = {
             create: sinon.stub(),
@@ -461,6 +462,40 @@ describe('pipeline plugin test', () => {
             return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 200);
                 assert.deepEqual(reply.result, testPipelines.concat(gitlabTestPipelines));
+            });
+        });
+
+        it('returns 200 and only the pipelines for the specified scmContext', () => {
+            pipelineFactoryMock.list
+                .withArgs({
+                    params: {
+                        scmContext: 'github:github.com'
+                    },
+                    paginate: {
+                        page: 1,
+                        count: 3
+                    },
+                    sort: 'descending'
+                })
+                .resolves(getPipelineMocks(testPipelines));
+            pipelineFactoryMock.list
+                .withArgs({
+                    params: {
+                        scmContext: 'gitlab:mygitlab'
+                    },
+                    paginate: {
+                        page: 1,
+                        count: 3
+                    },
+                    sort: 'descending'
+                })
+                .resolves(getPipelineMocks(gitlabTestPipelines));
+
+            options.url += '&scmContext=github:github.com';
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 200);
+                assert.deepEqual(reply.result, testPipelines);
             });
         });
 
@@ -4487,6 +4522,189 @@ describe('pipeline plugin test', () => {
             return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 500);
                 assert.equal(reply.result.message, `Failed to update screwdriver.cd/buildCluster for pipeline ${id}`);
+            });
+        });
+    });
+
+    describe('PUT /pipelines/{id}/updateAdmins', () => {
+        const pipelineId = 123;
+        let options;
+
+        const userSam = {
+            username: 'sam_screwdriver',
+            id: 666
+        };
+
+        const userJohn = {
+            username: 'john_screwdriver',
+            id: 777
+        };
+
+        const userRob = {
+            username: 'rob_screwdriver',
+            id: 888
+        };
+
+        const adminsUserScmContext = 'github:git.screwdriver.com';
+
+        beforeEach(() => {
+            options = {
+                method: 'PUT',
+                url: `/pipelines/${pipelineId}/updateAdmins`,
+                payload: {
+                    usernames: [userJohn.username, userRob.username],
+                    scmContext: adminsUserScmContext
+                },
+                auth: {
+                    credentials: {
+                        username: pipelineId,
+                        pipelineId,
+                        scmContext: 'github:github.com',
+                        scope: ['pipeline']
+                    },
+                    strategy: ['token']
+                }
+            };
+
+            screwdriverAdminDetailsMock.returns({ isAdmin: false });
+        });
+
+        it('returns 200 and update the admins when requested by a valid pipeline', () => {
+            const pipelineMock = getPipelineMocks(testPipeline);
+
+            pipelineMock.adminUserIds = [userSam.id];
+            pipelineFactoryMock.get.resolves(pipelineMock);
+
+            userFactoryMock.list.resolves([userJohn, userRob]);
+
+            pipelineMock.update.returns(pipelineMock);
+
+            return server.inject(options).then(reply => {
+                assert.calledWith(pipelineFactoryMock.get, {
+                    id: pipelineId
+                });
+
+                assert.calledWith(userFactoryMock.list, {
+                    params: {
+                        username: ['john_screwdriver', 'rob_screwdriver'],
+                        scmContext: 'github:git.screwdriver.com'
+                    }
+                });
+
+                assert.calledOnce(pipelineMock.update);
+
+                assert.equal(reply.statusCode, 200);
+                assert.deepEqual(pipelineMock.adminUserIds, [userSam.id, userJohn.id, userRob.id]);
+            });
+        });
+
+        it('returns 200 and update the admins when requested by a SD admin', () => {
+            options.auth.credentials.scope = ['user'];
+            options.auth.credentials.username = 'admin_user';
+            screwdriverAdminDetailsMock.returns({ isAdmin: true });
+
+            const pipelineMock = getPipelineMocks(testPipeline);
+
+            pipelineMock.adminUserIds = [userSam.id];
+            pipelineFactoryMock.get.resolves(pipelineMock);
+
+            userFactoryMock.list.resolves([userJohn, userRob]);
+
+            pipelineMock.update.returns(pipelineMock);
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 200);
+                assert.deepEqual(pipelineMock.adminUserIds, [userSam.id, userJohn.id, userRob.id]);
+            });
+        });
+
+        it('returns 200 when a requested admin user does not exist', () => {
+            const pipelineMock = getPipelineMocks(testPipeline);
+
+            pipelineMock.adminUserIds = [userSam.id];
+            pipelineFactoryMock.get.resolves(pipelineMock);
+
+            userFactoryMock.list.resolves([userJohn]);
+
+            pipelineMock.update.returns(pipelineMock);
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 200);
+                assert.deepEqual(pipelineMock.adminUserIds, [userSam.id, userJohn.id]);
+            });
+        });
+
+        it('returns 400 when scmContext is missing in the payload', () => {
+            delete options.payload.scmContext;
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 400);
+                assert.equal(reply.result.message, 'Payload must contain scmContext');
+            });
+        });
+
+        it('returns 400 when usernames is missing in the payload', () => {
+            delete options.payload.usernames;
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 400);
+                assert.equal(reply.result.message, 'Payload must contain admin usernames');
+            });
+        });
+
+        it('returns 400 when usernames is empty in the payload', () => {
+            options.payload.usernames = [];
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 400);
+                assert.equal(reply.result.message, 'Payload must contain admin usernames');
+            });
+        });
+
+        it('returns 403 because when not requested by same pipeline', () => {
+            options.auth.credentials.scope = ['pipeline'];
+            options.auth.credentials.username = 687;
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 403);
+                assert.equal(
+                    reply.result.message,
+                    'User 687 is not authorized to update admins for the pipeline (id=123)'
+                );
+            });
+        });
+
+        it('returns 403 because when requested by non SD admin user', () => {
+            options.auth.credentials.scope = ['user'];
+            options.auth.credentials.username = 'non_admin_user';
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 403);
+                assert.equal(
+                    reply.result.message,
+                    'User non_admin_user does not have Screwdriver administrative privileges to update the admins for the pipeline (id=123)'
+                );
+            });
+        });
+
+        it('returns 404 when pipeline does not exist', () => {
+            pipelineFactoryMock.get.resolves(null);
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 404);
+                assert.equal(reply.result.message, `Pipeline ${pipelineId} does not exist`);
+            });
+        });
+
+        it('returns 409 when pipeline is being deleted', () => {
+            const pipelineMock = getPipelineMocks(testPipeline);
+
+            pipelineMock.state = 'DELETING';
+            pipelineFactoryMock.get.resolves(pipelineMock);
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 409);
+                assert.equal(reply.result.message, 'This pipeline is being deleted.');
             });
         });
     });
