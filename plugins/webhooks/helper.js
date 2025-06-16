@@ -778,11 +778,17 @@ async function createPrClosedEvent(options, request) {
             try {
                 const b = await p.branch;
                 let eventConfig = {};
-
-                let configPipelineSha = '';
+                const token = await p.token;
+                const pScmConfig = {
+                    scmUri: p.scmUri,
+                    token,
+                    scmRepo: p.scmRepo,
+                    scmContext: scmConfig.scmContext
+                };
+                let latestPipelineSha = '';
 
                 try {
-                    configPipelineSha = await pipelineFactory.scm.getCommitSha(scmConfig);
+                    latestPipelineSha = await pipelineFactory.scm.getCommitSha(pScmConfig);
                 } catch (err) {
                     if (err.status >= 500) {
                         throw err;
@@ -808,14 +814,14 @@ async function createPrClosedEvent(options, request) {
                     webhooks: true,
                     username,
                     scmContext: scmConfig.scmContext,
-                    sha,
+                    sha: latestPipelineSha || sha,
                     startFrom: isPipelineBranch ? startFrom : `${startFrom}:${branch}`,
                     changedFiles,
                     causeMessage: isPipelineBranch ? causeMessage : `${causeMessage} on branch ${branch}`,
                     ref,
                     baseBranch: branch,
                     meta: createMeta(options),
-                    configPipelineSha,
+                    configPipelineSha: latestPipelineSha,
                     prNum,
                     chainPR: resolvedChainPR
                 };

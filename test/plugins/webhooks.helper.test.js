@@ -3197,14 +3197,14 @@ describe('startHookEvent test', () => {
                         webhooks: true,
                         username,
                         scmContext,
-                        sha,
+                        sha: latestSha,
                         startFrom: '~pr-closed',
                         changedFiles,
                         causeMessage: `PR-${1} ${parsed.action} by ${scmDisplayName}:${username}`,
                         ref: undefined,
                         baseBranch: 'master',
                         meta: { sd: { pr: { name: 'pull/1/merge', merged: true, number: 1 } } },
-                        configPipelineSha: 'a402964c054c610757794d9066c96cee1772daed',
+                        configPipelineSha: latestSha,
                         prNum: 1,
                         chainPR: false
                     };
