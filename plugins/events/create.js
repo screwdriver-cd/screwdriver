@@ -153,7 +153,11 @@ module.exports = () => ({
 
             // Update admins
             if (!prNum) {
-                await updateAdmins({ permissions, pipeline, user });
+                try {
+                    await updateAdmins({ permissions, pipeline, user });
+                } catch (err) {
+                    throw boom.boomify(err, { statusCode: err.statusCode });
+                }
             }
 
             // Get scmConfig
@@ -171,17 +175,25 @@ module.exports = () => ({
                 payload.prNum = String(prNum);
                 payload.type = 'pr';
 
-                const [files, prInfo] = await Promise.all([
-                    scm.getChangedFiles({
-                        webhookConfig: null,
-                        type: 'pr',
-                        ...scmConfig
-                    }),
-                    scm.getPrInfo(scmConfig)
-                ]).catch(err => {
-                    throw boom.boomify(err, { statusCode: err.statusCode });
-                });
+                // Declare files and prInfo outside the try block
+                let files;
+                let prInfo;
 
+                try {
+                    // Assign values inside the try block
+                    [files, prInfo] = await Promise.all([
+                        scm.getChangedFiles({
+                            webhookConfig: null,
+                            type: 'pr',
+                            ...scmConfig
+                        }),
+                        scm.getPrInfo(scmConfig)
+                    ]);
+                } catch (err) {
+                    throw boom.boomify(err, { statusCode: err.statusCode });
+                }
+
+                // These lines now correctly access files and prInfo
                 if (files && files.length) {
                     payload.changedFiles = files;
                 }
@@ -199,11 +211,15 @@ module.exports = () => ({
                 // PR author should be able to rerun their own PR build if restrictPR is not on
                 if (restrictPR !== 'none' || prInfo.username !== username) {
                     // Remove user from admins
-                    await updateAdmins({
-                        permissions,
-                        pipeline,
-                        user
-                    });
+                    try {
+                        await updateAdmins({
+                            permissions,
+                            pipeline,
+                            user
+                        });
+                    } catch (err) {
+                        throw boom.boomify(err, { statusCode: err.statusCode });
+                    }
                 }
             }
 
