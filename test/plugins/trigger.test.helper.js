@@ -266,6 +266,18 @@ class PipelineFactoryMock {
                     });
                 }
             });
+            if (stages) {
+                Object.keys(stages).forEach(name => {
+                    const prStageName = `PR-${prNum}:${name}`;
+
+                    if (!stages[prStageName] && stages[name]) {
+                        stages[prStageName] = this.server.app.stageFactory.create({
+                            ...stages[name],
+                            name: prStageName
+                        });
+                    }
+                });
+            }
         };
 
         this.records.push(pipeline);
