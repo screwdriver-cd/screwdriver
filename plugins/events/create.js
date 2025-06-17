@@ -175,12 +175,10 @@ module.exports = () => ({
                 payload.prNum = String(prNum);
                 payload.type = 'pr';
 
-                // Declare files and prInfo outside the try block
                 let files;
                 let prInfo;
 
                 try {
-                    // Assign values inside the try block
                     [files, prInfo] = await Promise.all([
                         scm.getChangedFiles({
                             webhookConfig: null,
@@ -193,7 +191,6 @@ module.exports = () => ({
                     throw boom.boomify(err, { statusCode: err.statusCode });
                 }
 
-                // These lines now correctly access files and prInfo
                 if (files && files.length) {
                     payload.changedFiles = files;
                 }
@@ -208,7 +205,6 @@ module.exports = () => ({
                     restrictPR = pipeline.annotations[ANNOT_RESTRICT_PR];
                 }
 
-                // PR author should be able to rerun their own PR build if restrictPR is not on
                 if (restrictPR !== 'none' || prInfo.username !== username) {
                     // Remove user from admins
                     try {
