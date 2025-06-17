@@ -153,7 +153,11 @@ module.exports = () => ({
 
             // Update admins
             if (!prNum) {
-                await updateAdmins({ permissions, pipeline, user });
+                try {
+                    await updateAdmins({ permissions, pipeline, user });
+                } catch (err) {
+                    throw boom.boomify(err, { statusCode: err.statusCode });
+                }
             }
 
             // Get scmConfig
@@ -171,16 +175,21 @@ module.exports = () => ({
                 payload.prNum = String(prNum);
                 payload.type = 'pr';
 
-                const [files, prInfo] = await Promise.all([
-                    scm.getChangedFiles({
-                        webhookConfig: null,
-                        type: 'pr',
-                        ...scmConfig
-                    }),
-                    scm.getPrInfo(scmConfig)
-                ]).catch(err => {
+                let files;
+                let prInfo;
+
+                try {
+                    [files, prInfo] = await Promise.all([
+                        scm.getChangedFiles({
+                            webhookConfig: null,
+                            type: 'pr',
+                            ...scmConfig
+                        }),
+                        scm.getPrInfo(scmConfig)
+                    ]);
+                } catch (err) {
                     throw boom.boomify(err, { statusCode: err.statusCode });
-                });
+                }
 
                 if (files && files.length) {
                     payload.changedFiles = files;
@@ -196,14 +205,17 @@ module.exports = () => ({
                     restrictPR = pipeline.annotations[ANNOT_RESTRICT_PR];
                 }
 
-                // PR author should be able to rerun their own PR build if restrictPR is not on
                 if (restrictPR !== 'none' || prInfo.username !== username) {
                     // Remove user from admins
-                    await updateAdmins({
-                        permissions,
-                        pipeline,
-                        user
-                    });
+                    try {
+                        await updateAdmins({
+                            permissions,
+                            pipeline,
+                            user
+                        });
+                    } catch (err) {
+                        throw boom.boomify(err, { statusCode: err.statusCode });
+                    }
                 }
             }
 
