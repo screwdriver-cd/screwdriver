@@ -167,12 +167,12 @@ async function getStageJobBuilds({ stage, event, jobFactory }) {
             const jobName = prStageName ? `${prStageName[1]}:${n.name}` : n.name;
             const job = await jobFactory.get({ pipelineId: event.pipelineId, name: jobName });
 
-            return job.id;
+            return job ? job.id : null;
         })
     );
 
     // Get all builds in a stage for this event
-    return event.getBuilds({ params: { jobId: stageJobIds } });
+    return event.getBuilds({ params: { jobId: stageJobIds.filter(id => id !== null) } });
 }
 
 /**
