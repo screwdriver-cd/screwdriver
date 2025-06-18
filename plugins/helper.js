@@ -2,8 +2,10 @@
 
 const boom = require('@hapi/boom');
 const dayjs = require('dayjs');
+const schema = require('screwdriver-data-schema');
 const STAGE_PREFIX = 'stage@';
 const STAGE_TEARDOWN_PATTERN = /^stage@([\w-]+):teardown$/;
+const { PR_STAGE_NAME } = schema.config.regex;
 
 /**
  * Set default start time and end time
@@ -111,7 +113,11 @@ async function getScmUri({ pipeline, pipelineFactory }) {
  * @return {String}                         Full stage name
  */
 function getFullStageJobName({ stageName, jobName }) {
-    return `${STAGE_PREFIX}${stageName}:${jobName}`;
+    const prStage = stageName.match(PR_STAGE_NAME);
+
+    return prStage
+        ? `${prStage[1]}:${STAGE_PREFIX}${prStage[2]}:${jobName}` // PR-123:stage@staging:deploy
+        : `${STAGE_PREFIX}${stageName}:${jobName}`; // stage@staging:deploy
 }
 
 /**

@@ -8305,18 +8305,6 @@ describe('build plugin test', () => {
     });
 });
 
-describe('isPR', () => {
-    const isPR = rewireBuildsIndex.__get__('isPR');
-
-    it('sholud return true if job name has PR prefix', () => {
-        assert.isTrue(isPR('PR-1:testJobName'));
-    });
-
-    it('sholud return false if job name does not have PR prefix', () => {
-        assert.isFalse(isPR('testJobName'));
-    });
-});
-
 describe('trimJobName', () => {
     const trimJobName = rewireBuildsIndex.__get__('trimJobName');
 

@@ -3265,6 +3265,88 @@ describe('trigger tests', () => {
             assert.equal(event.getBuildOf('target3').status, 'RUNNING');
         });
 
+        it('stage jobs are triggered in PR', async () => {
+            const pipeline = await pipelineFactoryMock.createFromFile('stage-pr.yaml');
+
+            pipeline.addPRJobs(1);
+
+            const event = await eventFactoryMock.create({
+                pipelineId: pipeline.id,
+                startFrom: '~pr',
+                pr: { ref: 'PR1' }
+            });
+
+            assert.equal(event.getBuildOf('PR-1:main').status, 'RUNNING');
+            assert.equal(event.getBuildOf('PR-1:stage@simple:setup').status, 'RUNNING');
+
+            await event.getBuildOf('PR-1:stage@simple:setup').complete('SUCCESS');
+
+            // Triggered child jobs of setup in same stage
+            assert.equal(event.getBuildOf('PR-1:a').status, 'RUNNING');
+            assert.equal(event.getBuildOf('PR-1:b').status, 'RUNNING');
+
+            // Job in outsiide is not triggered
+            assert.isNull(event.getBuildOf('PR-1:e'));
+
+            await event.getBuildOf('PR-1:a').complete('SUCCESS');
+
+            // Second jobs in the stage is not triggerd
+            assert.isNull(event.getBuildOf('PR-1:c'));
+
+            await event.getBuildOf('PR-1:b').complete('SUCCESS');
+
+            // teardown job is triggered
+            assert.equal(event.getBuildOf('PR-1:stage@simple:teardown').status, 'RUNNING');
+        });
+
+        it('stage teardown is triggered when some stage builds fail', async () => {
+            const pipeline = await pipelineFactoryMock.createFromFile('stage-pr.yaml');
+
+            pipeline.addPRJobs(1);
+
+            const event = await eventFactoryMock.create({
+                pipelineId: pipeline.id,
+                startFrom: '~pr',
+                pr: { ref: 'PR1' }
+            });
+
+            await event.getBuildOf('PR-1:stage@simple:setup').complete('SUCCESS');
+            await event.getBuildOf('PR-1:a').complete('SUCCESS');
+            await event.getBuildOf('PR-1:b').complete('FAILURE');
+
+            // teardown job is triggered
+            assert.equal(event.getBuildOf('PR-1:stage@simple:teardown').status, 'RUNNING');
+        });
+
+        it('stage jobs are triggered in PR when chainPR is enabled', async () => {
+            const pipeline = await pipelineFactoryMock.createFromFile('stage-pr.yaml');
+
+            pipeline.addPRJobs(1);
+            pipeline.chainPR = true;
+
+            const event = await eventFactoryMock.create({
+                pipelineId: pipeline.id,
+                startFrom: '~pr',
+                pr: { ref: 'PR1' }
+            });
+
+            assert.equal(event.getBuildOf('PR-1:main').status, 'RUNNING');
+            assert.equal(event.getBuildOf('PR-1:stage@simple:setup').status, 'RUNNING');
+
+            await event.getBuildOf('PR-1:stage@simple:setup').complete('SUCCESS');
+            assert.equal(event.getBuildOf('PR-1:a').status, 'RUNNING');
+            assert.equal(event.getBuildOf('PR-1:b').status, 'RUNNING');
+            assert.equal(event.getBuildOf('PR-1:e').status, 'RUNNING');
+
+            await event.getBuildOf('PR-1:a').complete('SUCCESS');
+            assert.equal(event.getBuildOf('PR-1:c').status, 'RUNNING');
+
+            await event.getBuildOf('PR-1:b').complete('SUCCESS');
+            await event.getBuildOf('PR-1:c').complete('SUCCESS');
+            assert.equal(event.getBuildOf('PR-1:stage@simple:teardown').status, 'SUCCESS');
+            assert.equal(event.getBuildOf('PR-1:f').status, 'RUNNING');
+        });
+
         it('stage teardown is triggered', async () => {
             const pipeline = await pipelineFactoryMock.createFromFile('stage-explicit-setup-teardown.yaml');
 
@@ -3279,7 +3361,7 @@ describe('trigger tests', () => {
             await event.getBuildOf('target1').complete('SUCCESS');
             await event.getBuildOf('target2').complete('SUCCESS');
 
-            assert.isNull(event.getBuildOf('stage@red:teardown'));
+            assert.equal(event.getBuildOf('stage@red:teardown').status, 'CREATED');
 
             await event.getBuildOf('target3').complete('SUCCESS');
 
@@ -3302,7 +3384,7 @@ describe('trigger tests', () => {
             await event.getBuildOf('target1').complete('SUCCESS');
             await event.getBuildOf('target2').complete('SUCCESS');
 
-            assert.isNull(event.getBuildOf('stage@red:teardown'));
+            assert.equal(event.getBuildOf('stage@red:teardown').status, 'CREATED');
 
             await event.getBuildOf('target3').complete('SUCCESS');
 

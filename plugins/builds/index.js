@@ -2,6 +2,7 @@
 
 const logger = require('screwdriver-logger');
 const workflowParser = require('screwdriver-workflow-parser');
+const { STAGE_TEARDOWN_PATTERN } = require('screwdriver-data-schema').config.regex;
 const hoek = require('@hapi/hoek');
 const getRoute = require('./get');
 const getBuildStatusesRoute = require('./getBuildStatuses');
@@ -39,7 +40,8 @@ const {
     getParallelBuilds,
     isStartFromMiddleOfCurrentStage,
     Status,
-    getSameParentEvents
+    getSameParentEvents,
+    getNextJobStageName
 } = require('./triggers/helpers');
 const { getFullStageJobName } = require('../helper');
 
@@ -99,7 +101,7 @@ async function triggerNextJobs(config, app) {
         const nextJob = await getJob(nextJobName, currentPipeline.id, jobFactory);
         const node = currentEvent.workflowGraph.nodes.find(n => n.name === trimJobName(nextJobName));
         const isNextJobVirtual = node.virtual || false;
-        const nextJobStageName = node.stageName || null;
+        const nextJobStageName = getNextJobStageName({ stageName: node.stageName, nextJobName });
         const resource = `pipeline:${currentPipeline.id}:groupEvent:${currentEvent.groupEventId}`;
         let lock;
         let nextBuild;
@@ -289,7 +291,7 @@ async function triggerNextJobs(config, app) {
                 const nextJob = await getJob(nextJobName, joinedPipelineId, jobFactory);
                 const node = externalEvent.workflowGraph.nodes.find(n => n.name === trimJobName(nextJobName));
                 const isNextJobVirtual = node.virtual || false;
-                const nextJobStageName = node.stageName || null;
+                const nextJobStageName = getNextJobStageName({ stageName: node.stageName, nextJobName });
 
                 const { parentBuilds } = parseJobInfo({
                     joinObj: joinedPipeline.jobs,
@@ -469,29 +471,33 @@ const buildsPlugin = {
 
                 for (const nextJobName of Object.keys(pipelineJoinData[pid].jobs)) {
                     try {
-                        const nextJob = pipelineJoinData[pid].jobs[nextJobName];
+                        const isNextJobStageTeardown = STAGE_TEARDOWN_PATTERN.test(nextJobName);
 
-                        buildConfig.jobId = nextJob.id;
-                        if (!isExternal) {
-                            buildConfig.eventId = event.id;
-                        } else {
-                            buildConfig.eventId = hoek.reach(pipelineJoinData[pid], 'event.id');
-                        }
+                        if (!isNextJobStageTeardown) {
+                            const nextJob = pipelineJoinData[pid].jobs[nextJobName];
 
-                        if (buildConfig.eventId) {
-                            if (current.stage) {
-                                const stageTeardownName = getFullStageJobName({
-                                    stageName: current.stage.name,
-                                    jobName: 'teardown'
-                                });
-
-                                // Do not remove stage teardown builds as they need to be executed on stage failure as well.
-                                if (nextJobName !== stageTeardownName) {
-                                    deletePromises.push(deleteBuild(buildConfig, buildFactory));
-                                }
+                            buildConfig.jobId = nextJob.id;
+                            if (!isExternal) {
+                                buildConfig.eventId = event.id;
+                            } else {
+                                buildConfig.eventId = hoek.reach(pipelineJoinData[pid], 'event.id');
                             }
 
-                            deletePromises.push(deleteBuild(buildConfig, buildFactory));
+                            if (buildConfig.eventId) {
+                                if (current.stage) {
+                                    const stageTeardownName = getFullStageJobName({
+                                        stageName: current.stage.name,
+                                        jobName: 'teardown'
+                                    });
+
+                                    // Do not remove stage teardown builds as they need to be executed on stage failure as well.
+                                    if (nextJobName !== stageTeardownName) {
+                                        deletePromises.push(deleteBuild(buildConfig, buildFactory));
+                                    }
+                                }
+
+                                deletePromises.push(deleteBuild(buildConfig, buildFactory));
+                            }
                         }
                     } catch (err) {
                         logger.error(

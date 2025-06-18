@@ -4,7 +4,7 @@ const logger = require('screwdriver-logger');
 const workflowParser = require('screwdriver-workflow-parser');
 const merge = require('lodash.mergewith');
 const schema = require('screwdriver-data-schema');
-const { EXTERNAL_TRIGGER_ALL, STAGE_SETUP_PATTERN } = schema.config.regex;
+const { EXTERNAL_TRIGGER_ALL, STAGE_SETUP_PATTERN, PR_JOB_NAME } = schema.config.regex;
 const { getFullStageJobName } = require('../../helper');
 const BUILD_STATUS_MESSAGES = {
     SKIP_VIRTUAL_JOB: {
@@ -374,26 +374,14 @@ async function createInternalBuild(config) {
 }
 
 /**
- * Return PR job or not
- * PR job name certainly has ":". e.g. "PR-1:jobName"
- * @param {String} jobName
- * @returns {Boolean}
- */
-function isPR(jobName) {
-    return jobName.startsWith('PR-');
-}
-
-/**
  * Trim Job name to follow data-schema
  * @param {String} jobName
  * @returns {String} trimmed jobName
  */
 function trimJobName(jobName) {
-    if (isPR(jobName)) {
-        return jobName.split(':')[1];
-    }
+    const matched = jobName.match(PR_JOB_NAME);
 
-    return jobName;
+    return matched ? matched[2] : jobName;
 }
 
 /**
@@ -1176,6 +1164,22 @@ function getStageName(workflowGraph, jobName) {
 }
 
 /**
+ * get the stage name of a next job (foo or PR-123:foo)
+ * @param  {String} nextJobName             Next jobob name
+ * @param  {String} stageName               Stage name (Not have PR-xxx)
+ * @return {String}                         Stage name
+ */
+function getNextJobStageName({ stageName, nextJobName }) {
+    if (!stageName) {
+        return null;
+    }
+
+    const matched = nextJobName.match(PR_JOB_NAME);
+
+    return matched ? `${matched[1]}:${stageName}` : stageName;
+}
+
+/**
  * Check if the current job is a stage setup and the next job is a non-setup job in the same stage
  * @param {String} currentJobName            Current job
  * @param {String} eventStartFrom            Event StartFrom job
@@ -1215,5 +1219,6 @@ module.exports = {
     trimJobName,
     isStartFromMiddleOfCurrentStage,
     hasFreezeWindows,
+    getNextJobStageName,
     BUILD_STATUS_MESSAGES
 };

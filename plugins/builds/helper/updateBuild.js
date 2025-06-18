@@ -3,8 +3,8 @@
 const boom = require('@hapi/boom');
 const hoek = require('@hapi/hoek');
 const merge = require('lodash.mergewith');
+const { PR_JOB_NAME, PR_STAGE_NAME, STAGE_TEARDOWN_PATTERN } = require('screwdriver-data-schema').config.regex;
 const { getFullStageJobName } = require('../../helper');
-const STAGE_TEARDOWN_PATTERN = /^stage@([\w-]+)(?::teardown)$/;
 const TERMINAL_STATUSES = ['FAILURE', 'ABORTED', 'UNSTABLE', 'COLLAPSED'];
 const FINISHED_STATUSES = ['FAILURE', 'SUCCESS', 'ABORTED', 'UNSTABLE', 'COLLAPSED'];
 
@@ -121,13 +121,18 @@ function updateBuildStatus(build, desiredStatus, statusMessage, statusMessageTyp
  * @return {Stage}                          Stage for node
  */
 async function getStage({ stageFactory, workflowGraph, jobName, pipelineId }) {
-    const currentNode = workflowGraph.nodes.find(node => node.name === jobName);
+    const prJobName = jobName.match(PR_JOB_NAME);
+    const nodeName = prJobName ? prJobName[2] : jobName;
+
+    const currentNode = workflowGraph.nodes.find(node => node.name === nodeName);
     let stage = null;
 
     if (currentNode && currentNode.stageName) {
+        const stageName = prJobName ? `${prJobName[1]}:${currentNode.stageName}` : currentNode.stageName;
+
         stage = await stageFactory.get({
             pipelineId,
-            name: currentNode.stageName
+            name: stageName
         });
     }
 
@@ -143,19 +148,24 @@ async function getStage({ stageFactory, workflowGraph, jobName, pipelineId }) {
  * @return {Promise<Build[]>}              Builds in stage
  */
 async function getStageJobBuilds({ stage, event, jobFactory }) {
+    const prStageName = stage.name.match(PR_STAGE_NAME);
+    const stageName = prStageName ? prStageName[2] : stage.name;
+
     // Get all jobIds for jobs in the stage
     const stageNodes = event.workflowGraph.nodes.filter(n => {
         const jobName = n.name.split(':')[1];
 
-        return n.stageName === stage.name && jobName !== 'teardown';
+        return n.stageName === stageName && jobName !== 'teardown';
     });
+
     const stageJobIds = await Promise.all(
         stageNodes.map(async n => {
             if (n.id) {
                 return n.id;
             }
 
-            const job = await jobFactory.get({ pipelineId: event.pipelineId, name: n.name });
+            const jobName = prStageName ? `${prStageName[1]}:${n.name}` : n.name;
+            const job = await jobFactory.get({ pipelineId: event.pipelineId, name: jobName });
 
             return job.id;
         })
@@ -333,6 +343,14 @@ async function updateBuildAndTriggerDownstreamJobs(config, build, server, userna
         }
 
         stageBuildHasFailure = TERMINAL_STATUSES.includes(stageBuild.status);
+
+        // Create a stage teardown build
+        if (!isStageTeardown) {
+            await createOrUpdateStageTeardownBuild(
+                { pipeline, job, build, username, scmContext, event, stage },
+                server.app
+            );
+        }
     }
 
     // Guard against triggering non-successful or unstable builds
@@ -341,13 +359,6 @@ async function updateBuildAndTriggerDownstreamJobs(config, build, server, userna
         // Check for failed jobs and remove any child jobs in created state
         if (newBuild.status === 'FAILURE') {
             await removeJoinBuilds({ pipeline, job, build: newBuild, event: newEvent, stage }, server.app);
-
-            if (stage && !isStageTeardown) {
-                await createOrUpdateStageTeardownBuild(
-                    { pipeline, job, build, username, scmContext, event, stage },
-                    server.app
-                );
-            }
         }
         // Do not continue downstream is current job is stage teardown and statusBuild has failure
     } else if (newBuild.status === 'SUCCESS' && isStageTeardown && stageBuildHasFailure) {
@@ -373,6 +384,7 @@ async function updateBuildAndTriggerDownstreamJobs(config, build, server, userna
                 stageTeardownBuild.status = 'QUEUED';
                 stageTeardownBuild.parentBuildId = stageJobBuilds.map(b => b.id);
 
+                // TODO: Handle if a teardown job is virtual
                 await stageTeardownBuild.update();
                 await stageTeardownBuild.start();
             }
