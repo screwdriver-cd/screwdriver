@@ -40,9 +40,7 @@ async function ensureStageExists({ table, pullRequestNumber }) {
             const result = await this.getStage(this.pipelineId, stageName, stageType);
             const stage = result.body.find(s => s.name === expectedStageName);
 
-            const expectedJobNames = jobNames && jobNames.trim() !== ''
-                ? jobNames.split(/\s*,\s*/)
-                : [];
+            const expectedJobNames = jobNames && jobNames.trim() !== '' ? jobNames.split(/\s*,\s*/) : [];
             const expectedJobIds = [];
 
             this.stageName = stage.name;
