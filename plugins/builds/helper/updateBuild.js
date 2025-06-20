@@ -5,6 +5,7 @@ const hoek = require('@hapi/hoek');
 const merge = require('lodash.mergewith');
 const { PR_JOB_NAME, PR_STAGE_NAME, STAGE_TEARDOWN_PATTERN } = require('screwdriver-data-schema').config.regex;
 const { getFullStageJobName } = require('../../helper');
+const { updateVirtualBuildSuccess } = require('../triggers/helpers');
 const TERMINAL_STATUSES = ['FAILURE', 'ABORTED', 'UNSTABLE', 'COLLAPSED'];
 const FINISHED_STATUSES = ['FAILURE', 'SUCCESS', 'ABORTED', 'UNSTABLE', 'COLLAPSED'];
 
@@ -381,12 +382,18 @@ async function updateBuildAndTriggerDownstreamJobs(config, build, server, userna
             const stageIsDone = isStageDone(stageJobBuilds);
 
             if (stageIsDone) {
-                stageTeardownBuild.status = 'QUEUED';
+                const teardownNode = newEvent.workflowGraph.nodes.find(n => n.id === stageTeardownJob.id);
+
                 stageTeardownBuild.parentBuildId = stageJobBuilds.map(b => b.id);
 
-                // TODO: Handle if a teardown job is virtual
-                await stageTeardownBuild.update();
-                await stageTeardownBuild.start();
+                if (teardownNode && teardownNode.virtual) {
+                    await updateVirtualBuildSuccess(stageTeardownBuild);
+                } else {
+                    stageTeardownBuild.status = 'QUEUED';
+
+                    await stageTeardownBuild.update();
+                    await stageTeardownBuild.start();
+                }
             }
         }
     }
