@@ -3296,7 +3296,7 @@ describe('trigger tests', () => {
             await event.getBuildOf('PR-1:b').complete('SUCCESS');
 
             // teardown job is triggered
-            assert.equal(event.getBuildOf('PR-1:stage@simple:teardown').status, 'RUNNING');
+            assert.equal(event.getBuildOf('PR-1:stage@simple:teardown').status, 'SUCCESS');
         });
 
         it('stage teardown is triggered when some stage builds fail', async () => {
@@ -3315,7 +3315,7 @@ describe('trigger tests', () => {
             await event.getBuildOf('PR-1:b').complete('FAILURE');
 
             // teardown job is triggered
-            assert.equal(event.getBuildOf('PR-1:stage@simple:teardown').status, 'RUNNING');
+            assert.equal(event.getBuildOf('PR-1:stage@simple:teardown').status, 'SUCCESS');
         });
 
         it('stage jobs are triggered in PR when chainPR is enabled', async () => {

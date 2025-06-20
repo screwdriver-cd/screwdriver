@@ -2,6 +2,7 @@
 
 /* eslint max-classes-per-file: off */
 
+const { PR_JOB_NAME } = require('screwdriver-data-schema').config.regex;
 const configParser = require('screwdriver-config-parser').parsePipelineYaml;
 const workflowParser = require('screwdriver-workflow-parser');
 const fs = require('fs');
@@ -568,6 +569,7 @@ class BuildFactoryMock {
             ...config,
             id: this.records.length,
             update: sinon.stub(),
+            initMeta: sinon.stub(),
             toJson: sinon.stub(),
             toJsonWithSteps: sinon.stub()
         };
@@ -806,12 +808,12 @@ class JobFactoryMock {
         this.records.push(job);
         job.toJson.returns({ ...job });
         job.parsePRJobName = type => {
-            if (!job.name.startsWith('PR-')) return null;
+            const match = job.name.match(PR_JOB_NAME);
 
-            const match = job.name.split(':');
+            if (!match) return null;
 
-            if (type === 'pr') return match[0];
-            if (type === 'job') return match[1];
+            if (type === 'pr') return match[1];
+            if (type === 'job') return match[2];
 
             return assert.fail(`Invalid argument: job.parsePRJobName(${type})`);
         };

@@ -1,7 +1,6 @@
 'use strict';
 
-const merge = require('lodash.mergewith');
-const { createInternalBuild, Status, BUILD_STATUS_MESSAGES, hasFreezeWindows } = require('./helpers');
+const { createInternalBuild, Status, updateVirtualBuildSuccess, hasFreezeWindows } = require('./helpers');
 
 /**
  * @typedef {import('screwdriver-models').BuildFactory} BuildFactory
@@ -60,14 +59,7 @@ class OrBase {
 
             // Bypass execution of the build if the job is virtual
             if (isNextJobVirtual && !hasWindows) {
-                nextBuild.status = Status.SUCCESS;
-                nextBuild.statusMessage = BUILD_STATUS_MESSAGES.SKIP_VIRTUAL_JOB.statusMessage;
-                nextBuild.statusMessageType = BUILD_STATUS_MESSAGES.SKIP_VIRTUAL_JOB.statusMessageType;
-
-                // Overwrite metadata by current build's
-                nextBuild.meta = merge({}, this.currentBuild.meta);
-
-                return nextBuild.update();
+                return updateVirtualBuildSuccess(nextBuild);
             }
 
             nextBuild.status = Status.QUEUED;
@@ -94,14 +86,7 @@ class OrBase {
 
         // Bypass execution of the build if the job is virtual
         if (isNextJobVirtual && !hasWindows) {
-            nextBuild.status = Status.SUCCESS;
-            nextBuild.statusMessage = BUILD_STATUS_MESSAGES.SKIP_VIRTUAL_JOB.statusMessage;
-            nextBuild.statusMessageType = BUILD_STATUS_MESSAGES.SKIP_VIRTUAL_JOB.statusMessageType;
-
-            // Overwrite metadata by current build's
-            nextBuild.meta = merge({}, this.currentBuild.meta);
-
-            await nextBuild.update();
+            await updateVirtualBuildSuccess(nextBuild);
         }
 
         return nextBuild;
