@@ -86,7 +86,7 @@ class OrBase {
 
         // Bypass execution of the build if the job is virtual
         if (isNextJobVirtual && !hasWindows) {
-            return updateVirtualBuildSuccess(nextBuild);
+            await updateVirtualBuildSuccess(nextBuild);
         }
 
         return nextBuild;
