@@ -607,6 +607,21 @@ async function getParentBuildStatus({ joinListNames, joinBuilds }) {
 }
 
 /**
+ * Update virtual build status to SUCCESS and init metadata
+ * @param {Build} build
+ * @returns {Promise<Build>}
+ */
+async function updateVirtualBuildSuccess(build) {
+    build.status = Status.SUCCESS;
+    build.statusMessage = BUILD_STATUS_MESSAGES.SKIP_VIRTUAL_JOB.statusMessage;
+    build.statusMessageType = BUILD_STATUS_MESSAGES.SKIP_VIRTUAL_JOB.statusMessageType;
+
+    await build.initMeta();
+
+    return build.update();
+}
+
+/**
  * Handle new build logic: update, start, or remove
  * If the build is done, check if it has a failure:
  *          if failure, delete new build
@@ -668,27 +683,11 @@ async function handleNewBuild({
     /* Prepare to execute the build */
     const parentBuilds = Object.values(joinBuilds);
 
-    parentBuilds.sort((l, r) => {
-        if (l.endTime && r.endTime) {
-            return l.endTime.getTime() - r.endTime.getTime();
-        }
-
-        // Move to tail if endTime is not set
-        return (l.endTime ? 0 : 1) - (r.endTime ? 0 : 1);
-    });
     newBuild.parentBuildId = parentBuilds.map(build => build.id);
 
     // Bypass execution of the build if the job is virtual
     if (isVirtualJob && !hasFreezeWindows(job)) {
-        newBuild.status = Status.SUCCESS;
-        newBuild.statusMessage = BUILD_STATUS_MESSAGES.SKIP_VIRTUAL_JOB.statusMessage;
-        newBuild.statusMessageType = BUILD_STATUS_MESSAGES.SKIP_VIRTUAL_JOB.statusMessageType;
-
-        // The virtual job does not inherit metadata because the Launcher is not executed.
-        // Therefore, it is necessary to take over the metadata from the previous build.
-        newBuild.meta = parentBuilds.reduce((acc, build) => merge(acc, build.meta), {});
-
-        return newBuild.update();
+        return updateVirtualBuildSuccess(newBuild);
     }
 
     // All join builds finished successfully, and it's clear that a new build has not been started before.
@@ -1220,5 +1219,6 @@ module.exports = {
     isStartFromMiddleOfCurrentStage,
     hasFreezeWindows,
     getNextJobStageName,
+    updateVirtualBuildSuccess,
     BUILD_STATUS_MESSAGES
 };
