@@ -384,11 +384,12 @@ async function updateBuildAndTriggerDownstreamJobs(config, build, server, userna
             if (stageIsDone) {
                 const teardownNode = newEvent.workflowGraph.nodes.find(n => n.id === stageTeardownJob.id);
 
+                stageTeardownBuild.parentBuildId = stageJobBuilds.map(b => b.id);
+
                 if (teardownNode && teardownNode.virtual) {
                     await updateVirtualBuildSuccess(stageTeardownBuild);
                 } else {
                     stageTeardownBuild.status = 'QUEUED';
-                    stageTeardownBuild.parentBuildId = stageJobBuilds.map(b => b.id);
 
                     await stageTeardownBuild.update();
                     await stageTeardownBuild.start();
