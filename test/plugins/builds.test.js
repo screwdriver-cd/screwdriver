@@ -2725,6 +2725,7 @@ describe('build plugin test', () => {
                         status: 'CREATED',
                         endTime: '',
                         meta: {},
+                        initMeta: sinon.stub(),
                         update: sinon.stub()
                     };
                     const buildE = {
@@ -2746,6 +2747,7 @@ describe('build plugin test', () => {
                         endTime: '',
                         parentBuildId: buildD.id,
                         meta: {},
+                        initMeta: sinon.stub(),
                         update: sinon.stub()
                     };
 
@@ -2801,14 +2803,8 @@ describe('build plugin test', () => {
                         assert.equal(buildD.status, 'SUCCESS');
                         assert.equal(buildD.statusMessage, 'Skipped execution of the virtual job');
                         assert.equal(buildD.statusMessageType, 'INFO');
-                        assert.deepEqual(buildD.parentBuildId, [buildC.id, buildA.id, buildB.id]);
-                        assert.deepEqual(buildD.meta, {
-                            jobA: 'test',
-                            jobB: 'test',
-                            jobC: 'test',
-                            acKey: 'job-a',
-                            allKey: 'job-b'
-                        });
+                        assert.sameMembers(buildD.parentBuildId, [buildC.id, buildA.id, buildB.id]);
+                        assert.calledOnce(buildD.initMeta);
 
                         // Virtual job triggers its downstream jobs
                         assert.calledWith(buildFactoryMock.create.firstCall, jobEConfig);
@@ -2819,13 +2815,7 @@ describe('build plugin test', () => {
                         assert.equal(buildF.statusMessage, 'Skipped execution of the virtual job');
                         assert.equal(buildF.statusMessageType, 'INFO');
                         assert.deepEqual(buildF.parentBuildId, buildD.id);
-                        assert.deepEqual(buildF.meta, {
-                            jobA: 'test',
-                            jobB: 'test',
-                            jobC: 'test',
-                            acKey: 'job-a',
-                            allKey: 'job-b'
-                        });
+                        assert.calledOnce(buildF.initMeta);
                     });
                 });
 

@@ -1134,6 +1134,7 @@ describe('handleNewBuild function', () => {
             status: Status.CREATED,
             eventId: 456,
             parentBuilds: { 123: { jobs: { a: 1 } } },
+            initMeta: sinon.stub().resolves(),
             update: sinon.stub().resolves(),
             start: sinon.stub().resolvesThis(),
             remove: sinon.stub().resolves()
