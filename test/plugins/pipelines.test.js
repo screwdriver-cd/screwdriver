@@ -1219,6 +1219,38 @@ describe('pipeline plugin test', () => {
             });
         });
 
+        it('returns 200 and all PR stages with matched name', () => {
+            options.url = `/pipelines/${id}/stages?page=1&count=3&name=deploy&type=pr`;
+            const testPRStages = testStages.map(stage => {
+                stage.name = `PR-1:${stage.name}`;
+
+                return stage;
+            });
+            const prStageMocks = getStagesMocks(testPRStages);
+
+            stageFactoryMock.list.resolves(prStageMocks);
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 200);
+                assert.deepEqual(reply.result, testPRStages);
+                assert.calledWith(stageFactoryMock.list, {
+                    search: {
+                        field: 'name',
+                        keyword: 'PR-%:%'
+                    },
+                    params: {
+                        pipelineId: 123,
+                        name: 'deploy'
+                    },
+                    paginate: {
+                        page: 1,
+                        count: 3
+                    },
+                    sort: 'descending'
+                });
+            });
+        });
+
         it('returns 400 for passing in string as pipeline ID', () => {
             const stringId = 'test';
 

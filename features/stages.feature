@@ -156,3 +156,63 @@ Feature: Stage
         And the "target" build succeeded
         And the "join-target" job is triggered
         And the "join-target" build succeeded
+
+    Scenario: Stage setup, child jobs of setup and teardown are triggered in PR workflow
+        Given an existing pipeline on branch "prStage" with the workflow jobs:
+            | job       | requires      |
+            | main      | ~pr  |
+            | c         | a    |
+            | d         | main    |
+            | stage@simple:setup | ~pr |
+            | e         | stage@simple:setup    |
+            | f         | stage@simple:teardown |
+        And the pipeline has the following stages:
+            | stage     | jobs           |
+            | simple | a, b, c |
+        When a pull request is opened to "prStage" branch
+        Then the "main" PR job is triggered
+        And the "main" PR build succeeded
+        And the "d" PR job is not triggered
+        And the "stage@simple:setup" PR job is triggered
+        And the "stage@simple:setup" PR build succeeded
+        And the "a" PR build succeeded
+        And the "b" PR build succeeded
+        And the "c" PR job is not triggered
+        And the "e" PR job is not triggered
+        And the "stage@simple:teardown" PR job is triggered
+        And the "stage@simple:teardown" PR build succeeded
+        When the pipeline has the following PR stages:
+            | stage     |
+            | simple    |
+        Then the "stage@simple" stageBuild status is "SUCCESS"
+        And the "f" PR job is not triggered
+
+    Scenario: All stage jobs are triggered in chained PR workflow
+        Given an existing pipeline on branch "chainPRStage" with the workflow jobs:
+            | job       | requires      |
+            | main      | ~pr  |
+            | c         | a    |
+            | d         | main    |
+            | stage@simple:setup | ~pr |
+            | e         | stage@simple:setup    |
+            | f         | stage@simple:teardown |
+        And the pipeline has the following stages:
+            | stage     | jobs           |
+            | simple | a, b, c |
+        When a pull request is opened to "chainPRStage" branch
+        Then the "main" PR job is triggered
+        And the "main" PR build succeeded
+        And the "d" PR build succeeded
+        And the "stage@simple:setup" PR job is triggered
+        And the "stage@simple:setup" PR build succeeded
+        And the "a" PR build succeeded
+        And the "b" PR build succeeded
+        And the "c" PR build succeeded
+        And the "e" PR build succeeded
+        And the "stage@simple:teardown" PR job is triggered
+        And the "stage@simple:teardown" PR build succeeded
+        When the pipeline has the following PR stages:
+            | stage     |
+            | simple    |
+        Then the "stage@simple" stageBuild status is "SUCCESS"
+        And the "f" PR build succeeded

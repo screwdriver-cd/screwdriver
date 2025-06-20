@@ -51,3 +51,16 @@ Then(
         });
     }
 );
+
+Given(
+    /^the pipeline has the following PR stages:$/,
+    {
+        timeout: TIMEOUT
+    },
+    async function step(table) {
+        await this.ensureStageExists({
+            table,
+            pullRequestNumber: this.pullRequestNumber
+        });
+    }
+);

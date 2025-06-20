@@ -25,20 +25,26 @@ function promiseToWait(timeToWait) {
  * Ensure a stage exists with its jobs
  * @param  {Object}    config
  * @param  {Object}    config.table                Table with stage and jobs data
+ * @param  {String}    config.pullRequestNumber    Pull request number
  * @return {Promise}
  */
-async function ensureStageExists({ table }) {
+async function ensureStageExists({ table, pullRequestNumber }) {
     if (table && this.pipelineId) {
         const expectedStages = table.hashes();
 
         for (let i = 0; i < expectedStages.length; i += 1) {
-            const stage = await this.getStage(this.pipelineId, expectedStages[i].stage);
-            const expectedJobNames =
-                expectedStages[i].jobs.trim() !== '' ? expectedStages[i].jobs.split(/\s*,\s*/) : expectedStages[i].jobs;
+            const { stage: stageName, jobs: jobNames } = expectedStages[i];
+
+            const expectedStageName = pullRequestNumber ? `PR-${pullRequestNumber}:${stageName}` : stageName;
+            const stageType = pullRequestNumber ? 'pr' : '';
+            const result = await this.getStage(this.pipelineId, stageName, stageType);
+            const stage = result.body.find(s => s.name === expectedStageName);
+
+            const expectedJobNames = jobNames && jobNames.trim() !== '' ? jobNames.split(/\s*,\s*/) : [];
             const expectedJobIds = [];
 
-            this.stageName = stage.body[0].name;
-            this.stageId = stage.body[0].id;
+            this.stageName = stage.name;
+            this.stageId = stage.id;
 
             // Map expected stage job names to jobIds
             expectedJobNames.forEach(jobName => {
@@ -47,7 +53,7 @@ async function ensureStageExists({ table }) {
                 expectedJobIds.push(job.id);
             });
             // Check if each jobId exists in stage jobIds
-            const stageExists = expectedJobIds.every(id => stage.body[0].jobIds.includes(id));
+            const stageExists = expectedJobIds.every(id => stage.jobIds.includes(id));
 
             Assert.ok(stageExists, 'Given jobs do not exist in stage');
         }
@@ -341,9 +347,9 @@ function CustomWorld({ attach, parameters }) {
                 token: this.jwt
             }
         });
-    this.getStage = (pipelineId, stageName) =>
+    this.getStage = (pipelineId, stageName, type) =>
         request({
-            url: `${this.instance}/${this.namespace}/pipelines/${pipelineId}/stages?name=${stageName}`,
+            url: `${this.instance}/${this.namespace}/pipelines/${pipelineId}/stages?name=${stageName}&type=${type}`,
             method: 'GET',
             context: {
                 token: this.jwt
