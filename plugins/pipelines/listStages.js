@@ -6,6 +6,7 @@ const schema = require('screwdriver-data-schema');
 const pipelineIdSchema = schema.models.pipeline.base.extract('id');
 const nameSchema = schema.models.stage.base.extract('name');
 const stageListSchema = schema.models.stage.list;
+const STAGE_PR_PATTERN = `PR-%:%`;
 
 module.exports = () => ({
     method: 'GET',
@@ -21,7 +22,7 @@ module.exports = () => ({
 
         handler: async (request, h) => {
             const { pipelineFactory, stageFactory } = request.server.app;
-            const { name, sort, sortBy, page, count } = request.query;
+            const { name, sort, sortBy, page, count, type } = request.query;
             const pipelineId = request.params.id;
 
             return pipelineFactory
@@ -35,6 +36,15 @@ module.exports = () => ({
                         params: { pipelineId },
                         sort
                     };
+
+                    if (type === 'pr') {
+                        config.search = {
+                            field: 'name',
+                            // Do a search for PR-%:% in stage name
+                            // See https://www.w3schools.com/sql/sql_like.asp for syntax
+                            keyword: STAGE_PR_PATTERN
+                        };
+                    }
 
                     if (name) {
                         config.params = {
@@ -74,6 +84,7 @@ module.exports = () => ({
             query: schema.api.pagination.concat(
                 joi.object({
                     name: nameSchema,
+                    type: joi.string().valid('', 'pr').label('Stage type filter (pr)').optional(),
                     search: joi.forbidden() // we don't support search for Pipeline list stages
                 })
             )
