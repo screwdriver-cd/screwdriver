@@ -344,14 +344,6 @@ async function updateBuildAndTriggerDownstreamJobs(config, build, server, userna
         }
 
         stageBuildHasFailure = TERMINAL_STATUSES.includes(stageBuild.status);
-
-        // Create a stage teardown build
-        if (!isStageTeardown) {
-            await createOrUpdateStageTeardownBuild(
-                { pipeline, job, build, username, scmContext, event, stage },
-                server.app
-            );
-        }
     }
 
     // Guard against triggering non-successful or unstable builds
@@ -374,10 +366,18 @@ async function updateBuildAndTriggerDownstreamJobs(config, build, server, userna
     if (stage && FINISHED_STATUSES.includes(newBuild.status)) {
         const stageTeardownName = getFullStageJobName({ stageName: stage.name, jobName: 'teardown' });
         const stageTeardownJob = await jobFactory.get({ pipelineId: pipeline.id, name: stageTeardownName });
-        const stageTeardownBuild = await buildFactory.get({ eventId: newEvent.id, jobId: stageTeardownJob.id });
+        let stageTeardownBuild = await buildFactory.get({ eventId: newEvent.id, jobId: stageTeardownJob.id });
+
+        // Create a stage teardown build
+        if (!stageTeardownBuild) {
+            stageTeardownBuild = await createOrUpdateStageTeardownBuild(
+                { pipeline, job, build, username, scmContext, event, stage },
+                server.app
+            );
+        }
 
         // Start stage teardown build if stage is done
-        if (stageTeardownBuild && stageTeardownBuild.status === 'CREATED') {
+        if (stageTeardownBuild.status === 'CREATED') {
             const stageJobBuilds = await getStageJobBuilds({ stage, event: newEvent, jobFactory });
             const stageIsDone = isStageDone(stageJobBuilds);
 
