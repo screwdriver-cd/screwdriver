@@ -3,7 +3,7 @@
 const boom = require('@hapi/boom');
 const hoek = require('@hapi/hoek');
 const merge = require('lodash.mergewith');
-const { PR_JOB_NAME, PR_STAGE_NAME, STAGE_TEARDOWN_PATTERN } = require('screwdriver-data-schema').config.regex;
+const { PR_JOB_NAME, PR_STAGE_NAME, STAGE_TEARDOWN_PATTERN, STAGE_SETUP_PATTERN } = require('screwdriver-data-schema').config.regex;
 const { getFullStageJobName } = require('../../helper');
 const { updateVirtualBuildSuccess } = require('../triggers/helpers');
 const TERMINAL_STATUSES = ['FAILURE', 'ABORTED', 'UNSTABLE', 'COLLAPSED'];
@@ -327,6 +327,7 @@ async function updateBuildAndTriggerDownstreamJobs(config, build, server, userna
         jobName: job.name,
         pipelineId: pipeline.id
     });
+    const isStageSetup = STAGE_SETUP_PATTERN.test(job.name);
     const isStageTeardown = STAGE_TEARDOWN_PATTERN.test(job.name);
     let stageBuildHasFailure = false;
 
@@ -346,7 +347,7 @@ async function updateBuildAndTriggerDownstreamJobs(config, build, server, userna
         stageBuildHasFailure = TERMINAL_STATUSES.includes(stageBuild.status);
 
         // Create a stage teardown build
-        if (!isStageTeardown) {
+        if (!isStageSetup) {
             await createOrUpdateStageTeardownBuild(
                 { pipeline, job, build, username, scmContext, event, stage },
                 server.app
