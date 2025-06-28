@@ -370,7 +370,7 @@ async function updateBuildAndTriggerDownstreamJobs(config, build, server, userna
 
         // Create a stage teardown build
         if (!stageTeardownBuild) {
-            await createOrUpdateStageTeardownBuild(
+            stageTeardownBuild = await createOrUpdateStageTeardownBuild(
                 { pipeline, job, build, username, scmContext, event, stage },
                 server.app
             );
