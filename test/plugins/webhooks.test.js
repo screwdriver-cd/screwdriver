@@ -28,7 +28,8 @@ describe('webhooks plugin test', () => {
         buildFactoryMock = sinon.stub();
         pipelineFactoryMock = {
             scm: {
-                parseHook: sinon.stub()
+                parseHook: sinon.stub(),
+                getScmContexts: sinon.stub()
             }
         };
         userFactoryMock = sinon.stub();
@@ -68,10 +69,13 @@ describe('webhooks plugin test', () => {
         await server.register({
             plugin,
             options: {
-                username: 'sd-buildbot',
-                ignoreCommitsBy: ['batman', 'superman'],
-                restrictPR: 'fork',
-                chainPR: false
+                'github:github.com': {
+                    username: 'sd-buildbot',
+                    ignoreCommitsBy: ['batman', 'superman'],
+                    restrictPR: 'fork',
+                    chainPR: false,
+                    maxBytes: 10
+                }
             }
         });
         server.app.buildFactory.apiUri = apiUri;
@@ -151,6 +155,7 @@ describe('webhooks plugin test', () => {
                 payload: {},
                 auth: { credentials: {}, strategy: 'token' }
             };
+            pipelineFactoryMock.scm.getScmContexts.returns(['github:github.com', 'github:mygithub.com']);
         });
 
         it('returns 204 for unsupported event type', () => {
@@ -171,7 +176,7 @@ describe('webhooks plugin test', () => {
         });
 
         it('calls startHookEvent when queueWebhookEnabled is false', () => {
-            pipelineFactoryMock.scm.parseHook.withArgs(reqHeaders, {}).resolves(parsed);
+            pipelineFactoryMock.scm.parseHook.resolves(parsed);
             startHookEventMock.resolves(null);
 
             return server.inject(options).then(() => {
@@ -182,7 +187,7 @@ describe('webhooks plugin test', () => {
         });
 
         it('calls enqueueWebhook with webhookConfig when queueWebhookEnabled is true', () => {
-            pipelineFactoryMock.scm.parseHook.withArgs(reqHeaders, {}).resolves(parsed);
+            pipelineFactoryMock.scm.parseHook.resolves(parsed);
             queueWebhookMock.queueWebhookEnabled = true;
             queueWebhookMock.executor.enqueueWebhook.resolves(null);
 
@@ -197,7 +202,7 @@ describe('webhooks plugin test', () => {
         });
 
         it('calls startHookEvent when executor.enqueueWebhook is not implemented', () => {
-            pipelineFactoryMock.scm.parseHook.withArgs(reqHeaders, {}).resolves(parsed);
+            pipelineFactoryMock.scm.parseHook.resolves(parsed);
             startHookEventMock.resolves(null);
 
             const err = new Error('Not implemented');
@@ -240,6 +245,71 @@ describe('webhooks plugin test', () => {
 
             return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 422);
+            });
+        });
+
+        it('selects the correct username from webhook settings config', () => {
+            const webhookConfig = {
+                username: 'sd-buildbot',
+                ignoreCommitsBy: ['batman', 'superman'],
+                restrictPR: 'fork',
+                chainPR: false,
+                maxBytes: 10
+            };
+
+            pipelineFactoryMock.scm.parseHook.resolves(parsed);
+            startHookEventMock.resolves(null);
+
+            return server.inject(options).then(() => {
+                assert.calledOnce(pipelineFactoryMock.scm.parseHook);
+                assert.calledWith(startHookEventMock, sinon.match.any, sinon.match.any, {
+                    ...parsed,
+                    pluginOptions: webhookConfig
+                });
+                assert.notCalled(queueWebhookMock.executor.enqueueWebhook);
+            });
+        });
+
+        it('returns 413 when payload size exceeds the maximum limit', () => {
+            pipelineFactoryMock.scm.parseHook.resolves(parsed);
+            options.payload = Buffer.alloc(20);
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 413);
+                assert.include(reply.result.message, 'Payload size exceeds the maximum limit');
+            });
+        });
+
+        it('returns 500 when webhook settings not found for scm context', () => {
+            pipelineFactoryMock.scm.getScmContexts.returns(['github:unknown.com']);
+            pipelineFactoryMock.scm.parseHook.resolves(parsed);
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 500);
+            });
+        });
+
+        it('selects the correct username from webhook settings when queueWebhookEnabled is true', () => {
+            const webhookConfig = {
+                username: 'sd-buildbot',
+                ignoreCommitsBy: ['batman', 'superman'],
+                restrictPR: 'fork',
+                chainPR: false,
+                maxBytes: 10
+            };
+
+            pipelineFactoryMock.scm.parseHook.resolves(parsed);
+            queueWebhookMock.queueWebhookEnabled = true;
+            queueWebhookMock.executor.enqueueWebhook.resolves(null);
+
+            return server.inject(options).then(() => {
+                assert.calledOnce(pipelineFactoryMock.scm.parseHook);
+                assert.calledWith(queueWebhookMock.executor.enqueueWebhook, {
+                    ...parsed,
+                    pluginOptions: webhookConfig,
+                    token: 'iamtoken'
+                });
+                assert.notCalled(startHookEventMock);
             });
         });
     });
