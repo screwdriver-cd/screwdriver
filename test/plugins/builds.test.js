@@ -2046,6 +2046,8 @@ describe('build plugin test', () => {
                         update: sinon.stub().resolves(),
                         status: 'FAILURE'
                     };
+
+                    // Update stage teardown build's status to SUCCESS
                     const status = 'SUCCESS';
                     const options = {
                         method: 'PUT',
@@ -2097,15 +2099,9 @@ describe('build plugin test', () => {
                     eventFactoryMock.get.resolves(eventMock);
                     stageFactoryMock.get.resolves(stageMock);
                     stageBuildFactoryMock.get.resolves(stageBuildMock);
-                    testBuild.status = 'CREATED';
-                    buildMock = getBuildMock(testBuild);
-                    buildFactoryMock.get.withArgs({ eventId: '8888', jobId: 1234 }).resolves(buildMock);
 
                     return server.inject(options).then(reply => {
                         assert.equal(reply.statusCode, 200);
-                        const { params } = eventMock.getBuilds.getCall(0).args[0];
-
-                        assert.sameMembers(params.jobId, [stageMock.setup, ...stageMock.jobIds]);
                         assert.notCalled(buildFactoryMock.create);
                         assert.notCalled(stageBuildFactoryMock.create);
                     });

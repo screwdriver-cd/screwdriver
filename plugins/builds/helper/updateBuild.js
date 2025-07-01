@@ -363,7 +363,7 @@ async function updateBuildAndTriggerDownstreamJobs(config, build, server, userna
     // Determine if stage teardown build should start
     // (if stage teardown build exists, and stageBuild.status is negative,
     // and there are no active stage builds, and teardown build is not started)
-    if (stage && FINISHED_STATUSES.includes(newBuild.status)) {
+    if (stage && FINISHED_STATUSES.includes(newBuild.status) && !isStageTeardown) {
         const stageTeardownName = getFullStageJobName({ stageName: stage.name, jobName: 'teardown' });
         const stageTeardownJob = await jobFactory.get({ pipelineId: pipeline.id, name: stageTeardownName });
         let stageTeardownBuild = await buildFactory.get({ eventId: newEvent.id, jobId: stageTeardownJob.id });
