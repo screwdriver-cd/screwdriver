@@ -368,21 +368,19 @@ async function updateBuildAndTriggerDownstreamJobs(config, build, server, userna
         const stageTeardownJob = await jobFactory.get({ pipelineId: pipeline.id, name: stageTeardownName });
         let stageTeardownBuild = await buildFactory.get({ eventId: newEvent.id, jobId: stageTeardownJob.id });
 
-        // Create a stage teardown build
-        if (!stageTeardownBuild) {
-            stageTeardownBuild = await createOrUpdateStageTeardownBuild(
-                { pipeline, job, build, username, scmContext, event, stage },
-                server.app
-            );
-        }
-
         // Start stage teardown build if stage is done
-        if (stageTeardownBuild.status === 'CREATED') {
+        if (!stageTeardownBuild || stageTeardownBuild.status === 'CREATED') {
             const stageJobBuilds = await getStageJobBuilds({ stage, event: newEvent, jobFactory });
             const stageIsDone = isStageDone(stageJobBuilds);
 
             if (stageIsDone) {
                 const teardownNode = newEvent.workflowGraph.nodes.find(n => n.id === stageTeardownJob.id);
+
+                // Update teardown build
+                stageTeardownBuild = await createOrUpdateStageTeardownBuild(
+                    { pipeline, job, build, username, scmContext, event, stage },
+                    server.app
+                );
 
                 stageTeardownBuild.parentBuildId = stageJobBuilds.map(b => b.id);
 

@@ -41,7 +41,8 @@ const decorateBuildObject = build => {
                 3: { eventId: 456, jobs: { a: 12345, b: 2345 } }
             },
             start: sinon.stub().resolves({})
-        })
+        }),
+        start: sinon.stub().resolves()
     };
 
     decorated.update = sinon.stub().resolves(updatedBuild);
@@ -2212,6 +2213,8 @@ describe('build plugin test', () => {
                         start: sinon.stub().resolves(),
                         update: sinon.stub().resolves()
                     };
+
+                    stageTeardownBuildMock.update.resolves(stageTeardownBuildMock);
 
                     jobMock = {
                         id: 1234,
@@ -5766,12 +5769,8 @@ describe('build plugin test', () => {
                         start: sinon.stub().resolves(null)
                     });
 
-                    buildFactoryMock.get.withArgs({ jobId: 55, eventId: '8888' }).onCall(0).resolves(null);
+                    buildFactoryMock.get.withArgs({ jobId: 55, eventId: '8888' }).resolves(null);
                     buildFactoryMock.create.onCall(0).resolves(buildAlphaTeardown);
-                    buildFactoryMock.get
-                        .withArgs({ jobId: 55, eventId: '8888' })
-                        .onCall(1)
-                        .resolves(buildAlphaTeardown);
                     buildAlphaTeardown.update.resolves(buildAlphaTeardown);
 
                     eventMock.getBuilds.resolves([
