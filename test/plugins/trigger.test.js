@@ -3361,7 +3361,7 @@ describe('trigger tests', () => {
             await event.getBuildOf('target1').complete('SUCCESS');
             await event.getBuildOf('target2').complete('SUCCESS');
 
-            assert.equal(event.getBuildOf('stage@red:teardown').status, 'CREATED');
+            assert.isNull(event.getBuildOf('stage@red:teardown'));
 
             await event.getBuildOf('target3').complete('SUCCESS');
 
@@ -3384,7 +3384,7 @@ describe('trigger tests', () => {
             await event.getBuildOf('target1').complete('SUCCESS');
             await event.getBuildOf('target2').complete('SUCCESS');
 
-            assert.equal(event.getBuildOf('stage@red:teardown').status, 'CREATED');
+            assert.isNull(event.getBuildOf('stage@red:teardown'));
 
             await event.getBuildOf('target3').complete('SUCCESS');
 

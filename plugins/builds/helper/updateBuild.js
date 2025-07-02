@@ -344,14 +344,6 @@ async function updateBuildAndTriggerDownstreamJobs(config, build, server, userna
         }
 
         stageBuildHasFailure = TERMINAL_STATUSES.includes(stageBuild.status);
-
-        // Create a stage teardown build
-        if (!isStageTeardown) {
-            await createOrUpdateStageTeardownBuild(
-                { pipeline, job, build, username, scmContext, event, stage },
-                server.app
-            );
-        }
     }
 
     // Guard against triggering non-successful or unstable builds
@@ -371,18 +363,24 @@ async function updateBuildAndTriggerDownstreamJobs(config, build, server, userna
     // Determine if stage teardown build should start
     // (if stage teardown build exists, and stageBuild.status is negative,
     // and there are no active stage builds, and teardown build is not started)
-    if (stage && FINISHED_STATUSES.includes(newBuild.status)) {
+    if (stage && FINISHED_STATUSES.includes(newBuild.status) && !isStageTeardown) {
         const stageTeardownName = getFullStageJobName({ stageName: stage.name, jobName: 'teardown' });
         const stageTeardownJob = await jobFactory.get({ pipelineId: pipeline.id, name: stageTeardownName });
-        const stageTeardownBuild = await buildFactory.get({ eventId: newEvent.id, jobId: stageTeardownJob.id });
+        let stageTeardownBuild = await buildFactory.get({ eventId: newEvent.id, jobId: stageTeardownJob.id });
 
         // Start stage teardown build if stage is done
-        if (stageTeardownBuild && stageTeardownBuild.status === 'CREATED') {
+        if (!stageTeardownBuild || stageTeardownBuild.status === 'CREATED') {
             const stageJobBuilds = await getStageJobBuilds({ stage, event: newEvent, jobFactory });
             const stageIsDone = isStageDone(stageJobBuilds);
 
             if (stageIsDone) {
                 const teardownNode = newEvent.workflowGraph.nodes.find(n => n.id === stageTeardownJob.id);
+
+                // Update teardown build
+                stageTeardownBuild = await createOrUpdateStageTeardownBuild(
+                    { pipeline, job, build, username, scmContext, event, stage },
+                    server.app
+                );
 
                 stageTeardownBuild.parentBuildId = stageJobBuilds.map(b => b.id);
 

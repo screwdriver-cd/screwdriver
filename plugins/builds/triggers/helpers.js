@@ -1003,7 +1003,7 @@ async function ensureStageTeardownBuildExists({
 
     // Doesn't exist, create stage teardown job
     if (!existingStageTeardownBuild) {
-        await createInternalBuild({
+        return createInternalBuild({
             jobFactory,
             buildFactory,
             pipelineId: current.pipeline.id,
@@ -1016,13 +1016,13 @@ async function ensureStageTeardownBuildExists({
             baseBranch: current.event.baseBranch || null,
             start: false
         });
-    } else {
-        await updateParentBuilds({
-            joinParentBuilds: parentBuilds,
-            nextBuild: existingStageTeardownBuild,
-            build: current.build
-        });
     }
+
+    return updateParentBuilds({
+        joinParentBuilds: parentBuilds,
+        nextBuild: existingStageTeardownBuild,
+        build: current.build
+    });
 }
 
 /**
