@@ -361,18 +361,32 @@ scms:
   #         # SCM clone type (https or ssh)
   #         cloneType: SCM_GITLAB_RO_CLONE_TYPE
 webhooks:
-  # Obtains the SCM token for a given user. If a user does not have a valid SCM token registered with Screwdriver, it will use this user's token instead.
-  username: SCM_USERNAME
-  # Ignore commits made by these users
-  ignoreCommitsBy:
-    __name: IGNORE_COMMITS_BY
-    __format: json
-  # Restrict PR: all, none, branch, or fork
-  restrictPR: RESTRICT_PR
-  # Chain PR: true or false
-  chainPR: CHAIN_PR
-  # Upper limit on incoming uploads to builds
-  maxBytes: WEBHOOK_MAX_BYTES
+  # Object keyed by scm name with value webhook settings.
+  # Value of webhook settings is an object with the following properties:
+  # Example:
+  # {
+  #  "github": {
+  #   # Obtains the SCM token for a given user. If a user does not have a valid SCM token registered with Screwdriver, it will use this user's token instead.
+  #   "username": "sd-buildbot",
+  #   # Ignore commits made by these users
+  #   "ignoreCommitsBy": [],
+  #   # Restrict PR: all, none, branch, or fork
+  #   "restrictPR": "none",
+  #   # Chain PR: true or false
+  #   "chainPR": false,
+  #   # Upper limit on incoming uploads to builds
+  #   "maxBytes": 1048576 #1MB
+  #   },
+  #  "github.example.com": {
+  #     "username": "someuser",
+  #     "ignoreCommitsBy": ["someuser", "anotheruser"],
+  #     "restrictPR": "branch",
+  #     "chainPR": true,
+  #     "maxBytes": 2097152 #2MB
+  #   }
+  # }
+  __name: WEBHOOK_SETTINGS
+  __format: json
 
 bookends:
   # Object keyed by cluster name with value setup/teardown bookend.
