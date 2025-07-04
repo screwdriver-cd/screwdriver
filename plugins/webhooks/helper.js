@@ -47,7 +47,11 @@ function determineStartFrom(action, type, targetBranch, pipelineBranch, releaseN
     let startFrom;
 
     if (type && type === 'pr') {
-        startFrom = '~pr';
+        if (action && action === 'closed') {
+            startFrom = '~pr-closed';
+        } else {
+            startFrom = '~pr';
+        }
     } else {
         switch (action) {
             case 'release':
@@ -890,7 +894,9 @@ async function pullRequestClosed(options, request, h) {
                     j.permutations.length > 0 &&
                     j.permutations[0] &&
                     j.permutations[0].requires &&
-                    j.permutations[0].requires.includes('~pr-closed')
+                    j.permutations[0].requires.some(
+                        require => require === '~pr-closed' || require.startsWith('~pr-closed:')
+                    )
             );
 
             prClosedJobs.push(...filteredJobs);
