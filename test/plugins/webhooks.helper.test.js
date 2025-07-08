@@ -3391,7 +3391,6 @@ describe('startHookEvent test', () => {
                             { src: '~pr-closed', dest: 'job4' }
                         ]
                     };
-                    expected.meta.sd.pr.merged = false;
 
                     return startHookEvent(request, responseHandler, parsed).then(reply => {
                         assert.notCalled(eventFactoryMock.create);
