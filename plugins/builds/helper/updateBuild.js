@@ -374,7 +374,14 @@ async function updateBuildAndTriggerDownstreamJobs(config, build, server, userna
             const stageIsDone = isStageDone(stageJobBuilds);
 
             if (stageIsDone) {
-                const teardownNode = newEvent.workflowGraph.nodes.find(n => n.id === stageTeardownJob.id);
+                // Determine the actual job name in the graph by stripping PR prefix (e.g., "PR-123:")
+                // if this is a PR build, since workflowGraph nodes do not include PR-specific prefixes.
+                const prMatch = stage.name.match(PR_STAGE_NAME);
+                const teardownOriginalJobName = prMatch
+                    ? stageTeardownName.replace(`${prMatch[1]}:`, '')
+                    : stageTeardownName;
+
+                const teardownNode = newEvent.workflowGraph.nodes.find(n => n.name === teardownOriginalJobName);
 
                 // Update teardown build
                 stageTeardownBuild = await createOrUpdateStageTeardownBuild(
