@@ -5,6 +5,7 @@ const joi = require('joi');
 const schema = require('screwdriver-data-schema');
 const getSchema = schema.models.pipeline.base.extract('admins').get;
 const idSchema = schema.models.pipeline.base.extract('id');
+const scmContextSchema = schema.models.pipeline.base.extract('scmContext');
 
 module.exports = () => ({
     method: 'GET',
@@ -20,6 +21,7 @@ module.exports = () => ({
 
         handler: async (request, h) => {
             const factory = request.server.app.pipelineFactory;
+            const { scmContext, includeUserToken } = request.query;
             const pipeline = await factory.get(request.params.id);
 
             if (!pipeline) {
@@ -27,7 +29,20 @@ module.exports = () => ({
             }
 
             try {
-                const admin = await pipeline.getFirstAdmin();
+                const admin =
+                    scmContext && scmContext !== pipeline.scmContext
+                        ? await pipeline.getFirstAdmin({ scmContext })
+                        : await pipeline.getFirstAdmin();
+
+                if (includeUserToken) {
+                    const profile = request.server.plugins.auth.generateProfile({
+                        username: admin.username,
+                        scmContext: admin.scmContext,
+                        scope: ['user']
+                    });
+
+                    admin.userToken = request.server.plugins.auth.generateToken(profile);
+                }
 
                 return h.response(admin);
             } catch (e) {
@@ -40,6 +55,10 @@ module.exports = () => ({
         validate: {
             params: joi.object({
                 id: idSchema
+            }),
+            query: joi.object({
+                scmContext: scmContextSchema.optional(),
+                includeUserToken: joi.boolean().optional()
             })
         }
     }

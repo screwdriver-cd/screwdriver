@@ -219,6 +219,7 @@ describe('pipeline plugin test', () => {
     let server;
     const password = 'this_is_a_password_that_needs_to_be_atleast_32_characters';
     const scmContext = 'github:github.com';
+    const differentScmContext = 'bitbucket:bitbucket.org';
     const scmDisplayName = 'github';
     const username = 'batman';
     const message = `User ${username} does not have admin permission for this repo`;
@@ -3319,12 +3320,39 @@ describe('pipeline plugin test', () => {
 
                 assert.equal(res.username, 'abc');
             }));
-        it('returns 404 when pipeline has  no admin', () => {
+        it('returns 200 with admin info for a pipeline and specified scmContext', () => {
+            options.url = `/pipelines/${id}/admin?scmContext=${differentScmContext}`;
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 200);
+                const res = JSON.parse(reply.payload);
+
+                assert.equal(res.username, 'abc');
+                assert.calledWith(pipelineMock.getFirstAdmin, {
+                    scmContext: differentScmContext
+                });
+            });
+        });
+        it('returns 404 when pipeline has no admin', () => {
             pipelineMock.getFirstAdmin.rejects(new Error('Pipeline has no admin'));
             pipelineFactoryMock.get.withArgs(id).resolves(pipelineMock);
 
             return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 404);
+            });
+        });
+        it('returns 404 when pipeline has no admin for the specified scmContext', () => {
+            const errMsg = `Pipeline has no admins from the scmContext ${differentScmContext}`;
+
+            options.url = `/pipelines/${id}/admin?scmContext=${differentScmContext}`;
+            pipelineMock.getFirstAdmin.withArgs({ scmContext: differentScmContext }).rejects(new Error(errMsg));
+            pipelineFactoryMock.get.withArgs(id).resolves(pipelineMock);
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 404);
+                assert.calledWith(pipelineMock.getFirstAdmin, {
+                    scmContext: differentScmContext
+                });
             });
         });
         it('returns 500 when datastore fails', () => {
