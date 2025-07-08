@@ -7,6 +7,19 @@ const { ValidationError } = require('joi');
 const { startHookEvent } = require('./helper');
 
 const DEFAULT_MAX_BYTES = 1048576;
+const MAX_BYTES_UPPER_BOUND = 5242880; // 5MB
+const providerSchema = joi
+    .object({
+        username: joi.string().required(),
+        ignoreCommitsBy: joi.array().items(joi.string()).optional(),
+        restrictPR: joi
+            .string()
+            .valid('all', 'none', 'branch', 'fork', 'all-admin', 'none-admin', 'branch-admin', 'fork-admin')
+            .optional(),
+        chainPR: joi.boolean().optional(),
+        maxBytes: joi.number().integer().optional()
+    })
+    .unknown(false);
 
 /**
  * Webhook API Plugin
@@ -29,16 +42,7 @@ const webhooksPlugin = {
     async register(server, options) {
         const pluginOptions = joi.attempt(
             options,
-            joi.object().keys({
-                username: joi.string().required(),
-                ignoreCommitsBy: joi.array().items(joi.string()).optional(),
-                restrictPR: joi
-                    .string()
-                    .valid('all', 'none', 'branch', 'fork', 'all-admin', 'none-admin', 'branch-admin', 'fork-admin')
-                    .optional(),
-                chainPR: joi.boolean().optional(),
-                maxBytes: joi.number().integer().optional()
-            }),
+            joi.object().pattern(joi.string(), providerSchema).min(1).required(),
             'Invalid config for plugin-webhooks'
         );
 
@@ -55,7 +59,9 @@ const webhooksPlugin = {
                     }
                 },
                 payload: {
-                    maxBytes: parseInt(pluginOptions.maxBytes, 10) || DEFAULT_MAX_BYTES
+                    maxBytes: MAX_BYTES_UPPER_BOUND,
+                    parse: false,
+                    output: 'stream'
                 },
                 handler: async (request, h) => {
                     const { pipelineFactory, queueWebhook } = request.server.app;
@@ -63,8 +69,33 @@ const webhooksPlugin = {
                     const { executor, queueWebhookEnabled } = queueWebhook;
                     const message = 'Unable to process this kind of event';
                     let hookId;
+                    let webhookSettings;
 
                     try {
+                        const scmContexts = await scm.getScmContexts();
+
+                        scmContexts.forEach(scmContext => {
+                            if (pluginOptions[scmContext]) {
+                                webhookSettings = pluginOptions[scmContext];
+                            }
+                        });
+
+                        if (!webhookSettings) {
+                            logger.error(`No webhook settings found for scm context: ${scmContexts.join(', ')}`);
+                            throw boom.internal();
+                        }
+
+                        let size = 0;
+
+                        for await (const chunk of request.payload) {
+                            size += chunk.length;
+                            if (size > (webhookSettings.maxBytes || DEFAULT_MAX_BYTES)) {
+                                throw boom.entityTooLarge(
+                                    `Payload size exceeds the maximum limit of ${webhookSettings.maxBytes || DEFAULT_MAX_BYTES} bytes`
+                                );
+                            }
+                        }
+
                         const parsed = await scm.parseHook(request.headers, request.payload);
 
                         if (!parsed) {
@@ -72,7 +103,7 @@ const webhooksPlugin = {
                             return h.response({ message }).code(204);
                         }
 
-                        parsed.pluginOptions = pluginOptions;
+                        parsed.pluginOptions = webhookSettings;
 
                         const { type } = parsed;
 
