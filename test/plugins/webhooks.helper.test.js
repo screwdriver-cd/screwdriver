@@ -215,6 +215,43 @@ describe('determineStartFrom function', () => {
             '~tag:tagName'
         );
     });
+
+    it('determines to "~pr-closed" when type is "pr" and action is "closed"', () => {
+        type = 'pr';
+        action = 'closed';
+
+        assert.equal(
+            determineStartFrom(
+                action,
+                type,
+                targetBranch,
+                pipelineBranch,
+                releaseName,
+                tagName,
+                isReleaseOrTagFiltering
+            ),
+            '~pr-closed'
+        );
+    });
+
+    it('determines to "~pr-closed:branch" when type is "pr", action is "closed" and targetBranch is branch', () => {
+        type = 'pr';
+        action = 'closed';
+        targetBranch = 'branch';
+
+        assert.equal(
+            determineStartFrom(
+                action,
+                type,
+                targetBranch,
+                pipelineBranch,
+                releaseName,
+                tagName,
+                isReleaseOrTagFiltering
+            ),
+            '~pr-closed:branch'
+        );
+    });
 });
 
 describe('resolveChainPR function', () => {
@@ -3321,6 +3358,43 @@ describe('startHookEvent test', () => {
                     return startHookEvent(request, responseHandler, parsed).then(reply => {
                         assert.calledWith(eventFactoryMock.create, expected);
                         assert.equal(reply.statusCode, 201);
+                    });
+                });
+
+                it('starts a pr-closed event when pr is closed on specific branch', () => {
+                    parsed.prMerged = false;
+                    parsed.branch = 'stable';
+                    pipelineFactoryMock.scm.parseUrl.resolves('github.com:123456:stable');
+                    pipelineMock.workflowGraph = {
+                        nodes: [{ name: '~pr-closed:stable' }, { name: 'job4' }],
+                        edges: [{ src: '~pr-closed:stable', dest: 'job4' }]
+                    };
+                    expected.meta.sd.pr.merged = false;
+                    expected.startFrom = '~pr-closed:stable';
+                    expected.baseBranch = 'stable';
+                    expected.causeMessage = `PR-${1} ${parsed.action} by ${scmDisplayName}:${username} on branch stable`;
+
+                    return startHookEvent(request, responseHandler, parsed).then(reply => {
+                        assert.calledWith(eventFactoryMock.create, expected);
+                        assert.equal(reply.statusCode, 201);
+                    });
+                });
+
+                it('does not start a pr-closed event when pr is closed and target branch is not specified', () => {
+                    parsed.prMerged = false;
+                    parsed.branch = 'stable';
+                    pipelineFactoryMock.scm.parseUrl.resolves('github.com:123456:stable');
+                    pipelineMock.workflowGraph = {
+                        nodes: [{ name: '~pr-closed' }, { name: '~pr-closed:branch' }, { name: 'job4' }],
+                        edges: [
+                            { src: '~pr-closed:branch', dest: 'job4' },
+                            { src: '~pr-closed', dest: 'job4' }
+                        ]
+                    };
+
+                    return startHookEvent(request, responseHandler, parsed).then(reply => {
+                        assert.notCalled(eventFactoryMock.create);
+                        assert.equal(reply.statusCode, 204);
                     });
                 });
             });
