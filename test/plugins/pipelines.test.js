@@ -4740,4 +4740,176 @@ describe('pipeline plugin test', () => {
             });
         });
     });
+
+    describe('PUT /pipelines/updateAdmins', () => {
+        let pipelineMockA;
+        let pipelineMockB;
+
+        let options;
+
+        const userSam = {
+            username: 'sam_screwdriver',
+            id: 666
+        };
+
+        const userJohn = {
+            username: 'john_screwdriver',
+            id: 777
+        };
+
+        const userRob = {
+            username: 'rob_screwdriver',
+            id: 888
+        };
+
+        const userVictor = {
+            username: 'victor_screwdriver',
+            id: 999
+        };
+
+        const adminsUserScmContext = 'github:git.screwdriver.com';
+
+        beforeEach(() => {
+            pipelineMockA = getPipelineMocks(testPipeline);
+            pipelineMockA.id = 123;
+            pipelineMockA.adminUserIds = [userSam.id];
+            pipelineFactoryMock.get.withArgs({ id: pipelineMockA.id }).resolves(pipelineMockA);
+            pipelineMockA.update.returns(pipelineMockA);
+            userFactoryMock.list.onCall(0).resolves([userJohn, userRob]);
+
+            pipelineMockB = getPipelineMocks(testPipeline);
+            pipelineMockB.id = 456;
+            pipelineMockB.adminUserIds = [userSam.id];
+            pipelineFactoryMock.get.withArgs({ id: pipelineMockB.id }).resolves(pipelineMockB);
+            pipelineMockB.update.returns(pipelineMockB);
+            userFactoryMock.list.onCall(1).resolves([userJohn, userVictor]);
+            options = {
+                method: 'PUT',
+                url: `/pipelines/updateAdmins`,
+                payload: [
+                    {
+                        id: pipelineMockA.id,
+                        usernames: [userJohn.username, userRob.username],
+                        scmContext: adminsUserScmContext
+                    },
+                    {
+                        id: pipelineMockB.id,
+                        usernames: [userJohn.username, userVictor.username],
+                        scmContext: adminsUserScmContext
+                    }
+                ],
+                auth: {
+                    credentials: {
+                        username: 'admin_user',
+                        scmContext: 'github:github.com',
+                        scope: ['user']
+                    },
+                    strategy: ['token']
+                }
+            };
+
+            screwdriverAdminDetailsMock.returns({ isAdmin: true });
+        });
+
+        it('returns 200 and update the admins when requested by a SD admin', () => {
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 204);
+                assert.deepEqual(pipelineMockA.adminUserIds, [userSam.id, userJohn.id, userRob.id]);
+                assert.deepEqual(pipelineMockB.adminUserIds, [userSam.id, userJohn.id, userVictor.id]);
+                assert.calledTwice(pipelineFactoryMock.get);
+                assert.calledTwice(userFactoryMock.list);
+                assert.calledOnce(pipelineMockA.update);
+                assert.calledOnce(pipelineMockB.update);
+            });
+        });
+
+        it('returns 200 when a requested admin user does not exist', () => {
+            userFactoryMock.list.onCall(0).resolves([userRob]);
+            userFactoryMock.list.onCall(1).resolves([userVictor]);
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 204);
+                assert.deepEqual(pipelineMockA.adminUserIds, [userSam.id, userRob.id]);
+                assert.deepEqual(pipelineMockB.adminUserIds, [userSam.id, userVictor.id]);
+            });
+        });
+
+        it('returns 400 when scmContext is missing in the payload', () => {
+            delete options.payload[0].scmContext;
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 400);
+                assert.equal(reply.result.message, 'Invalid request payload input');
+                assert.notCalled(pipelineFactoryMock.get);
+                assert.notCalled(userFactoryMock.list);
+                assert.notCalled(pipelineMockA.update);
+                assert.notCalled(pipelineMockB.update);
+            });
+        });
+
+        it('returns 400 when usernames is missing in the payload', () => {
+            delete options.payload[0].usernames;
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 400);
+                assert.equal(reply.result.message, 'Invalid request payload input');
+                assert.notCalled(pipelineFactoryMock.get);
+                assert.notCalled(userFactoryMock.list);
+                assert.notCalled(pipelineMockA.update);
+                assert.notCalled(pipelineMockB.update);
+            });
+        });
+
+        it('returns 400 when usernames is empty in the payload', () => {
+            options.payload[0].usernames = [];
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 400);
+                assert.equal(reply.result.message, 'Invalid request payload input');
+                assert.notCalled(pipelineFactoryMock.get);
+                assert.notCalled(userFactoryMock.list);
+                assert.notCalled(pipelineMockA.update);
+                assert.notCalled(pipelineMockB.update);
+            });
+        });
+
+        it('returns 403 because when requested by non SD admin user', () => {
+            options.auth.credentials.username = 'non_admin_user';
+            screwdriverAdminDetailsMock.returns({ isAdmin: false });
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 403);
+                assert.equal(
+                    reply.result.message,
+                    'User non_admin_user does not have Screwdriver administrative privileges to update the admins for pipelines'
+                );
+            });
+        });
+
+        it('returns 404 when pipeline does not exist', () => {
+            pipelineFactoryMock.get.withArgs({ id: pipelineMockA.id }).resolves(null);
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 404);
+                assert.equal(reply.result.message, `Pipeline ${pipelineMockA.id} does not exist`);
+                assert.calledTwice(pipelineFactoryMock.get);
+                assert.calledOnce(userFactoryMock.list);
+                assert.notCalled(pipelineMockA.update);
+                assert.calledOnce(pipelineMockB.update);
+            });
+        });
+
+        it('returns 409 when pipeline is being deleted', () => {
+            pipelineMockA.state = 'DELETING';
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 409);
+                assert.equal(reply.result.message, 'This pipeline is being deleted.');
+                assert.calledTwice(pipelineFactoryMock.get);
+                assert.calledOnce(userFactoryMock.list);
+                assert.notCalled(pipelineMockA.update);
+                assert.calledOnce(pipelineMockB.update);
+            });
+        });
+    });
 });
