@@ -3,8 +3,8 @@
 const boom = require('@hapi/boom');
 const joi = require('joi');
 const schema = require('screwdriver-data-schema');
-const logger = require('screwdriver-logger');
 const idSchema = schema.models.pipeline.base.extract('id');
+const { updatePipelineAdmins } = require('./helper/updateAdmins');
 
 module.exports = () => ({
     method: 'PUT',
@@ -31,7 +31,7 @@ module.exports = () => ({
                 throw boom.badRequest(`Payload must contain scmContext`);
             }
 
-            const { pipelineFactory, bannerFactory, userFactory } = request.server.app;
+            const { bannerFactory } = request.server.app;
 
             // Check token permissions
             if (isPipeline) {
@@ -57,45 +57,16 @@ module.exports = () => ({
                 }
             }
 
-            const pipeline = await pipelineFactory.get({ id });
+            const updatedPipeline = await updatePipelineAdmins(
+                {
+                    id,
+                    scmContext: payloadScmContext,
+                    usernames
+                },
+                request.server
+            );
 
-            // check if pipeline exists
-            if (!pipeline) {
-                throw boom.notFound(`Pipeline ${id} does not exist`);
-            }
-            if (pipeline.state === 'DELETING') {
-                throw boom.conflict('This pipeline is being deleted.');
-            }
-
-            const users = await userFactory.list({
-                params: {
-                    username: usernames,
-                    scmContext: payloadScmContext
-                }
-            });
-
-            const adminUsernamesForUpdate = [];
-            const newAdmins = new Set(pipeline.adminUserIds);
-
-            users.forEach(user => {
-                newAdmins.add(user.id);
-                adminUsernamesForUpdate.push(user.username);
-            });
-
-            pipeline.adminUserIds = Array.from(newAdmins);
-
-            try {
-                const result = await pipeline.update();
-
-                logger.info(`Updated admins ${adminUsernamesForUpdate} for pipeline(id=${id})`);
-
-                return h.response(result.toJson()).code(200);
-            } catch (err) {
-                logger.error(
-                    `Failed to update admins ${adminUsernamesForUpdate} for pipeline(id=${id}): ${err.message}`
-                );
-                throw boom.internal(`Failed to update admins for pipeline ${id}`);
-            }
+            return h.response(updatedPipeline.toJson()).code(200);
         },
         validate: {
             params: joi.object({

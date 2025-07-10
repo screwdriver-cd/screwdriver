@@ -45,6 +45,7 @@ const removeTemplateVersionRoute = require('./templates/removeVersion');
 const updateTrustedRoute = require('./templates/updateTrusted');
 const updateBuildCluster = require('./updateBuildCluster');
 const updateAdminsRoute = require('./updateAdmins');
+const batchUpdateAdminsRoute = require('./batchUpdateAdmins');
 
 /**
  * Pipeline API Plugin
@@ -280,7 +281,8 @@ const pipelinesPlugin = {
             removeTemplateVersionRoute(),
             updateTrustedRoute(),
             updateBuildCluster(),
-            updateAdminsRoute()
+            updateAdminsRoute(),
+            batchUpdateAdminsRoute()
         ]);
     }
 };
