@@ -140,6 +140,74 @@ async function loadLines({ baseUrl, linesFrom, authToken, pagesToLoad = 10, sort
     return [lines, morePages];
 }
 
+/**
+ * Convert unix milliseconds to ISO 8610 with timezone format
+ * @param   {number}    timestamp   TimeStamp in unix milliseconds format
+ * @param   {string}    timeZone    Timezone of timestamp
+ * @returns {string}                Datetime in ISO 8610 with timezone format (e.g., YYYY-MM-DDThh:mm:ss.sssZ, YYYY-MM-DDThh:mm:ss.sss+09:00)
+ */
+function unixToFullTime(timestamp, timeZone) {
+    const date = new Date(timestamp);
+    const formatter = new Intl.DateTimeFormat('en-US', {
+        timeZone,
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        fractionalSecondDigits: 3,
+        hour12: false,
+        timeZoneName: 'longOffset'
+    });
+    const { year, day, month, hour, minute, second, fractionalSecond, timeZoneName } = Object.fromEntries(
+        formatter.formatToParts(date).map(({ type, value }) => [type, value])
+    );
+
+    const offsetMatch = timeZoneName.match(/GMT(.*)/)[1];
+
+    const timezoneOffset = offsetMatch === '' ? 'Z' : offsetMatch;
+
+    return `${year}-${month}-${day}T${hour}:${minute}:${second}.${fractionalSecond}${timezoneOffset}`;
+}
+
+/**
+ * Convert unix milliseconds to Datetime with Timezone
+ * @param   {number}    timestamp   TimeStamp in unix milliseconds format
+ * @param   {string}    timeZone    Timezone of timestamp
+ * @returns {string}                Datetime in hh:mm:ss format
+ */
+function unixToSimpleTime(timestamp, timeZone) {
+    const date = new Date(timestamp);
+    const options = {
+        timeZone,
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: false
+    };
+
+    return date.toLocaleString(undefined, options);
+}
+
+/**
+ * Convert to target and source unix milliseconds duration
+ * @param   {number}    sourceTimestamp     Source timeStamp in unix milliseconds format
+ * @param   {number}    targetTimestamp     Target timeStamp in unix milliseconds format
+ * @returns {string}                        Duration in hh:mm:ss format
+ */
+function durationTime(sourceTimestamp, targetTimestamp) {
+    const differenceInMilliSeconds = targetTimestamp - sourceTimestamp;
+    const differenceInSeconds = Math.floor(differenceInMilliSeconds / 1000);
+    const differenceInSecondsMod = differenceInSeconds % 3600;
+
+    const hours = Math.floor(differenceInSeconds / 3600);
+    const minutes = Math.floor(differenceInSecondsMod / 60);
+    const seconds = (differenceInSecondsMod % 60).toString().padStart(2, '0');
+
+    return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+}
+
 module.exports = config => ({
     method: 'GET',
     path: '/builds/{id}/steps/{name}/logs',
@@ -158,6 +226,7 @@ module.exports = config => ({
             const { stepFactory, buildFactory, eventFactory } = req.server.app;
             const buildId = req.params.id;
             const stepName = req.params.name;
+            let buildModel;
 
             return buildFactory
                 .get(buildId)
@@ -165,6 +234,7 @@ module.exports = config => ({
                     if (!build) {
                         throw boom.notFound('Build does not exist');
                     }
+                    buildModel = build;
 
                     return eventFactory.get(build.eventId);
                 })
@@ -203,7 +273,9 @@ module.exports = config => ({
                             jwtid: uuidv4()
                         }
                     );
-                    const { sort, type } = req.query;
+
+                    const { sort, type, timestamp, timezone, timestampFormat } = req.query;
+
                     let pagesToLoad = req.query.pages;
                     let linesFrom = req.query.from;
 
@@ -231,8 +303,42 @@ module.exports = config => ({
 
                             let res = '';
 
-                            for (let i = 0; i < lines.length; i += 1) {
-                                res = `${res}${lines[i].m}\n`;
+                            if (timestamp) {
+                                const buildTime = new Date(buildModel.startTime).getTime();
+                                const stepTime = new Date(stepModel.startTime).getTime();
+
+                                switch (timestampFormat) {
+                                    case 'full-time':
+                                        for (const line of lines) {
+                                            res += `${unixToFullTime(line.t, timezone)}\t${line.m}\n`;
+                                        }
+                                        break;
+                                    case 'simple-time':
+                                        for (const line of lines) {
+                                            res += `${unixToSimpleTime(line.t, timezone)}\t${line.m}\n`;
+                                        }
+                                        break;
+                                    case 'elapsed-build':
+                                        for (const line of lines) {
+                                            const duration = durationTime(buildTime, line.t);
+
+                                            res += `${duration}\t${line.m}\n`;
+                                        }
+                                        break;
+                                    case 'elapsed-step':
+                                        for (const line of lines) {
+                                            const duration = durationTime(stepTime, line.t);
+
+                                            res += `${duration}\t${line.m}\n`;
+                                        }
+                                        break;
+                                    default:
+                                        throw boom.badRequest('Unexpected timestampFormat parameter');
+                                }
+                            } else {
+                                for (const line of lines) {
+                                    res += `${line.m}\n`;
+                                }
                             }
 
                             return h
