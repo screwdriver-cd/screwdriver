@@ -6755,7 +6755,8 @@ describe('build plugin test', () => {
         ];
         const buildMock = {
             id: 123,
-            eventId: 1234
+            eventId: 1234,
+            startTime: '2016-08-26T18:25:44.123Z'
         };
         const eventMock = {
             id: 1234,
@@ -6791,8 +6792,8 @@ describe('build plugin test', () => {
             testStep = {
                 name: 'install',
                 code: 1,
-                startTime: '2038-01-19T03:15:08.532Z',
-                endTime: '2038-01-19T03:15:09.114Z'
+                startTime: '2016-08-26T18:30:45.456Z',
+                endTime: '2016-08-26T18:30:49.789Z'
             };
             stepMock = getStepMock(testStep);
             stepFactoryMock.get.withArgs({ buildId: id, name: step }).resolves(stepMock);
@@ -6829,6 +6830,199 @@ describe('build plugin test', () => {
             const expectedLog = 'Building stuff\nStill building...\nDone Building stuff\n';
 
             options.url = `/builds/${id}/steps/${step}/logs?type=download`;
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 200);
+                assert.deepEqual(reply.result, expectedLog);
+                assert.propertyVal(reply.headers, 'content-disposition', `attachment; filename="${step}-log.txt"`);
+            });
+        });
+
+        it('enable timestamp', () => {
+            nock('https://store.screwdriver.cd')
+                .get(`/v1/builds/${id}/${step}/log.0`)
+                .twice()
+                .replyWithFile(200, `${__dirname}/data/step.log.ndjson`);
+
+            const expectedLog = [
+                '2016-08-26T18:30:46.000Z\tBuilding stuff',
+                '2016-08-26T18:30:47.000Z\tStill building...',
+                '2016-08-26T18:30:48.000Z\tDone Building stuff',
+                ''
+            ].join('\n');
+
+            options.url = `/builds/${id}/steps/${step}/logs?type=download&timestamp=true`;
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 200);
+                assert.deepEqual(reply.result, expectedLog);
+                assert.propertyVal(reply.headers, 'content-disposition', `attachment; filename="${step}-log.txt"`);
+            });
+        });
+
+        it('disable timestamp', () => {
+            nock('https://store.screwdriver.cd')
+                .get(`/v1/builds/${id}/${step}/log.0`)
+                .twice()
+                .replyWithFile(200, `${__dirname}/data/step.log.ndjson`);
+
+            const expectedLog = ['Building stuff', 'Still building...', 'Done Building stuff', ''].join('\n');
+
+            options.url = `/builds/${id}/steps/${step}/logs?type=download&timestamp=false`;
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 200);
+                assert.deepEqual(reply.result, expectedLog);
+                assert.propertyVal(reply.headers, 'content-disposition', `attachment; filename="${step}-log.txt"`);
+            });
+        });
+
+        it('timestamp with timezone', () => {
+            nock('https://store.screwdriver.cd')
+                .get(`/v1/builds/${id}/${step}/log.0`)
+                .twice()
+                .replyWithFile(200, `${__dirname}/data/step.log.ndjson`);
+
+            const expectedLog = [
+                '2016-08-27T03:30:46.000+09:00\tBuilding stuff',
+                '2016-08-27T03:30:47.000+09:00\tStill building...',
+                '2016-08-27T03:30:48.000+09:00\tDone Building stuff',
+                ''
+            ].join('\n');
+
+            options.url = `/builds/${id}/steps/${step}/logs?type=download&timestamp=true&timezone=Asia/Tokyo`;
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 200);
+                assert.deepEqual(reply.result, expectedLog);
+                assert.propertyVal(reply.headers, 'content-disposition', `attachment; filename="${step}-log.txt"`);
+            });
+        });
+
+        it('timestamp in full-time format', () => {
+            nock('https://store.screwdriver.cd')
+                .get(`/v1/builds/${id}/${step}/log.0`)
+                .twice()
+                .replyWithFile(200, `${__dirname}/data/step.log.ndjson`);
+
+            const expectedLog = [
+                '2016-08-26T18:30:46.000Z\tBuilding stuff',
+                '2016-08-26T18:30:47.000Z\tStill building...',
+                '2016-08-26T18:30:48.000Z\tDone Building stuff',
+                ''
+            ].join('\n');
+
+            options.url = `/builds/${id}/steps/${step}/logs?type=download&timestamp=true&timestampFormat=full-time`;
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 200);
+                assert.deepEqual(reply.result, expectedLog);
+                assert.propertyVal(reply.headers, 'content-disposition', `attachment; filename="${step}-log.txt"`);
+            });
+        });
+
+        it('timestamp in full-time format with timezone', () => {
+            nock('https://store.screwdriver.cd')
+                .get(`/v1/builds/${id}/${step}/log.0`)
+                .twice()
+                .replyWithFile(200, `${__dirname}/data/step.log.ndjson`);
+
+            const expectedLog = [
+                '2016-08-27T03:30:46.000+09:00\tBuilding stuff',
+                '2016-08-27T03:30:47.000+09:00\tStill building...',
+                '2016-08-27T03:30:48.000+09:00\tDone Building stuff',
+                ''
+            ].join('\n');
+
+            options.url = `/builds/${id}/steps/${step}/logs?type=download&timestamp=true&timestampFormat=full-time&timezone=Asia/Tokyo`;
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 200);
+                assert.deepEqual(reply.result, expectedLog);
+                assert.propertyVal(reply.headers, 'content-disposition', `attachment; filename="${step}-log.txt"`);
+            });
+        });
+
+        it('timestamp in simple-time format', () => {
+            nock('https://store.screwdriver.cd')
+                .get(`/v1/builds/${id}/${step}/log.0`)
+                .twice()
+                .replyWithFile(200, `${__dirname}/data/step.log.ndjson`);
+
+            const expectedLog = [
+                '18:30:46\tBuilding stuff',
+                '18:30:47\tStill building...',
+                '18:30:48\tDone Building stuff',
+                ''
+            ].join('\n');
+
+            options.url = `/builds/${id}/steps/${step}/logs?type=download&timestamp=true&timestampFormat=simple-time`;
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 200);
+                assert.deepEqual(reply.result, expectedLog);
+                assert.propertyVal(reply.headers, 'content-disposition', `attachment; filename="${step}-log.txt"`);
+            });
+        });
+
+        it('timestamp in simple-time format with timezone', () => {
+            nock('https://store.screwdriver.cd')
+                .get(`/v1/builds/${id}/${step}/log.0`)
+                .twice()
+                .replyWithFile(200, `${__dirname}/data/step.log.ndjson`);
+
+            const expectedLog = [
+                '03:30:46\tBuilding stuff',
+                '03:30:47\tStill building...',
+                '03:30:48\tDone Building stuff',
+                ''
+            ].join('\n');
+
+            options.url = `/builds/${id}/steps/${step}/logs?type=download&timestamp=true&timestampFormat=simple-time&timezone=Asia/Tokyo`;
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 200);
+                assert.deepEqual(reply.result, expectedLog);
+                assert.propertyVal(reply.headers, 'content-disposition', `attachment; filename="${step}-log.txt"`);
+            });
+        });
+
+        it('timestamp in elapsed-build format', () => {
+            nock('https://store.screwdriver.cd')
+                .get(`/v1/builds/${id}/${step}/log.0`)
+                .twice()
+                .replyWithFile(200, `${__dirname}/data/step.log.ndjson`);
+
+            const expectedLog = [
+                '00:05:01\tBuilding stuff',
+                '00:05:02\tStill building...',
+                '00:05:03\tDone Building stuff',
+                ''
+            ].join('\n');
+
+            options.url = `/builds/${id}/steps/${step}/logs?type=download&timestamp=true&timestampFormat=elapsed-build`;
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 200);
+                assert.deepEqual(reply.result, expectedLog);
+                assert.propertyVal(reply.headers, 'content-disposition', `attachment; filename="${step}-log.txt"`);
+            });
+        });
+
+        it('timestamp in elapsed-step format', () => {
+            nock('https://store.screwdriver.cd')
+                .get(`/v1/builds/${id}/${step}/log.0`)
+                .twice()
+                .replyWithFile(200, `${__dirname}/data/step.log.ndjson`);
+
+            const expectedLog = [
+                '00:00:00\tBuilding stuff',
+                '00:00:01\tStill building...',
+                '00:00:02\tDone Building stuff',
+                ''
+            ].join('\n');
+
+            options.url = `/builds/${id}/steps/${step}/logs?type=download&timestamp=true&timestampFormat=elapsed-step`;
 
             return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 200);
