@@ -86,9 +86,11 @@ const webhooksPlugin = {
                         }
 
                         let size = 0;
+                        let data = '';
 
                         for await (const chunk of request.payload) {
                             size += chunk.length;
+                            data += chunk;
                             if (size > (webhookSettings.maxBytes || DEFAULT_MAX_BYTES)) {
                                 throw boom.entityTooLarge(
                                     `Payload size exceeds the maximum limit of ${webhookSettings.maxBytes || DEFAULT_MAX_BYTES} bytes`
@@ -96,7 +98,15 @@ const webhooksPlugin = {
                             }
                         }
 
-                        const parsed = await scm.parseHook(request.headers, request.payload);
+                        let parsedPayload;
+
+                        try {
+                            parsedPayload = JSON.parse(data);
+                        } catch (err) {
+                            throw boom.badData('Cannot parse payload');
+                        }
+
+                        const parsed = await scm.parseHook(request.headers, parsedPayload);
 
                         if (!parsed) {
                             // for all non-matching events or actions
