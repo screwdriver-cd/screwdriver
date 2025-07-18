@@ -17,7 +17,7 @@ sinon.assert.expose(assert, { prefix: '' });
 const decorateBuildMock = build => {
     const mock = hoek.clone(build);
 
-    mock.update = sinon.stub().resolves();
+    mock.update = sinon.stub().resolves(mock);
     mock.toJson = sinon.stub().returns(build);
     mock.toJsonWithSteps = sinon.stub().resolves(build);
 
@@ -51,6 +51,7 @@ const getStageBuildMocks = stageBuilds => {
 const getEventMock = event => {
     const decorated = hoek.clone(event);
 
+    decorated.update = sinon.stub().resolves(decorated);
     decorated.getBuilds = sinon.stub();
     decorated.getStageBuilds = sinon.stub();
     decorated.toJson = sinon.stub().returns(event);
@@ -1433,6 +1434,18 @@ describe('event plugin test', () => {
                 });
             }
         );
+
+        it('returns 200 and update event status to ABORTED', () => {
+            builds[0].status = 'SUCCESS';
+            builds[1].status = 'FAILRUE';
+            builds[3].status = 'COLLAPSED';
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 200);
+                assert.calledOnce(event.update);
+                assert.strictEqual(event.status, 'ABORTED');
+            });
+        });
 
         it(
             'returns 403 forbidden error when user does not have push permission' +

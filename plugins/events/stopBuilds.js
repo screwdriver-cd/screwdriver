@@ -7,6 +7,7 @@ const joi = require('joi');
 const schema = require('screwdriver-data-schema');
 const getSchema = schema.models.event.get;
 const idSchema = schema.models.event.base.extract('id');
+const { deriveEventStatusFromBuildStatuses } = require('../builds/helper/updateBuild');
 
 module.exports = () => ({
     method: 'PUT',
@@ -78,6 +79,7 @@ module.exports = () => ({
             // User has good permissions, get event builds
             const builds = await event.getBuilds();
             const toUpdate = [];
+            const updatedBuilds = [];
 
             // Update endtime and stop running builds
             // Note: COLLAPSED builds will never run
@@ -90,10 +92,18 @@ module.exports = () => ({
                     b.statusMessage = `Aborted by ${username}`;
 
                     toUpdate.push(b.update());
+                } else {
+                    updatedBuilds.push(b);
                 }
             });
+            updatedBuilds.push(...(await Promise.all(toUpdate)));
 
-            await Promise.all(toUpdate);
+            const newEventStatus = deriveEventStatusFromBuildStatuses(updatedBuilds);
+
+            if (newEventStatus && event.status !== newEventStatus) {
+                event.status = newEventStatus;
+                await event.update();
+            }
 
             // everything succeeded, inform the user
             const location = urlLib.format({
