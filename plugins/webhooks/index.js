@@ -69,18 +69,18 @@ const webhooksPlugin = {
                     const { executor, queueWebhookEnabled } = queueWebhook;
                     const message = 'Unable to process this kind of event';
                     let hookId;
-                    let webhookSettings;
+                    const webhookSettings = {};
 
                     try {
                         const scmContexts = await scm.getScmContexts();
 
                         scmContexts.forEach(scmContext => {
                             if (pluginOptions[scmContext]) {
-                                webhookSettings = pluginOptions[scmContext];
+                                webhookSettings[scmContext] = pluginOptions[scmContext];
                             }
                         });
 
-                        if (!webhookSettings) {
+                        if (Object.keys(webhookSettings).length === 0) {
                             logger.error(`No webhook settings found for scm context: ${scmContexts.join(', ')}`);
                             throw boom.internal();
                         }
@@ -91,9 +91,9 @@ const webhooksPlugin = {
                         for await (const chunk of request.payload) {
                             size += chunk.length;
                             data += chunk;
-                            if (size > (webhookSettings.maxBytes || DEFAULT_MAX_BYTES)) {
+                            if (size > DEFAULT_MAX_BYTES) {
                                 throw boom.entityTooLarge(
-                                    `Payload size exceeds the maximum limit of ${webhookSettings.maxBytes || DEFAULT_MAX_BYTES} bytes`
+                                    `Payload size exceeds the maximum limit of ${DEFAULT_MAX_BYTES} bytes`
                                 );
                             }
                         }
@@ -113,7 +113,7 @@ const webhooksPlugin = {
                             return h.response({ message }).code(204);
                         }
 
-                        parsed.pluginOptions = webhookSettings;
+                        parsed.pluginOptions = webhookSettings[parsed.scmContext] || {};
 
                         const { type } = parsed;
 
