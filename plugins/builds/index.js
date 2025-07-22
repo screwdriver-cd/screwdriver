@@ -44,6 +44,7 @@ const {
     getNextJobStageName
 } = require('./triggers/helpers');
 const { getFullStageJobName } = require('../helper');
+const { updateStageBuildStatus, getStageBuild } = require('./helper/updateBuild');
 
 /**
  * Delete a build
@@ -71,7 +72,7 @@ async function triggerNextJobs(config, app) {
     const currentPipeline = config.pipeline;
     const currentJob = config.job;
     const currentBuild = config.build;
-    const { jobFactory, buildFactory, eventFactory, pipelineFactory } = app;
+    const { jobFactory, buildFactory, eventFactory, pipelineFactory, stageFactory, stageBuildFactory } = app;
 
     /** @type {EventModel} */
     const currentEvent = await eventFactory.get({ id: currentBuild.eventId });
@@ -144,15 +145,31 @@ async function triggerNextJobs(config, app) {
                 );
             }
 
-            if (isNextJobVirtual && nextBuild && nextBuild.status === Status.SUCCESS) {
-                downstreamOfNextJobsToBeProcessed.push({
-                    build: nextBuild,
-                    event: currentEvent,
-                    job: nextJob,
-                    pipeline: currentPipeline,
-                    scmContext: config.scmContext,
-                    username: config.username
+            if (isNextJobVirtual) {
+                const stageBuild = await getStageBuild({
+                    stageFactory,
+                    stageBuildFactory,
+                    workflowGraph: currentEvent.workflowGraph,
+                    jobName: nextJobName,
+                    pipelineId: currentPipeline.id,
+                    eventId: currentEvent.id
                 });
+
+                if (stageBuild) {
+                    await updateStageBuildStatus({ stageBuild, newStatus: nextBuild.status, job: nextJob });
+                }
+
+                // Trigger downstream jobs
+                if (nextBuild && nextBuild.status === Status.SUCCESS) {
+                    downstreamOfNextJobsToBeProcessed.push({
+                        build: nextBuild,
+                        event: currentEvent,
+                        job: nextJob,
+                        pipeline: currentPipeline,
+                        scmContext: config.scmContext,
+                        username: config.username
+                    });
+                }
             }
         } catch (err) {
             logger.error(
@@ -334,15 +351,30 @@ async function triggerNextJobs(config, app) {
                         );
                     }
 
-                    if (isNextJobVirtual && nextBuild && nextBuild.status === Status.SUCCESS) {
-                        downstreamOfNextJobsToBeProcessed.push({
-                            build: nextBuild,
-                            event: currentEvent,
-                            job: nextJob,
-                            pipeline: await nextJob.pipeline,
-                            scmContext: config.scmContext,
-                            username: config.username
+                    if (isNextJobVirtual) {
+                        const stageBuild = await getStageBuild({
+                            stageFactory,
+                            stageBuildFactory,
+                            workflowGraph: currentEvent.workflowGraph,
+                            jobName: nextJob.name,
+                            pipelineId: currentPipeline.id,
+                            eventId: currentEvent.id
                         });
+
+                        if (stageBuild) {
+                            await updateStageBuildStatus({ stageBuild, newStatus: nextBuild.status, job: nextJob });
+                        }
+
+                        if (nextBuild && nextBuild.status === Status.SUCCESS) {
+                            downstreamOfNextJobsToBeProcessed.push({
+                                build: nextBuild,
+                                event: currentEvent,
+                                job: nextJob,
+                                pipeline: await nextJob.pipeline,
+                                scmContext: config.scmContext,
+                                username: config.username
+                            });
+                        }
                     }
                 } catch (err) {
                     logger.error(

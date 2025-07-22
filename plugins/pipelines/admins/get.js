@@ -20,7 +20,7 @@ module.exports = () => ({
         },
 
         handler: async (request, h) => {
-            const pipelineFactory = request.server.app.pipelineFactory;
+            const { pipelineFactory } = request.server.app;
             const { scope } = request.auth.credentials;
             const { scmContext, includeUserToken } = request.query;
 

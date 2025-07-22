@@ -1975,7 +1975,7 @@ describe('build plugin test', () => {
                         id: 1,
                         stageId: 1,
                         update: sinon.stub().resolves(),
-                        status: 'SUCCESS'
+                        status: 'RUNNING'
                     };
                     const status = 'SUCCESS';
                     const options = {
@@ -2036,6 +2036,8 @@ describe('build plugin test', () => {
                         assert.equal(reply.statusCode, 200);
                         assert.notCalled(buildFactoryMock.create);
                         assert.notCalled(stageBuildFactoryMock.create);
+                        assert.equal(stageBuildMock.status, 'SUCCESS');
+                        assert.calledOnce(stageBuildMock.update);
                     });
                 });
 
@@ -2102,6 +2104,7 @@ describe('build plugin test', () => {
 
                     return server.inject(options).then(reply => {
                         assert.equal(reply.statusCode, 200);
+                        assert.equal(stageBuildMock.status, 'FAILURE');
                         assert.notCalled(buildFactoryMock.create);
                         assert.notCalled(stageBuildFactoryMock.create);
                     });
@@ -5976,7 +5979,7 @@ describe('build plugin test', () => {
                         id: 1,
                         stageId: 1,
                         update: sinon.stub().resolves(),
-                        status: 'SUCCESS'
+                        status: 'RUNNING'
                     };
 
                     localOptions.payload.status = 'FAILURE';
@@ -6008,6 +6011,7 @@ describe('build plugin test', () => {
 
                     return newServer.inject(localOptions).then(() => {
                         assert.notCalled(buildFactoryMock.create);
+                        assert.equal(stageBuildMock.status, 'FAILURE');
                         assert.calledOnce(stageBuildMock.update);
                         assert.notCalled(buildMock.remove);
                     });
