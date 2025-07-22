@@ -69,22 +69,8 @@ const webhooksPlugin = {
                     const { executor, queueWebhookEnabled } = queueWebhook;
                     const message = 'Unable to process this kind of event';
                     let hookId;
-                    const webhookSettings = {};
 
                     try {
-                        const scmContexts = await scm.getScmContexts();
-
-                        scmContexts.forEach(scmContext => {
-                            if (pluginOptions[scmContext]) {
-                                webhookSettings[scmContext] = pluginOptions[scmContext];
-                            }
-                        });
-
-                        if (Object.keys(webhookSettings).length === 0) {
-                            logger.error(`No webhook settings found for scm context: ${scmContexts.join(', ')}`);
-                            throw boom.internal();
-                        }
-
                         let size = 0;
                         let data = '';
 
@@ -113,7 +99,14 @@ const webhooksPlugin = {
                             return h.response({ message }).code(204);
                         }
 
-                        parsed.pluginOptions = webhookSettings[parsed.scmContext] || {};
+                        const webhookSettings = pluginOptions[parsed.scmContext];
+
+                        if (!webhookSettings) {
+                            logger.error(`No webhook settings found for scm context: ${parsed.scmContext}`);
+                            throw boom.internal();
+                        }
+
+                        parsed.pluginOptions = webhookSettings;
 
                         const { type } = parsed;
 
