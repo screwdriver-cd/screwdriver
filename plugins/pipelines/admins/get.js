@@ -16,13 +16,19 @@ module.exports = () => ({
         tags: ['api', 'pipelines'],
         auth: {
             strategies: ['token'],
-            scope: ['user', 'pipeline', '!guest']
+            scope: ['user', 'admin', 'pipeline', '!guest']
         },
 
         handler: async (request, h) => {
-            const factory = request.server.app.pipelineFactory;
+            const pipelineFactory = request.server.app.pipelineFactory;
+            const { scope } = request.auth.credentials;
             const { scmContext, includeUserToken } = request.query;
-            const pipeline = await factory.get(request.params.id);
+
+            if (includeUserToken && !scope.includes('admin')) {
+                throw boom.forbidden('Only Screwdriver admin is allowed to request user token');
+            }
+
+            const pipeline = await pipelineFactory.get(request.params.id);
 
             if (!pipeline) {
                 throw boom.notFound('Pipeline does not exist');
