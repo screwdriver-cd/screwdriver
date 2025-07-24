@@ -135,7 +135,8 @@ describe('webhooks plugin test', () => {
                 type: 'repo',
                 action: 'push',
                 releaseName: undefined,
-                ref: undefined
+                ref: undefined,
+                scmContext: 'github:github.com'
             };
             reqHeaders = {
                 'x-github-event': 'push',
@@ -270,13 +271,13 @@ describe('webhooks plugin test', () => {
             });
         });
 
-        it('returns 413 when payload size exceeds the maximum limit', () => {
+        it('returns 413 when payload size exceeds the default maximum limit', () => {
             pipelineFactoryMock.scm.parseHook.resolves(parsed);
-            options.payload = Buffer.alloc(20);
+            options.payload = Buffer.alloc(1048590);
 
             return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 413);
-                assert.include(reply.result.message, 'Payload size exceeds the maximum limit');
+                assert.include(reply.result.message, 'Payload size exceeds the maximum limit of 1048576 bytes');
             });
         });
 
