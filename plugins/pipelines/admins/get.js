@@ -5,6 +5,7 @@ const joi = require('joi');
 const schema = require('screwdriver-data-schema');
 const getSchema = schema.models.pipeline.base.extract('admins').get;
 const idSchema = schema.models.pipeline.base.extract('id');
+const scmContextSchema = schema.models.pipeline.base.extract('scmContext');
 
 module.exports = () => ({
     method: 'GET',
@@ -15,19 +16,39 @@ module.exports = () => ({
         tags: ['api', 'pipelines'],
         auth: {
             strategies: ['token'],
-            scope: ['user', 'pipeline', '!guest']
+            scope: ['user', 'admin', 'pipeline', '!guest']
         },
 
         handler: async (request, h) => {
-            const factory = request.server.app.pipelineFactory;
-            const pipeline = await factory.get(request.params.id);
+            const pipelineFactory = request.server.app.pipelineFactory;
+            const { scope } = request.auth.credentials;
+            const { scmContext, includeUserToken } = request.query;
+
+            if (includeUserToken && !scope.includes('admin')) {
+                throw boom.forbidden('Only Screwdriver admin is allowed to request user token');
+            }
+
+            const pipeline = await pipelineFactory.get(request.params.id);
 
             if (!pipeline) {
                 throw boom.notFound('Pipeline does not exist');
             }
 
             try {
-                const admin = await pipeline.getFirstAdmin();
+                const admin =
+                    scmContext && scmContext !== pipeline.scmContext
+                        ? await pipeline.getFirstAdmin({ scmContext })
+                        : await pipeline.getFirstAdmin();
+
+                if (includeUserToken) {
+                    const profile = request.server.plugins.auth.generateProfile({
+                        username: admin.username,
+                        scmContext: admin.scmContext,
+                        scope: ['user']
+                    });
+
+                    admin.userToken = request.server.plugins.auth.generateToken(profile);
+                }
 
                 return h.response(admin);
             } catch (e) {
@@ -40,6 +61,10 @@ module.exports = () => ({
         validate: {
             params: joi.object({
                 id: idSchema
+            }),
+            query: joi.object({
+                scmContext: scmContextSchema.optional(),
+                includeUserToken: joi.boolean().optional()
             })
         }
     }

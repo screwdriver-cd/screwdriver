@@ -210,6 +210,9 @@ describe('pipeline plugin test', () => {
     let triggerFactoryMock;
     let secretFactoryMock;
     let bannerMock;
+    let authMock;
+    let generateTokenMock;
+    let generateProfileMock;
     let screwdriverAdminDetailsMock;
     let scmMock;
     let pipelineTemplateFactoryMock;
@@ -219,6 +222,7 @@ describe('pipeline plugin test', () => {
     let server;
     const password = 'this_is_a_password_that_needs_to_be_atleast_32_characters';
     const scmContext = 'github:github.com';
+    const differentScmContext = 'bitbucket:bitbucket.org';
     const scmDisplayName = 'github';
     const username = 'batman';
     const message = `User ${username} does not have admin permission for this repo`;
@@ -299,6 +303,8 @@ describe('pipeline plugin test', () => {
         buildClusterFactoryMock = {
             get: sinon.stub()
         };
+        generateProfileMock = sinon.stub();
+        generateTokenMock = sinon.stub();
 
         /* eslint-disable global-require */
         plugin = require('../../plugins/pipelines');
@@ -335,8 +341,17 @@ describe('pipeline plugin test', () => {
         }));
         server.auth.strategy('token', 'custom');
 
+        authMock = {
+            name: 'auth',
+            register: s => {
+                s.expose('generateToken', generateTokenMock);
+                s.expose('generateProfile', generateProfileMock);
+            }
+        };
+
         server.register([
             { plugin: bannerMock },
+            { plugin: authMock },
             {
                 plugin,
                 options: {
@@ -3277,7 +3292,6 @@ describe('pipeline plugin test', () => {
 
     describe('GET /pipelines/{id}/admin', () => {
         const id = 123;
-        const scmUri = 'github.com:12345:branchName';
         const token = {
             id: 12345,
             name: 'pipelinetoken',
@@ -3287,7 +3301,9 @@ describe('pipeline plugin test', () => {
         };
         let options;
         let pipelineMock;
-        let userMock;
+        let adminUser;
+        let profile;
+        let userToken;
 
         beforeEach(() => {
             options = {
@@ -3302,29 +3318,114 @@ describe('pipeline plugin test', () => {
                     strategy: ['token']
                 }
             };
-            userMock = getUserMock({ username, scmContext });
-            userMock.getPermissions.withArgs(scmUri).resolves({ admin: true });
-            userFactoryMock.get.withArgs({ username, scmContext }).resolves(userMock);
             pipelineMock = getPipelineMocks(testPipeline);
-            pipelineMock.getFirstAdmin.resolves({
-                username: 'abc'
-            });
+            adminUser = {
+                username: 'abc',
+                scmContext
+            };
+            pipelineMock.getFirstAdmin.resolves(adminUser);
             pipelineMock.tokens = Promise.resolve(getTokenMocks([token]));
             pipelineFactoryMock.get.withArgs(id).resolves(pipelineMock);
+            profile = {
+                username: adminUser.username,
+                scmContext: adminUser.scmContext,
+                scope: ['user']
+            };
+            userToken = 'some-user-token';
+
+            generateProfileMock.returns(profile);
+            generateTokenMock.returns(userToken);
         });
         it('returns 200 with admin info for a pipeline', () =>
             server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 200);
                 const res = JSON.parse(reply.payload);
 
-                assert.equal(res.username, 'abc');
+                assert.deepEqual(res, adminUser);
+                assert.callCount(generateProfileMock, 0);
+                assert.callCount(generateTokenMock, 0);
             }));
-        it('returns 404 when pipeline has  no admin', () => {
+        it('returns 200 with admin info for a pipeline and specified scmContext', () => {
+            adminUser.scmContext = differentScmContext;
+            options.url = `/pipelines/${id}/admin?scmContext=${differentScmContext}`;
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 200);
+                const res = JSON.parse(reply.payload);
+
+                assert.deepEqual(res, adminUser);
+                assert.calledWith(pipelineMock.getFirstAdmin, {
+                    scmContext: differentScmContext
+                });
+                assert.callCount(generateProfileMock, 0);
+                assert.callCount(generateTokenMock, 0);
+            });
+        });
+        it('returns 200 with admin info along with user token for a pipeline when requested by SD admin', () => {
+            options.auth.credentials.scope.push('admin');
+            options.url = `/pipelines/${id}/admin?includeUserToken=true`;
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 200);
+                const res = JSON.parse(reply.payload);
+
+                assert.deepEqual(res, { ...adminUser, userToken });
+                assert.calledWith(generateProfileMock, {
+                    username: adminUser.username,
+                    scmContext: adminUser.scmContext,
+                    scope: ['user']
+                });
+                assert.calledWith(generateTokenMock, profile);
+            });
+        });
+        it('returns 200 with admin info with out user token for a pipeline when requested by SD admin', () => {
+            options.auth.credentials.scope.push('admin');
+            options.url = `/pipelines/${id}/admin?includeUserToken=false`;
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 200);
+                const res = JSON.parse(reply.payload);
+
+                assert.deepEqual(res, adminUser);
+                assert.callCount(generateProfileMock, 0);
+                assert.callCount(generateTokenMock, 0);
+            });
+        });
+        it('returns 403 when non SD admin requests for pipeline admin along with user token', () => {
+            options.url = `/pipelines/${id}/admin?includeUserToken=true`;
+
+            return server.inject(options).then(reply => {
+                const res = JSON.parse(reply.payload);
+
+                assert.equal(reply.statusCode, 403);
+                assert.equal(res.message, 'Only Screwdriver admin is allowed to request user token');
+
+                assert.callCount(pipelineFactoryMock.get, 0);
+                assert.callCount(pipelineMock.getFirstAdmin, 0);
+                assert.callCount(generateProfileMock, 0);
+                assert.callCount(generateTokenMock, 0);
+            });
+        });
+        it('returns 404 when pipeline has no admin', () => {
             pipelineMock.getFirstAdmin.rejects(new Error('Pipeline has no admin'));
             pipelineFactoryMock.get.withArgs(id).resolves(pipelineMock);
 
             return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 404);
+            });
+        });
+        it('returns 404 when pipeline has no admin for the specified scmContext', () => {
+            const errMsg = `Pipeline has no admins from the scmContext ${differentScmContext}`;
+
+            options.url = `/pipelines/${id}/admin?scmContext=${differentScmContext}`;
+            pipelineMock.getFirstAdmin.withArgs({ scmContext: differentScmContext }).rejects(new Error(errMsg));
+            pipelineFactoryMock.get.withArgs(id).resolves(pipelineMock);
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 404);
+                assert.calledWith(pipelineMock.getFirstAdmin, {
+                    scmContext: differentScmContext
+                });
             });
         });
         it('returns 500 when datastore fails', () => {
