@@ -57,7 +57,7 @@ module.exports = config => ({
                         'baseBranch'
                     ],
                     paginate: {
-                        count: 100
+                        count: 100 // Set a large value for LIMIT so that the efficient index is used in SQL.
                     },
                     sort: 'descending',
                     sortBy: 'createTime'
