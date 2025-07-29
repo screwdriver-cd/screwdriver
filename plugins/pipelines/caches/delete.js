@@ -48,7 +48,7 @@ module.exports = () => ({
             const scmUri = await getScmUri({ pipeline, pipelineFactory });
 
             // Check the user's permission
-            await getUserPermissions({ user, scmUri });
+            await getUserPermissions({ user, scmUri, level: 'push' });
 
             const res = await api.invoke(request);
             const statusCode = res.statusCode === 200 ? 204 : res.statusCode;
