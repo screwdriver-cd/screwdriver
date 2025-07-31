@@ -23,11 +23,12 @@ function resolveOrg(orgNamePlaceholder, context) {
 
     if (orgName === 'repo_org') {
         return context.repoOrg;
-    } else if (orgName === 'forked_org') {
-        return context.forkedOrg;
-    } else {
-        return orgName;
     }
+    if (orgName === 'forked_org') {
+        return context.forkedOrg;
+    }
+
+    return orgName;
 }
 
 Before(
