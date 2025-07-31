@@ -10,6 +10,14 @@ const TIMEOUT = 240 * 1000;
 
 disableRunScenarioInParallel();
 
+/**
+ * Resolves an organization placeholder (e.g., "<repo_org>", "<forked_org>")
+ * into the actual organization name using the test context.
+ *
+ * @param  {string} orgNamePlaceholder The placeholder string for the organization name
+ * @param  {object} The Cucumber World context (`this`)
+ * @return {string} The resolved organization name as a plain string.
+ */
 function resolveOrg(orgNamePlaceholder, context) {
     const orgName = orgNamePlaceholder.replace(/^<|>$/g, '');
 
@@ -17,8 +25,9 @@ function resolveOrg(orgNamePlaceholder, context) {
         return context.repoOrg;
     } else if (orgName === 'forked_org') {
         return context.forkedOrg;
+    } else {
+        return orgName;
     }
-    return orgName;
 }
 
 Before(
