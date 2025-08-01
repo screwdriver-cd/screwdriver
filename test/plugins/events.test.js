@@ -560,15 +560,19 @@ describe('event plugin test', () => {
             delete options.payload.parentBuildId;
             delete eventConfig.parentBuildId;
 
-            eventMock.builds = getBuildMocks(testBuilds);
+            eventMock.builds = [getBuildMocks(testBuilds)[0], getBuildMocks(testBuilds)[1]];
             eventMock.builds.forEach(b => {
                 b.eventId = eventMock.id;
             });
             eventMock.getBuilds = sinon.stub().returns(testBuilds);
+            eventMock.workflowGraph.nodes[2].virtual = true;
 
-            const virtualBuildMock = eventMock.builds[4];
+            const virtualBuildMock = eventMock.builds[0];
+            const nonVirtualBuildMock = eventMock.builds[1];
 
             virtualBuildMock.status = 'CREATED';
+            nonVirtualBuildMock.status = 'CREATED';
+            nonVirtualBuildMock.jobId = 1235;
 
             const virtualJobMock = {
                 id: virtualBuildMock.jobId,
