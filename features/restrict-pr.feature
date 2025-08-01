@@ -24,12 +24,12 @@ Feature: Restrict-pr
             And an existing pipeline with the source directory "all" and with the workflow jobs:
             | job           | requires          |
             | main          | ~pr               |
-        When a branch is created for test_branch on "screwdriver-cd-test" organization
+        When a branch is created for test_branch on "<repo_org>" organization
             And a new file is added to the "none" directory
             And a new file is added to the "fork" directory
             And a new file is added to the "branch" directory
             And a new file is added to the "all" directory
-            And a pull request is opened from the "screwdriver-cd-test" organization
+            And a pull request is opened from the "<repo_org>" organization
         Then the PR job of "none" is triggered because it is not restricted
             And the PR job of "fork" is triggered because it is not restricted
             And the PR job of "branch" is not triggered because it is restricted
@@ -48,12 +48,12 @@ Feature: Restrict-pr
             And an existing pipeline with the source directory "all" and with the workflow jobs:
             | job           | requires          |
             | main          | ~pr               |
-        When a branch is created for test_branch on "screwdriver-cd" organization
+        When a branch is created for test_branch on "<forked_org>" organization
             And a new file is added to the "none" directory
             And a new file is added to the "fork" directory
             And a new file is added to the "branch" directory
             And a new file is added to the "all" directory
-            And a pull request is opened from the "screwdriver-cd" organization
+            And a pull request is opened from the "<forked_org>" organization
         Then the PR job of "none" is triggered because it is not restricted
             And the PR job of "branch" is triggered because it is not restricted
             And the PR job of "fork" is not triggered because it is restricted

@@ -216,7 +216,8 @@ function CustomWorld({ attach, parameters }) {
     this.apiToken = process.env.SD_API_TOKEN;
     this.protocol = process.env.SD_API_PROTOCOL || 'https';
     this.instance = `${this.protocol}://${process.env.SD_API_HOST}`;
-    this.testOrg = process.env.TEST_ORG;
+    this.testOrg = process.env.TEST_ORG || 'screwdriver-cd-test';
+    this.testOrgSub = process.env.TEST_ORG_SUB || 'screwdriver-cd';
     this.username = process.env.TEST_USERNAME;
     this.scmHostname = process.env.TEST_SCM_HOSTNAME || 'github.com';
     this.scmContext = process.env.TEST_SCM_CONTEXT || 'github';
