@@ -19,11 +19,18 @@
         "nodes": [
             { "name": "~pr" },
             { "name": "~commit" },
-            { "name": "main",
+            {
+                "name": "main",
                 "id": 1234
             },
-            { "name": "publish" },
-            { "name": "beta" }
+            {
+                "name": "publish",
+                "id": 1235
+            },
+            {
+                "name": "beta",
+                "id": 1236
+            }
         ],
         "edges": [
             { "src": "~commit", "dest": "main" },
