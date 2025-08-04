@@ -300,6 +300,7 @@ Then(
 
                 Assert.oneOf(build.status, ['QUEUED', 'RUNNING', 'SUCCESS']);
                 this.jobId = build.jobId;
+                this.buildId = build.id;
             });
     }
 );
