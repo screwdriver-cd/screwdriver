@@ -172,10 +172,12 @@ module.exports = () => ({
                     const newBadges = {};
 
                     Object.keys(oldPipeline.badges).forEach(badgeKey => {
-                        newBadges[badgeKey] = {
-                            ...oldPipeline.badges[badgeKey],
-                            ...badges[badgeKey]
-                        };
+                        if (badges[badgeKey] && Object.keys(badges[badgeKey]).length > 0) {
+                            newBadges[badgeKey] = {
+                                ...oldPipeline.badges[badgeKey],
+                                ...badges[badgeKey]
+                            };
+                        }
                     });
 
                     oldPipeline.badges = newBadges;

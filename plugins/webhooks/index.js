@@ -72,11 +72,11 @@ const webhooksPlugin = {
 
                     try {
                         let size = 0;
-                        let data = '';
+                        const chunks = [];
 
                         for await (const chunk of request.payload) {
                             size += chunk.length;
-                            data += chunk;
+                            chunks.push(chunk);
                             if (size > DEFAULT_MAX_BYTES) {
                                 throw boom.entityTooLarge(
                                     `Payload size exceeds the maximum limit of ${DEFAULT_MAX_BYTES} bytes`
@@ -84,6 +84,7 @@ const webhooksPlugin = {
                             }
                         }
 
+                        const data = Buffer.concat(chunks).toString();
                         let parsedPayload;
 
                         try {
