@@ -19,7 +19,7 @@ Before(
         this.jwt = null;
         this.image = null;
         this.command = null;
-        this.commandNamespace = 'screwdriver-cd-test';
+        this.commandNamespace = this.testOrg;
 
         this.startJob = jobName => {
             return this.ensurePipelineExists({
