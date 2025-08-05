@@ -16,7 +16,7 @@ Before(
     function hook() {
         this.repoOrg = this.testOrg;
         this.repoName = 'functional-template';
-        this.templateNamespace = 'screwdriver-cd-test';
+        this.templateNamespace = this.testOrg;
         this.branchName = 'master';
         this.pipelineId = null;
         this.jwt = null;

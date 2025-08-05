@@ -10,6 +10,27 @@ const TIMEOUT = 240 * 1000;
 
 disableRunScenarioInParallel();
 
+/**
+ * Resolves an organization placeholder (e.g., "<repo_org>", "<forked_org>")
+ * into the actual organization name using the test context.
+ *
+ * @param  {string} orgNamePlaceholder The placeholder string for the organization name
+ * @param  {object} The Cucumber World context (`this`)
+ * @return {string} The resolved organization name as a plain string.
+ */
+function resolveOrg(orgNamePlaceholder, context) {
+    const orgName = orgNamePlaceholder.replace(/^<|>$/g, '');
+
+    if (orgName === 'repo_org') {
+        return context.repoOrg;
+    }
+    if (orgName === 'forked_org') {
+        return context.forkedOrg;
+    }
+
+    return orgName;
+}
+
 Before(
     {
         tags: '@restrict-pr'
@@ -17,6 +38,7 @@ Before(
     function hook() {
         this.repoName = 'functional-restrict-pr';
         this.repoOrg = this.testOrg;
+        this.forkedOrg = this.testOrgSub;
         this.targetBranch = 'master';
         this.sourceOrg = null;
         this.sourceBranch = null;
@@ -51,10 +73,10 @@ When(
     {
         timeout: TIMEOUT
     },
-    async function step(sourceOrg) {
+    async function step(orgNamePlaceholder) {
         const sourceBranch = 'test-branch-PR';
 
-        this.sourceOrg = sourceOrg;
+        this.sourceOrg = resolveOrg(orgNamePlaceholder, this);
         this.sourceBranch = sourceBranch;
 
         await github
@@ -84,9 +106,11 @@ When(
     {
         timeout: TIMEOUT
     },
-    async function step(sourceOrg) {
+    async function step(orgNamePlaceholder) {
+        this.sourceOrg = resolveOrg(orgNamePlaceholder, this);
+
         await github
-            .createPullRequest(`${sourceOrg}:${this.sourceBranch}`, this.targetBranch, this.repoOrg, this.repoName)
+            .createPullRequest(`${this.sourceOrg}:${this.sourceBranch}`, this.targetBranch, this.repoOrg, this.repoName)
             .then(({ data }) => {
                 this.pullRequestNumber = data.number;
             })
