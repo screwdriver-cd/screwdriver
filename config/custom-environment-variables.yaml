@@ -386,7 +386,6 @@ webhooks:
     __name: WEBHOOK_SETTINGS
     __format: json
   maxBytes: WEBHOOK_MAX_BYTES
-  upperBound: WEBHOOK_UPPER_BOUND
 
 
 bookends:

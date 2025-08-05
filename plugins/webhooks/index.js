@@ -6,8 +6,7 @@ const boom = require('@hapi/boom');
 const { ValidationError } = require('joi');
 const { startHookEvent } = require('./helper');
 
-const DEFAULT_MAX_BYTES = 1048576;
-const MAX_BYTES_UPPER_BOUND = 5242880; // 5MB
+const DEFAULT_MAX_BYTES = 1048576; // 1MB
 const providerSchema = joi
     .object({
         username: joi.string().required(),
@@ -59,7 +58,7 @@ const webhooksPlugin = {
                     }
                 },
                 payload: {
-                    maxBytes: parseInt(pluginOptions.upperBound, 10) || MAX_BYTES_UPPER_BOUND,
+                    maxBytes: parseInt(pluginOptions.maxBytes, 10) || DEFAULT_MAX_BYTES,
                     parse: false,
                     output: 'stream'
                 },
@@ -68,21 +67,13 @@ const webhooksPlugin = {
                     const { scm } = pipelineFactory;
                     const { executor, queueWebhookEnabled } = queueWebhook;
                     const message = 'Unable to process this kind of event';
-                    const hookMaxBytes = parseInt(pluginOptions.maxBytes, 10) || DEFAULT_MAX_BYTES;
                     let hookId;
 
                     try {
-                        let size = 0;
                         const chunks = [];
 
                         for await (const chunk of request.payload) {
-                            size += chunk.length;
                             chunks.push(chunk);
-                            if (size > hookMaxBytes) {
-                                throw boom.entityTooLarge(
-                                    `Payload size exceeds the maximum limit of ${DEFAULT_MAX_BYTES} bytes`
-                                );
-                            }
                         }
 
                         const data = Buffer.concat(chunks).toString();

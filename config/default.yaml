@@ -311,7 +311,6 @@ webhooks:
     # }
   # Upper limit on incoming uploads to builds
   maxBytes: 1048576 # 1MB
-  upperBound: 5242880 # 5MB
 coverage:
   default: "false"
   plugin: sonar

@@ -273,16 +273,6 @@ describe('webhooks plugin test', () => {
             });
         });
 
-        it('returns 413 when payload size exceeds the default maximum limit', () => {
-            pipelineFactoryMock.scm.parseHook.resolves(parsed);
-            options.payload = Buffer.alloc(1048590);
-
-            return server.inject(options).then(reply => {
-                assert.equal(reply.statusCode, 413);
-                assert.include(reply.result.message, 'Payload size exceeds the maximum limit of 1048576 bytes');
-            });
-        });
-
         it('returns 500 when webhook settings not found for scm context', () => {
             pipelineFactoryMock.scm.getScmContexts.returns(['github:unknown.com']);
             pipelineFactoryMock.scm.parseHook.resolves(parsed);
