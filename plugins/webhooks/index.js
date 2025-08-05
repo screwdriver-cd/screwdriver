@@ -41,7 +41,7 @@ const webhooksPlugin = {
     name: 'webhooks',
     async register(server, options) {
         const pluginOptions = joi.attempt(
-            options,
+            options.scms,
             joi.object().pattern(joi.string(), providerSchema).min(1).required(),
             'Invalid config for plugin-webhooks'
         );
@@ -59,7 +59,7 @@ const webhooksPlugin = {
                     }
                 },
                 payload: {
-                    maxBytes: MAX_BYTES_UPPER_BOUND,
+                    maxBytes: parseInt(pluginOptions.upperBound, 10) || MAX_BYTES_UPPER_BOUND,
                     parse: false,
                     output: 'stream'
                 },
@@ -68,6 +68,7 @@ const webhooksPlugin = {
                     const { scm } = pipelineFactory;
                     const { executor, queueWebhookEnabled } = queueWebhook;
                     const message = 'Unable to process this kind of event';
+                    const hookMaxBytes = parseInt(pluginOptions.maxBytes, 10) || DEFAULT_MAX_BYTES;
                     let hookId;
 
                     try {
@@ -77,7 +78,7 @@ const webhooksPlugin = {
                         for await (const chunk of request.payload) {
                             size += chunk.length;
                             chunks.push(chunk);
-                            if (size > DEFAULT_MAX_BYTES) {
+                            if (size > hookMaxBytes) {
                                 throw boom.entityTooLarge(
                                     `Payload size exceeds the maximum limit of ${DEFAULT_MAX_BYTES} bytes`
                                 );

@@ -69,12 +69,14 @@ describe('webhooks plugin test', () => {
         await server.register({
             plugin,
             options: {
-                'github:github.com': {
-                    username: 'sd-buildbot',
-                    ignoreCommitsBy: ['batman', 'superman'],
-                    restrictPR: 'fork',
-                    chainPR: false,
-                    maxBytes: 10
+                scms: {
+                    'github:github.com': {
+                        username: 'sd-buildbot',
+                        ignoreCommitsBy: ['batman', 'superman'],
+                        restrictPR: 'fork',
+                        chainPR: false,
+                        maxBytes: 10
+                    }
                 }
             }
         });
