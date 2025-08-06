@@ -14,6 +14,7 @@ const testBuildWithSteps = require('./data/buildWithSteps.json');
 const testBuildsStatuses = require('./data/buildsStatuses.json');
 const testSecrets = require('./data/secrets.json');
 const testWorkflowGraphWithStages = require('./data/workflowGraphWithStages.json');
+const testWorkflowGraphWithVirtualTeardown = require('./data/workflowGraphWithVirtualTeardown.json');
 const testManifest = fs.readFileSync(`${__dirname}/data/manifest.txt`);
 const rewireBuildsIndex = rewire('../../plugins/builds/triggers/helpers.js');
 /* eslint-disable no-underscore-dangle */
@@ -42,7 +43,8 @@ const decorateBuildObject = build => {
             },
             start: sinon.stub().resolves({})
         }),
-        start: sinon.stub().resolves()
+        start: sinon.stub().resolves(),
+        initMeta: sinon.stub().resolves()
     };
 
     decorated.update = sinon.stub().resolves(updatedBuild);
@@ -54,6 +56,7 @@ const decorateBuildObject = build => {
     decorated.toJsonWithSteps = sinon.stub().resolves(build);
     decorated.secrets = Promise.resolve(testSecrets.map(decorateSecretObject));
     decorated.remove = sinon.stub().resolves(null);
+    decorated.initMeta = sinon.stub().resolves();
 
     return decorated;
 };
@@ -2031,6 +2034,7 @@ describe('build plugin test', () => {
                     testBuild.status = 'CREATED';
                     buildMock = getBuildMock(testBuild);
                     buildFactoryMock.get.withArgs({ eventId: '8888', jobId: 1234 }).resolves(buildMock);
+                    stageBuildMock.update.resolves(stageBuildMock);
 
                     return server.inject(options).then(reply => {
                         assert.equal(reply.statusCode, 200);
@@ -2101,6 +2105,7 @@ describe('build plugin test', () => {
                     eventFactoryMock.get.resolves(eventMock);
                     stageFactoryMock.get.resolves(stageMock);
                     stageBuildFactoryMock.get.resolves(stageBuildMock);
+                    stageBuildMock.update.resolves(stageBuildMock);
 
                     return server.inject(options).then(reply => {
                         assert.equal(reply.statusCode, 200);
@@ -2168,6 +2173,7 @@ describe('build plugin test', () => {
                     eventFactoryMock.get.resolves(eventMock);
                     stageFactoryMock.get.resolves(stageMock);
                     stageBuildFactoryMock.get.resolves(stageBuildMock);
+                    stageBuildMock.update.resolves(stageBuildMock);
                     testBuild.status = 'CREATED';
                     buildMock = getBuildMock(testBuild);
                     buildFactoryMock.get.withArgs({ eventId: '8888', jobId: 1234 }).resolves(buildMock);
@@ -2176,6 +2182,87 @@ describe('build plugin test', () => {
                         assert.equal(reply.statusCode, 200);
                         assert.notCalled(buildFactoryMock.create);
                         assert.notCalled(stageBuildFactoryMock.create);
+                    });
+                });
+
+                it('triggers next job in the stage workflow if next build is stage teardown', () => {
+                    const stageBuildMock = {
+                        id: 1,
+                        stageId: 1,
+                        update: sinon.stub().resolves(),
+                        status: 'RUNNING'
+                    };
+                    const status = 'SUCCESS';
+                    const options = {
+                        method: 'PUT',
+                        url: `/builds/${id}`,
+                        auth: {
+                            credentials: {
+                                username: id,
+                                scope: ['build']
+                            },
+                            strategy: ['token']
+                        },
+                        payload: {
+                            status
+                        }
+                    };
+
+                    const currentJobMock = {
+                        id: 1234,
+                        name: 'alpha-certify',
+                        pipelineId,
+                        permutations: [{}],
+                        pipeline: sinon.stub().resolves(pipelineMock)(),
+                        getLatestBuild: sinon.stub().resolves(buildMock)
+                    };
+                    const teardownJobMock = {
+                        id: 1235,
+                        name: 'stage@alpha:teardown',
+                        pipelineId,
+                        permutations: [{}],
+                        pipeline: sinon.stub().resolves(pipelineMock)(),
+                        getLatestBuild: sinon.stub().resolves(buildMock)
+                    };
+
+                    buildMock.job = sinon.stub().resolves(currentJobMock)();
+                    buildMock.parentBuilds = { 123: { eventId: '8888', jobs: { 'alpha-test': 7777 } } };
+                    eventMock.getBuilds.resolves([
+                        {
+                            id: 1,
+                            eventId: '8888',
+                            jobId: 1,
+                            status: 'FAILURE'
+                        },
+                        {
+                            id: 7777,
+                            eventId: '8888',
+                            jobId: 4,
+                            status: 'SUCCESS'
+                        }
+                    ]);
+
+                    jobFactoryMock.get
+                        .withArgs({ pipelineId: 123, name: 'stage@alpha:teardown' })
+                        .resolves(teardownJobMock);
+                    eventMock.workflowGraph = testWorkflowGraphWithVirtualTeardown;
+                    eventFactoryMock.get.resolves(eventMock);
+                    stageFactoryMock.get.resolves(stageMock);
+                    stageBuildFactoryMock.get.resolves(stageBuildMock);
+                    stageBuildMock.update.resolves(stageBuildMock);
+                    testBuild.status = 'CREATED';
+                    testBuild.initMeta = sinon.stub();
+                    buildMock = getBuildMock(testBuild);
+                    const teardownBuildMock = getBuildMock(testBuild);
+
+                    teardownBuildMock.status = 'CREATED';
+                    teardownBuildMock.update.resolves(teardownBuildMock);
+                    buildFactoryMock.get.withArgs({ eventId: '8888', jobId: 1234 }).resolves(buildMock);
+                    buildFactoryMock.get.withArgs({ eventId: '8888', jobId: 1235 }).resolves(teardownBuildMock);
+
+                    return server.inject(options).then(reply => {
+                        assert.equal(reply.statusCode, 200);
+                        assert.equal(stageBuildMock.status, 'SUCCESS');
                     });
                 });
 
@@ -2210,7 +2297,8 @@ describe('build plugin test', () => {
                     const stageTeardownBuildMock = {
                         status: 'CREATED',
                         start: sinon.stub().resolves(),
-                        update: sinon.stub().resolves()
+                        update: sinon.stub().resolves(),
+                        initMeta: sinon.stub().resolves()
                     };
 
                     stageTeardownBuildMock.update.resolves(stageTeardownBuildMock);
@@ -2250,6 +2338,7 @@ describe('build plugin test', () => {
                     eventFactoryMock.get.resolves(eventMock);
                     stageFactoryMock.get.resolves(stageMock);
                     stageBuildFactoryMock.get.resolves(stageBuildMock);
+                    stageBuildMock.update.resolves(stageBuildMock);
                     testBuild.status = 'FAILURE';
                     buildMock = getBuildMock(testBuild);
                     jobFactoryMock.get
@@ -5701,6 +5790,7 @@ describe('build plugin test', () => {
                     };
 
                     stageBuildFactoryMock.get.resolves(stageBuildMock);
+                    stageBuildMock.update.resolves(stageBuildMock);
 
                     // Current build and job
                     const buildAlphaTest = getBuildMock({
@@ -5847,6 +5937,7 @@ describe('build plugin test', () => {
                     };
 
                     stageBuildFactoryMock.get.resolves(stageBuildMock);
+                    stageBuildMock.update.resolves(stageBuildMock);
 
                     // Current build and job
                     const buildGammaTestFunctional = getBuildMock({
@@ -6007,6 +6098,7 @@ describe('build plugin test', () => {
                     buildFactoryMock.get.resolves(buildMock);
                     stageFactoryMock.get.resolves(stageMock);
                     stageBuildFactoryMock.get.resolves(stageBuildMock);
+                    stageBuildMock.update.resolves(stageBuildMock);
                     buildFactoryMock.list.resolves([buildMock]);
 
                     return newServer.inject(localOptions).then(() => {

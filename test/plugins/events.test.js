@@ -1475,7 +1475,9 @@ describe('event plugin test', () => {
                 assert.strictEqual(stageBuildMocks[2].status, 'ABORTED');
                 assert.calledOnce(stageBuildMocks[2].update);
 
+                assert.strictEqual(stageBuildMocks[3].status, 'SUCCESS');
                 assert.notCalled(stageBuildMocks[3].update);
+                assert.strictEqual(stageBuildMocks[4].status, 'FAILURE');
                 assert.notCalled(stageBuildMocks[4].update);
             });
         });
