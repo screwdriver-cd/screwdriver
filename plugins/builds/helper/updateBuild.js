@@ -284,12 +284,12 @@ function deriveEventStatusFromBuildStatuses(builds) {
  */
 async function updateStageBuildStatus({ stageBuild, newStatus, job }) {
     if (stageBuild.status === newStatus) {
-        return stageBuild.status;
+        return stageBuild;
     }
 
     // Not update when the stage build status is terminal
     if (TERMINAL_STATUSES.includes(stageBuild.status)) {
-        return stageBuild.status;
+        return stageBuild;
     }
 
     const isStageTeardown = STAGE_TEARDOWN_PATTERN.test(job.name);
