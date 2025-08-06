@@ -7,7 +7,7 @@ const { PR_JOB_NAME, PR_STAGE_NAME, STAGE_TEARDOWN_PATTERN } = require('screwdri
 const { getFullStageJobName } = require('../../helper');
 const { updateVirtualBuildSuccess } = require('../triggers/helpers');
 const TERMINAL_STATUSES = ['FAILURE', 'ABORTED', 'UNSTABLE', 'COLLAPSED'];
-const FINISHED_STATUSES = ['FAILURE', 'SUCCESS', 'ABORTED', 'UNSTABLE', 'COLLAPSED'];
+const FINISHED_STATUSES = ['SUCCESS', ...TERMINAL_STATUSES];
 
 /**
  * @typedef {import('screwdriver-models/lib/build')} Build
@@ -141,6 +141,35 @@ async function getStage({ stageFactory, workflowGraph, jobName, pipelineId }) {
 }
 
 /**
+ * Get stage build for current event
+ * @param {StageFactory} stageFactory Stage factory
+ * @param {StageBuildFactory} stageBuildFactory stage build factory
+ * @param {Object} workflowGraph workflow graph
+ * @param {String} jobName job name
+ * @param {Number} pipelineId pipeline id
+ * @param {Number} eventId event id
+ *
+ * @returns {StageBuild} stage build for current event
+ */
+async function getStageBuild({ stageFactory, stageBuildFactory, workflowGraph, jobName, pipelineId, eventId }) {
+    const stage = await getStage({
+        stageFactory,
+        workflowGraph,
+        jobName,
+        pipelineId
+    });
+
+    if (stage) {
+        return stageBuildFactory.get({
+            stageId: stage.id,
+            eventId
+        });
+    }
+
+    return null;
+}
+
+/**
  * Get all builds in stage
  *
  * @param  {Stage}             stage       Stage
@@ -242,6 +271,50 @@ function deriveEventStatusFromBuildStatuses(builds) {
 }
 
 /**
+ * Update stage build's status
+ * Stage build's status can transition as below
+ *   CREATED -> RUNNING -when all builds are succeeded-> SUCCESS
+ *                      -when some builds are terminated-> FAILURE, ABORTED, UNSTABLE, COLLAPSED
+ *
+ * @param {Object} param
+ * @param {StageBuild} param.stageBuild
+ * @param {String} param.newStatus
+ * @param {Job} param.job
+ * @returns {StageBuild} new stage build's status
+ */
+async function updateStageBuildStatus({ stageBuild, newStatus, job }) {
+    if (stageBuild.status === newStatus) {
+        return stageBuild;
+    }
+
+    // Not update when the stage build status is terminal
+    if (TERMINAL_STATUSES.includes(stageBuild.status)) {
+        return stageBuild;
+    }
+
+    const isStageTeardown = STAGE_TEARDOWN_PATTERN.test(job.name);
+    const intermediateStatuses = ['RUNNING', ...TERMINAL_STATUSES];
+    const teardownStatuses = ['RUNNING', ...FINISHED_STATUSES];
+
+    // It means all builds are succeeded if stage build status is not terminal when teardown build is done.
+    if (isStageTeardown && teardownStatuses.includes(newStatus)) {
+        stageBuild.status = newStatus;
+
+        return stageBuild.update();
+    }
+
+    // Stage build status can transition to terminated status in the intermediate builds.
+    // But not update to SUCCESS
+    if (!isStageTeardown && intermediateStatuses.includes(newStatus)) {
+        stageBuild.status = newStatus;
+
+        return stageBuild.update();
+    }
+
+    return stageBuild;
+}
+
+/**
  * Updates the build and trigger its downstream jobs in the workflow
  *
  * @method updateBuildAndTriggerDownstreamJobs
@@ -336,14 +409,9 @@ async function updateBuildAndTriggerDownstreamJobs(config, build, server, userna
             eventId: newEvent.id
         });
 
-        if (stageBuild.status !== newBuild.status) {
-            if (!TERMINAL_STATUSES.includes(stageBuild.status)) {
-                stageBuild.status = newBuild.status;
-                await stageBuild.update();
-            }
-        }
+        const newStageBuild = await updateStageBuildStatus({ stageBuild, newStatus: newBuild.status, job });
 
-        stageBuildHasFailure = TERMINAL_STATUSES.includes(stageBuild.status);
+        stageBuildHasFailure = TERMINAL_STATUSES.includes(newStageBuild.status);
     }
 
     // Guard against triggering non-successful or unstable builds
@@ -417,5 +485,7 @@ async function updateBuildAndTriggerDownstreamJobs(config, build, server, userna
 
 module.exports = {
     updateBuildAndTriggerDownstreamJobs,
-    deriveEventStatusFromBuildStatuses
+    deriveEventStatusFromBuildStatuses,
+    getStageBuild,
+    updateStageBuildStatus
 };

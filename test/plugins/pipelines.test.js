@@ -388,8 +388,8 @@ describe('pipeline plugin test', () => {
     });
 
     it('registers the plugin', () => {
-        assert.equal(server.registrations.pipelines.options.password, password);
         assert.isOk(server.registrations.pipelines);
+        assert.equal(server.registrations.pipelines.options.password, password);
     });
 
     describe('GET /pipelines', () => {
