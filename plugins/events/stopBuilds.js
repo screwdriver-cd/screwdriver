@@ -8,6 +8,7 @@ const schema = require('screwdriver-data-schema');
 const getSchema = schema.models.event.get;
 const idSchema = schema.models.event.base.extract('id');
 const { deriveEventStatusFromBuildStatuses } = require('../builds/helper/updateBuild');
+const nonTerminatedStatus = ['CREATED', 'RUNNING', 'QUEUED', 'BLOCKED', 'FROZEN'];
 
 module.exports = () => ({
     method: 'PUT',
@@ -78,25 +79,25 @@ module.exports = () => ({
 
             // User has good permissions, get event builds
             const builds = await event.getBuilds();
-            const toUpdate = [];
+            const toUpdateBuilds = [];
             const updatedBuilds = [];
 
             // Update endtime and stop running builds
             // Note: COLLAPSED builds will never run
             builds.forEach(b => {
-                if (['CREATED', 'RUNNING', 'QUEUED', 'BLOCKED', 'FROZEN'].includes(b.status)) {
+                if (nonTerminatedStatus.includes(b.status)) {
                     if (b.status === 'RUNNING') {
                         b.endTime = new Date().toISOString();
                     }
                     b.status = 'ABORTED';
                     b.statusMessage = `Aborted by ${username}`;
 
-                    toUpdate.push(b.update());
+                    toUpdateBuilds.push(b.update());
                 } else {
                     updatedBuilds.push(b);
                 }
             });
-            updatedBuilds.push(...(await Promise.all(toUpdate)));
+            updatedBuilds.push(...(await Promise.all(toUpdateBuilds)));
 
             const newEventStatus = deriveEventStatusFromBuildStatuses(updatedBuilds);
 
@@ -104,6 +105,19 @@ module.exports = () => ({
                 event.status = newEventStatus;
                 await event.update();
             }
+
+            // Update stageBuild status to ABORTED
+            const stageBuilds = await event.getStageBuilds();
+            const toUpdateStageBuilds = [];
+
+            stageBuilds.forEach(sb => {
+                if (nonTerminatedStatus.includes(sb.status)) {
+                    sb.status = 'ABORTED';
+                    toUpdateStageBuilds.push(sb.update());
+                }
+            });
+
+            await Promise.all(toUpdateStageBuilds);
 
             // everything succeeded, inform the user
             const location = urlLib.format({

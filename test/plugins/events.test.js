@@ -1356,6 +1356,7 @@ describe('event plugin test', () => {
         let expectedLocation;
         let builds;
         let event;
+        let stageBuilds;
         let options;
         let userMock;
 
@@ -1383,9 +1384,11 @@ describe('event plugin test', () => {
             pipelineFactoryMock.get.resolves(pipelineMock);
             event = getEventMock(testEvent);
             builds = getBuildMocks(testBuilds);
+            stageBuilds = getStageBuildMocks(testStageBuilds);
 
             eventFactoryMock.get.withArgs(id).resolves(event);
             event.getBuilds.resolves(builds);
+            event.getStageBuilds.resolves(stageBuilds);
 
             builds[2].update.resolves({ status: 'ABORTED' });
         });
@@ -1420,6 +1423,7 @@ describe('event plugin test', () => {
                 event = getEventMock(testEventPr);
                 eventFactoryMock.get.withArgs(id).resolves(event);
                 event.getBuilds.resolves(builds);
+                event.getStageBuilds.resolves(stageBuilds);
                 userMock = {
                     username: 'imbatman',
                     getPermissions: sinon.stub().resolves({ push: false })
@@ -1448,6 +1452,33 @@ describe('event plugin test', () => {
                 assert.equal(reply.statusCode, 200);
                 assert.calledOnce(event.update);
                 assert.strictEqual(event.status, 'ABORTED');
+            });
+        });
+
+        it('returns 200 and update event status to ABORTED', () => {
+            const stageBuildMocks = [
+                { status: 'RUNNING', update: sinon.stub().resolves() },
+                { status: 'QUEUED', update: sinon.stub().resolves() },
+                { status: 'CREATED', update: sinon.stub().resolves() },
+                { status: 'SUCCESS', update: sinon.stub().throws() },
+                { status: 'FAILURE', update: sinon.stub().throws() }
+            ];
+
+            event.getStageBuilds.resolves(stageBuildMocks);
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 200);
+                assert.strictEqual(stageBuildMocks[0].status, 'ABORTED');
+                assert.calledOnce(stageBuildMocks[0].update);
+                assert.strictEqual(stageBuildMocks[1].status, 'ABORTED');
+                assert.calledOnce(stageBuildMocks[1].update);
+                assert.strictEqual(stageBuildMocks[2].status, 'ABORTED');
+                assert.calledOnce(stageBuildMocks[2].update);
+
+                assert.strictEqual(stageBuildMocks[3].status, 'SUCCESS');
+                assert.notCalled(stageBuildMocks[3].update);
+                assert.strictEqual(stageBuildMocks[4].status, 'FAILURE');
+                assert.notCalled(stageBuildMocks[4].update);
             });
         });
 
