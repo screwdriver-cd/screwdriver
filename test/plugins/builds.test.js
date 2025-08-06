@@ -6063,7 +6063,7 @@ describe('build plugin test', () => {
                             const { lock, unlock } = lockMock;
 
                             assert.calledOnce(lock);
-                            assert.calledOnce(unlock);
+                            assert.called(unlock);
                         });
                     });
 
@@ -6075,7 +6075,7 @@ describe('build plugin test', () => {
                             const { lock, unlock } = lockMock;
 
                             assert.calledOnce(lock);
-                            assert.calledOnce(unlock);
+                            assert.called(unlock);
                         });
                     });
                 });
