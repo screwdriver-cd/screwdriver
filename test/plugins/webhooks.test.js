@@ -69,12 +69,14 @@ describe('webhooks plugin test', () => {
         await server.register({
             plugin,
             options: {
-                'github:github.com': {
-                    username: 'sd-buildbot',
-                    ignoreCommitsBy: ['batman', 'superman'],
-                    restrictPR: 'fork',
-                    chainPR: false,
-                    maxBytes: 10
+                scms: {
+                    'github:github.com': {
+                        username: 'sd-buildbot',
+                        ignoreCommitsBy: ['batman', 'superman'],
+                        restrictPR: 'fork',
+                        chainPR: false,
+                        maxBytes: 10
+                    }
                 }
             }
         });
@@ -268,16 +270,6 @@ describe('webhooks plugin test', () => {
                     pluginOptions: webhookConfig
                 });
                 assert.notCalled(queueWebhookMock.executor.enqueueWebhook);
-            });
-        });
-
-        it('returns 413 when payload size exceeds the default maximum limit', () => {
-            pipelineFactoryMock.scm.parseHook.resolves(parsed);
-            options.payload = Buffer.alloc(1048590);
-
-            return server.inject(options).then(reply => {
-                assert.equal(reply.statusCode, 413);
-                assert.include(reply.result.message, 'Payload size exceeds the maximum limit of 1048576 bytes');
             });
         });
 

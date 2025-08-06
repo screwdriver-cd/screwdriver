@@ -277,42 +277,40 @@ scms: {}
 #         accessToken: headlesstoken
 #         # SCM clone type (https or ssh)
 #         cloneType: https
-webhooks: 
-  github: 
-    # Obtains the SCM token for a given user. If a user does not have a valid SCM token registered with Screwdriver, it will use this user's token instead.
-    username: sd-buildbot
-    # Ignore commits made by these users
-    ignoreCommitsBy: []
-    # Restrict PR: all, none, branch, or fork
-    restrictPR: none
-    # Chain PR: true or false
-    chainPR: false
-    # Upper limit on incoming uploads to builds
-    maxBytes: 1048576 #1MB
-  # Object keyed by scm name with value webhook settings.
-  # Value of webhook settings is an object with the following properties:
-  # Example:
-  # {
-  #  "github:github.com": {
-  #   # Obtains the SCM token for a given user. If a user does not have a valid SCM token registered with Screwdriver, it will use this user's token instead.
-  #   "username": "sd-buildbot",
-  #   # Ignore commits made by these users
-  #   "ignoreCommitsBy": [],
-  #   # Restrict PR: all, none, branch, or fork
-  #   "restrictPR": "none",
-  #   # Chain PR: true or false
-  #   "chainPR": false,
-  #   # Upper limit on incoming uploads to builds
-  #   "maxBytes": 1048576 #1MB
-  #   },
-  #  "github.example.com": {
-  #     "username": "someuser",
-  #     "ignoreCommitsBy": ["someuser", "anotheruser"],
-  #     "restrictPR": "branch",
-  #     "chainPR": true,
-  #     "maxBytes": 2097152 #2MB
-  #   }
-  # }
+webhooks:
+  scms:
+    github:
+      # Obtains the SCM token for a given user. If a user does not have a valid SCM token registered with Screwdriver, it will use this user's token instead.
+      username: sd-buildbot
+      # Ignore commits made by these users
+      ignoreCommitsBy: []
+      # Restrict PR: all, none, branch, or fork
+      restrictPR: none
+      # Chain PR: true or false
+      chainPR: false
+    # Object keyed by scm name with value webhook settings.
+    # Value of webhook settings is an object with the following properties:
+    # Example:
+    # {
+    #  "github:github.com": {
+    #   # Obtains the SCM token for a given user. If a user does not have a valid SCM token registered with Screwdriver, it will use this user's token instead.
+    #   "username": "sd-buildbot",
+    #   # Ignore commits made by these users
+    #   "ignoreCommitsBy": [],
+    #   # Restrict PR: all, none, branch, or fork
+    #   "restrictPR": "none",
+    #   # Chain PR: true or false
+    #   "chainPR": false
+    #   },
+    #  "github.example.com": {
+    #     "username": "someuser",
+    #     "ignoreCommitsBy": ["someuser", "anotheruser"],
+    #     "restrictPR": "branch",
+    #     "chainPR": true
+    #   }
+    # }
+  # Upper limit on incoming uploads to builds
+  maxBytes: 1048576 # 1MB
 coverage:
   default: "false"
   plugin: sonar
