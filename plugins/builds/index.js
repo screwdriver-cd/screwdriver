@@ -101,8 +101,8 @@ async function triggerNextJobs(config, app) {
     for (const [nextJobName] of Object.entries(currentPipelineNextJobs)) {
         const nextJob = await getJob(nextJobName, currentPipeline.id, jobFactory);
         const node = currentEvent.workflowGraph.nodes.find(n => n.name === trimJobName(nextJobName));
-        const isNextJobVirtual = node.virtual || false;
-        const nextJobStageName = getNextJobStageName({ stageName: node.stageName, nextJobName });
+        const isNextJobVirtual = node && node.virtual === true;
+        const nextJobStageName = node ? getNextJobStageName({ stageName: node.stageName, nextJobName }) : null;
         const resource = `pipeline:${currentPipeline.id}:groupEvent:${currentEvent.groupEventId}`;
         let lock;
         let nextBuild;
