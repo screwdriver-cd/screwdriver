@@ -477,7 +477,8 @@ describe('startHookEvent test', () => {
             })
         };
         eventMock = {
-            id: 'bbf22a3808c19dc50777258a253805b14fb3ad8b'
+            id: 'bbf22a3808c19dc50777258a253805b14fb3ad8b',
+            workflowGraph
         };
         reqHeaders = {
             'x-github-event': 'notSupported',
