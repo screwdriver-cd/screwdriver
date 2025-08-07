@@ -349,7 +349,7 @@ describe('pipeline plugin test', () => {
             }
         };
 
-        server.register([
+        await server.register([
             { plugin: bannerMock },
             { plugin: authMock },
             {

@@ -172,7 +172,7 @@ describe('DELETE /pipelines/1234/caches', () => {
         pipelineFactoryMock.get.resolves(pipelineMock);
 
         userMock = getUserMock({ username, scmContext });
-        userMock.getPermissions.withArgs(scmUri).resolves({ admin: true });
+        userMock.getPermissions.withArgs(scmUri).resolves({ push: true });
         userFactoryMock.get.withArgs({ username, scmContext }).resolves(userMock);
     });
 
@@ -280,7 +280,7 @@ describe('DELETE /pipelines/1234/caches', () => {
                 assert.equal(reply.statusCode, 403);
                 const res = JSON.parse(reply.payload);
 
-                assert.equal(res.message, 'User testuser does not have admin permission for this repo');
+                assert.equal(res.message, 'User testuser does not have push permission for this repo');
             });
         });
     });
