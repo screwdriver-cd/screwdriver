@@ -20,16 +20,13 @@
             { "name": "~pr" },
             { "name": "~commit" },
             {
-                "name": "main",
-                "id": 1234
+                "name": "main"
             },
             {
-                "name": "publish",
-                "id": 1235
+                "name": "publish"
             },
             {
-                "name": "beta",
-                "id": 1236
+                "name": "beta"
             }
         ],
         "edges": [
