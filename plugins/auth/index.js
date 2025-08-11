@@ -230,6 +230,17 @@ const authPlugin = {
                             scmContext: user.scmContext,
                             scope: ['user']
                         };
+
+                        const scmDisplayName = scm.getDisplayName({ scmContext: profile.scmContext });
+                        const userDisplayName = pluginOptions.authCheckById
+                            ? `${scmDisplayName}:${profile.username}:${profile.scmUserId}`
+                            : `${scmDisplayName}:${profile.username}`;
+                        const admins = pluginOptions.authCheckById ? pluginOptions.sdAdmins : pluginOptions.admins;
+
+                        // Check admin
+                        if (admins.length > 0 && admins.includes(userDisplayName)) {
+                            profile.scope.push('admin');
+                        }
                     }
                     if (token.pipelineId) {
                         // if token has pipelineId then the token is for pipeline

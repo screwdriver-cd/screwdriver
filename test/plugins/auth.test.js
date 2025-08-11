@@ -175,7 +175,10 @@ describe('auth plugin test', () => {
                 oauthRedirectUri,
                 sameSite: false,
                 bell: scm.scms,
-                path: '/'
+                path: '/',
+                admins: ['github:batman', 'batman'],
+                sdAdmins: ['github:batman:1312'],
+                authCheckById: true
             }
         });
     });
@@ -1194,6 +1197,23 @@ describe('auth plugin test', () => {
                     scmUserId: 1315,
                     username: 'batman',
                     scope: ['user'],
+                    scmContext: 'github:github.com'
+                });
+            });
+        });
+
+        it('returns user signed token given an API access token for SD admin', () => {
+            tokenMock.userId = id;
+            scm.decorateAuthor.resolves({ id: 1312 });
+            collectionFactoryMock.list.resolves([[1], [2]]);
+
+            return server.inject({ url: `/auth/token?api_token=${apiKey}` }).then(reply => {
+                assert.equal(reply.statusCode, 200, 'Login route should be available');
+                assert.ok(reply.result.token, 'Token not returned');
+                expect(reply.result.token).to.be.a.jwt.and.deep.include({
+                    scmUserId: 1312,
+                    username: 'batman',
+                    scope: ['user', 'admin'],
                     scmContext: 'github:github.com'
                 });
             });
