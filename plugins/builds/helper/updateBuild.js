@@ -400,18 +400,19 @@ async function updateBuildAndTriggerDownstreamJobs(config, build, server, userna
         jobName: job.name,
         pipelineId: pipeline.id
     });
+    let stageBuild;
     const isStageTeardown = STAGE_TEARDOWN_PATTERN.test(job.name);
     let stageBuildHasFailure = false;
 
     if (stage) {
-        const stageBuild = await stageBuildFactory.get({
+        stageBuild = await stageBuildFactory.get({
             stageId: stage.id,
             eventId: newEvent.id
         });
 
-        const newStageBuild = await updateStageBuildStatus({ stageBuild, newStatus: newBuild.status, job });
+        stageBuild = await updateStageBuildStatus({ stageBuild, newStatus: newBuild.status, job });
 
-        stageBuildHasFailure = TERMINAL_STATUSES.includes(newStageBuild.status);
+        stageBuildHasFailure = TERMINAL_STATUSES.includes(stageBuild.status);
     }
 
     // Guard against triggering non-successful or unstable builds
@@ -461,6 +462,7 @@ async function updateBuildAndTriggerDownstreamJobs(config, build, server, userna
 
                 if (teardownNode && teardownNode.virtual) {
                     await updateVirtualBuildSuccess(stageTeardownBuild);
+                    await updateStageBuildStatus({ stageBuild, newStatus: 'SUCCESS', job: stageTeardownJob });
                 } else {
                     stageTeardownBuild.status = 'QUEUED';
 
