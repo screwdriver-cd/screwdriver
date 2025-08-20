@@ -7,7 +7,7 @@ const joi = require('joi');
 const schema = require('screwdriver-data-schema');
 const getSchema = schema.models.event.get;
 const idSchema = schema.models.event.base.extract('id');
-const { deriveEventStatusFromBuildStatuses } = require('../builds/helper/updateBuild');
+const { deriveEventStatusFromBuildStatuses, stopBuildsByEvent } = require('../builds/helper/updateBuild');
 const nonTerminatedStatus = ['CREATED', 'RUNNING', 'QUEUED', 'BLOCKED', 'FROZEN'];
 
 module.exports = () => ({
@@ -79,25 +79,13 @@ module.exports = () => ({
 
             // User has good permissions, get event builds
             const builds = await event.getBuilds();
-            const toUpdateBuilds = [];
-            const updatedBuilds = [];
 
             // Update endtime and stop running builds
             // Note: COLLAPSED builds will never run
-            builds.forEach(b => {
-                if (nonTerminatedStatus.includes(b.status)) {
-                    if (b.status === 'RUNNING') {
-                        b.endTime = new Date().toISOString();
-                    }
-                    b.status = 'ABORTED';
-                    b.statusMessage = `Aborted by ${username}`;
+            const statusMessage = `Aborted event by ${username}`;
 
-                    toUpdateBuilds.push(b.update());
-                } else {
-                    updatedBuilds.push(b);
-                }
-            });
-            updatedBuilds.push(...(await Promise.all(toUpdateBuilds)));
+            const { unchangedBuilds, changedBuilds } = stopBuildsByEvent(builds, statusMessage);
+            const updatedBuilds = [...unchangedBuilds, ...(await Promise.all(changedBuilds.map(b => b.update())))];
 
             const newEventStatus = deriveEventStatusFromBuildStatuses(updatedBuilds);
 
