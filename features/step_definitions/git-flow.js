@@ -1,7 +1,7 @@
 'use strict';
 
 const Assert = require('chai').assert;
-const { Before, Given, When, Then } = require('@cucumber/cucumber');
+const { Before, Given, When, Then, After } = require('@cucumber/cucumber');
 const request = require('screwdriver-request');
 const sdapi = require('../support/sdapi');
 const github = require('../support/github');
@@ -37,6 +37,21 @@ Before(
             })
             .then(() => github.cleanUpRepository(this.branch, this.tagList, this.repoOrg, this.repoName))
             .catch(() => Assert.fail('failed to clean up repository'));
+    }
+);
+
+After(
+    {
+        tags: '@gitflow',
+        timeout: TIMEOUT
+    },
+    async function hook() {
+        const PR_CLOSED_HOOK_WAIT = 10;
+
+        if (this.pullRequestNumber) {
+            await github.closePullRequest(this.repoOrg, this.repoName, this.pullRequestNumber);
+            await sdapi.promiseToWait(PR_CLOSED_HOOK_WAIT);
+        }
     }
 );
 
@@ -133,6 +148,10 @@ When(/^a pull request is opened$/, { timeout: TIMEOUT }, function step() {
 
 When(/^it is targeting the pipeline's branch$/, () => null);
 
+When(/^the pull request is merged$/, { timeout: TIMEOUT }, function step() {
+    return github.mergePullRequest(this.repoOrg, this.repoName, this.pullRequestNumber);
+});
+
 When(
     /^the pull request is closed$/,
     {
@@ -196,6 +215,7 @@ When(/^a new Skip CI commit is pushed against the pipeline's branch$/, { timeout
         .createFile(this.testBranch, this.repoOrg, this.repoName, undefined, commitMessage)
         .then(({ data }) => {
             this.sha = data.commit.sha;
+            this.latestSha = data.commit.sha;
         });
 });
 
@@ -301,6 +321,7 @@ Then(
                 Assert.oneOf(build.status, ['QUEUED', 'RUNNING', 'SUCCESS']);
                 this.jobId = build.jobId;
                 this.buildId = build.id;
+                this.eventId = build.eventId;
             });
     }
 );
@@ -328,6 +349,59 @@ Then(
                     Assert.equal(targetBuilds.length, 0);
                 });
         });
+    }
+);
+
+Then(
+    /^a new build from "([^"]+)" should be created on the latest sha$/,
+    {
+        timeout: TIMEOUT
+    },
+    function step(job) {
+        return sdapi
+            .searchForBuild({
+                instance: this.instance,
+                pipelineId: this.pipelineId,
+                desiredSha: this.latestSha,
+                desiredStatus: ['QUEUED', 'RUNNING', 'SUCCESS'],
+                jwt: this.jwt,
+                jobName: job
+            })
+            .then(data => {
+                const build = data;
+
+                Assert.oneOf(build.status, ['QUEUED', 'RUNNING', 'SUCCESS']);
+                this.buildId = build.id;
+                this.jobId = build.jobId;
+                this.eventId = build.eventId;
+            });
+    }
+);
+
+Then(
+    /^a new build from "([^"]+)" should not be created on the latest sha$/,
+    {
+        timeout: TIMEOUT
+    },
+    function step(job) {
+        const WAIT_TIME = 10; // Wait 10s.
+
+        return sdapi
+            .promiseToWait(WAIT_TIME)
+            .then(() =>
+                sdapi.findBuilds({
+                    instance: this.instance,
+                    pipelineId: this.pipelineId,
+                    jobName: job,
+                    jwt: this.jwt
+                })
+            )
+            .then(response => {
+                const builds = response.body;
+                const targetBuilds = builds.filter(build => build.sha === this.latestSha);
+
+                Assert.equal(targetBuilds.length, 0);
+            });
     }
 );
 
@@ -359,5 +433,23 @@ Then(
 Then(/^the GitHub status should be updated to reflect the build's status$/, function step() {
     return github.getStatus(this.repoOrg, this.repoName, this.sha).then(({ data }) => {
         data.statuses.forEach(status => Assert.oneOf(status.state, ['success', 'pending']));
+    });
+});
+
+Then(/^the build should have a metadata for a (closed|merged) pr/, function step(state) {
+    return request({
+        method: 'GET',
+        url: `${this.instance}/${this.namespace}/events/${this.eventId}`,
+        context: {
+            token: this.jwt
+        }
+    }).then(response => {
+        Assert.strictEqual(response.statusCode, 200);
+
+        const { meta } = response.body;
+
+        Assert.exists(meta.sd.pr.name);
+        Assert.equal(meta.sd.pr.merged, state === 'merged');
+        Assert.equal(meta.sd.pr.number, this.pullRequestNumber);
     });
 });
