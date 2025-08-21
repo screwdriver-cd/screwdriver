@@ -31,9 +31,23 @@ Feature: Git Flow
         Then a new build from "main" should be created to test that change
 
     Scenario: Closed Pull Request
+        When a new Skip CI commit is pushed against the pipeline's branch
         And an existing pull request targeting the pipeline's branch
-        When the pull request is closed
+        And the pull request is closed
         Then any existing builds should be stopped
+        And a new build from "closed-trigger" should be created on the latest sha
+        And the build succeeded
+        And the build should have a metadata for a closed pr
+        And a new build from "branch-specific-closed-trigger" should not be created on the latest sha
+
+    Scenario: Closed Pull Request Targeting Specific Branch
+        When a new Skip CI commit is pushed against the pipeline's branch
+        And a pull request is opened to "pr-closed-trigger" branch
+        And the pull request is merged
+        Then a new build from "branch-specific-closed-trigger" should be created on the latest sha
+        And the build succeeded
+        And the build should have a metadata for a merged pr
+        And a new build from "closed-trigger" should not be created on the latest sha
 
     Scenario: New Commit
         When a new commit is pushed against the pipeline's branch
