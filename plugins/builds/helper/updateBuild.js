@@ -8,7 +8,7 @@ const { getFullStageJobName } = require('../../helper');
 const { updateVirtualBuildSuccess } = require('../triggers/helpers');
 const TERMINAL_STATUSES = ['FAILURE', 'ABORTED', 'UNSTABLE', 'COLLAPSED'];
 const FINISHED_STATUSES = ['SUCCESS', ...TERMINAL_STATUSES];
-const nonTerminatedStatus = ['CREATED', 'RUNNING', 'QUEUED', 'BLOCKED', 'FROZEN'];
+const NON_TERMINATED_STATUSES = ['CREATED', 'RUNNING', 'QUEUED', 'BLOCKED', 'FROZEN'];
 
 /**
  * @typedef {import('screwdriver-models/lib/build')} Build
@@ -33,18 +33,18 @@ function getEventAbortedStatusMessage(builds) {
 }
 
 /**
- * Stop builds in the event when the event is stopped manually
+ * Stop builds and set status message
  *
- * @method stopBuildsByEvent
+ * @method stopBuilds
  * @param  {String}         statusMessage       Build status message
  * @param  {Build[]}        builds              Build Array
  */
-function stopBuildsByEvent(builds, statusMessage) {
+function stopBuilds(builds, statusMessage) {
     const unchangedBuilds = [];
     const changedBuilds = [];
 
     for (const build of builds) {
-        if (nonTerminatedStatus.includes(build.status)) {
+        if (NON_TERMINATED_STATUSES.includes(build.status)) {
             if (build.status === 'RUNNING') {
                 build.endTime = new Date().toISOString();
             }
@@ -539,7 +539,7 @@ async function updateBuildAndTriggerDownstreamJobs(config, build, server, userna
     const eventAbortedStatusMessage = getEventAbortedStatusMessage(latestBuilds);
 
     if (eventAbortedStatusMessage) {
-        const { unchangedBuilds, changedBuilds } = stopBuildsByEvent(latestBuilds, eventAbortedStatusMessage);
+        const { unchangedBuilds, changedBuilds } = stopBuilds(latestBuilds, eventAbortedStatusMessage);
 
         updatedBuilds = [...unchangedBuilds, ...(await Promise.all(changedBuilds.map(b => b.update())))];
     }
@@ -555,7 +555,7 @@ async function updateBuildAndTriggerDownstreamJobs(config, build, server, userna
 }
 
 module.exports = {
-    stopBuildsByEvent,
+    stopBuilds,
     updateBuildAndTriggerDownstreamJobs,
     deriveEventStatusFromBuildStatuses,
     getStageBuild,
