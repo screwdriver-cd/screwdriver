@@ -1491,11 +1491,18 @@ describe('event plugin test', () => {
         it('returns 200 and stops all event builds', () =>
             server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 200);
+                assert.strictEqual(builds[2].status, 'ABORTED');
+                assert.strictEqual(builds[3].status, 'ABORTED');
+                assert.strictEqual(builds[4].status, 'ABORTED');
+                assert.strictEqual(builds[2].statusMessage, 'Aborted event by myself');
+                assert.strictEqual(builds[3].statusMessage, 'Aborted event by myself');
+                assert.strictEqual(builds[4].statusMessage, 'Aborted event by myself');
                 assert.calledOnce(event.getBuilds);
                 assert.notCalled(builds[0].update);
                 assert.notCalled(builds[1].update);
                 assert.calledOnce(builds[2].update);
                 assert.calledOnce(builds[3].update);
+                assert.calledOnce(builds[4].update);
             }));
 
         it('returns 200 and stops all event builds when user has push permission and is not Screwdriver admin', () => {
@@ -1503,11 +1510,18 @@ describe('event plugin test', () => {
 
             return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 200);
+                assert.strictEqual(builds[2].status, 'ABORTED');
+                assert.strictEqual(builds[3].status, 'ABORTED');
+                assert.strictEqual(builds[4].status, 'ABORTED');
+                assert.strictEqual(builds[2].statusMessage, 'Aborted event by myself');
+                assert.strictEqual(builds[3].statusMessage, 'Aborted event by myself');
+                assert.strictEqual(builds[4].statusMessage, 'Aborted event by myself');
                 assert.calledOnce(event.getBuilds);
                 assert.notCalled(builds[0].update);
                 assert.notCalled(builds[1].update);
                 assert.calledOnce(builds[2].update);
                 assert.calledOnce(builds[3].update);
+                assert.calledOnce(builds[4].update);
             });
         });
 
@@ -1529,11 +1543,18 @@ describe('event plugin test', () => {
 
                 return server.inject(options).then(reply => {
                     assert.equal(reply.statusCode, 200);
+                    assert.strictEqual(builds[2].status, 'ABORTED');
+                    assert.strictEqual(builds[3].status, 'ABORTED');
+                    assert.strictEqual(builds[4].status, 'ABORTED');
+                    assert.strictEqual(builds[2].statusMessage, 'Aborted event by imbatman');
+                    assert.strictEqual(builds[3].statusMessage, 'Aborted event by imbatman');
+                    assert.strictEqual(builds[4].statusMessage, 'Aborted event by imbatman');
                     assert.calledOnce(event.getBuilds);
                     assert.notCalled(builds[0].update);
                     assert.notCalled(builds[1].update);
                     assert.calledOnce(builds[2].update);
                     assert.calledOnce(builds[3].update);
+                    assert.calledOnce(builds[4].update);
                 });
             }
         );
@@ -1545,6 +1566,10 @@ describe('event plugin test', () => {
 
             return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 200);
+                assert.strictEqual(builds[2].status, 'ABORTED');
+                assert.strictEqual(builds[4].status, 'ABORTED');
+                assert.strictEqual(builds[2].statusMessage, 'Aborted event by myself');
+                assert.strictEqual(builds[4].statusMessage, 'Aborted event by myself');
                 assert.calledOnce(event.update);
                 assert.strictEqual(event.status, 'ABORTED');
             });
@@ -1693,6 +1718,12 @@ describe('event plugin test', () => {
                 };
                 assert.equal(reply.statusCode, 200);
                 assert.strictEqual(reply.headers.location, urlLib.format(expectedLocation));
+                assert.strictEqual(builds[2].status, 'ABORTED');
+                assert.strictEqual(builds[3].status, 'ABORTED');
+                assert.strictEqual(builds[4].status, 'ABORTED');
+                assert.strictEqual(builds[2].statusMessage, 'Aborted event by myself');
+                assert.strictEqual(builds[3].statusMessage, 'Aborted event by myself');
+                assert.strictEqual(builds[4].statusMessage, 'Aborted event by myself');
                 assert.calledOnce(event.getBuilds);
                 assert.notCalled(builds[0].update);
                 assert.notCalled(builds[1].update);
