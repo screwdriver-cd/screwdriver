@@ -8,12 +8,57 @@ const { getFullStageJobName } = require('../../helper');
 const { updateVirtualBuildSuccess } = require('../triggers/helpers');
 const TERMINAL_STATUSES = ['FAILURE', 'ABORTED', 'UNSTABLE', 'COLLAPSED'];
 const FINISHED_STATUSES = ['SUCCESS', ...TERMINAL_STATUSES];
+const NON_TERMINATED_STATUSES = ['CREATED', 'RUNNING', 'QUEUED', 'BLOCKED', 'FROZEN'];
 
 /**
  * @typedef {import('screwdriver-models/lib/build')} Build
  * @typedef {import('screwdriver-models/lib/event')} Event
  * @typedef {import('screwdriver-models/lib/step')} Step
  */
+
+/**
+ * Get the message when the build is stopped from the event.
+ *
+ * @method getEventAbortedStatusMessage
+ * @param  {Build[]}          builds       Build Array
+ */
+function getEventAbortedStatusMessage(builds) {
+    for (const b of builds) {
+        if (b.status === 'ABORTED' && b.statusMessage && b.statusMessage.startsWith('Aborted event')) {
+            return b.statusMessage;
+        }
+    }
+
+    return undefined;
+}
+
+/**
+ * Stop builds and set status message
+ *
+ * @method stopBuilds
+ * @param  {String}         statusMessage       Build status message
+ * @param  {Build[]}        builds              Build Array
+ */
+function stopBuilds(builds, statusMessage) {
+    const unchangedBuilds = [];
+    const changedBuilds = [];
+
+    for (const build of builds) {
+        if (NON_TERMINATED_STATUSES.includes(build.status)) {
+            if (build.status === 'RUNNING') {
+                build.endTime = new Date().toISOString();
+            }
+            build.status = 'ABORTED';
+            build.statusMessage = statusMessage;
+
+            changedBuilds.push(build);
+        } else {
+            unchangedBuilds.push(build);
+        }
+    }
+
+    return { unchangedBuilds, changedBuilds };
+}
 
 /**
  * Identify whether this build resulted in a previously failed job to become successful.
@@ -363,7 +408,21 @@ async function updateBuildAndTriggerDownstreamJobs(config, build, server, userna
     let isFixed = Promise.resolve(false);
     let stopFrozen = null;
 
-    updateBuildStatus(build, desiredStatus, statusMessage, statusMessageType, username);
+    // If the event is Aborted, check if there are any builds within the same event
+    // that have been stopped by the event, and if so, force this build to be Aborted.
+    if (build.status !== 'ABORTED' && event.status === 'ABORTED') {
+        const builds = await event.getBuilds();
+        const eventAbortedStatusMessage = getEventAbortedStatusMessage(builds);
+
+        if (eventAbortedStatusMessage) {
+            build.status = 'ABORTED';
+            build.statusMessage = eventAbortedStatusMessage;
+        }
+    }
+
+    if (build.status !== 'ABORTED') {
+        updateBuildStatus(build, desiredStatus, statusMessage, statusMessageType, username);
+    }
 
     // If status got updated to RUNNING or COLLAPSED, update init endTime and code
     if (['RUNNING', 'COLLAPSED', 'FROZEN'].includes(desiredStatus)) {
@@ -475,7 +534,17 @@ async function updateBuildAndTriggerDownstreamJobs(config, build, server, userna
 
     // update event status
     const latestBuilds = await newEvent.getBuilds();
-    const newEventStatus = deriveEventStatusFromBuildStatuses(latestBuilds);
+    let updatedBuilds = latestBuilds;
+
+    const eventAbortedStatusMessage = getEventAbortedStatusMessage(latestBuilds);
+
+    if (eventAbortedStatusMessage) {
+        const { unchangedBuilds, changedBuilds } = stopBuilds(latestBuilds, eventAbortedStatusMessage);
+
+        updatedBuilds = [...unchangedBuilds, ...(await Promise.all(changedBuilds.map(b => b.update())))];
+    }
+
+    const newEventStatus = deriveEventStatusFromBuildStatuses(updatedBuilds);
 
     if (newEventStatus && newEvent.status !== newEventStatus) {
         newEvent.status = newEventStatus;
@@ -486,6 +555,7 @@ async function updateBuildAndTriggerDownstreamJobs(config, build, server, userna
 }
 
 module.exports = {
+    stopBuilds,
     updateBuildAndTriggerDownstreamJobs,
     deriveEventStatusFromBuildStatuses,
     getStageBuild,

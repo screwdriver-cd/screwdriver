@@ -3181,6 +3181,180 @@ describe('trigger tests', () => {
         assert.equal(downstreamPipeline.getBuildsOf('PR-1:target').length, 0);
     });
 
+    it('[ ~a, ~b ] is triggered when stop build', async () => {
+        const pipeline = await pipelineFactoryMock.createFromFile('~a_~b.yaml');
+
+        const event = await eventFactoryMock.create({
+            pipelineId: pipeline.id,
+            startFrom: 'hub'
+        });
+
+        await event.getBuildOf('hub').complete('SUCCESS');
+        await event.getBuildOf('a').complete('ABORTED');
+        await event.getBuildOf('b').complete('SUCCESS');
+        await event.getBuildOf('target').complete('SUCCESS');
+
+        assert.equal(event.status, 'ABORTED');
+        assert.strictEqual(event.getBuildOf('hub').status, 'SUCCESS');
+        assert.strictEqual(event.getBuildOf('hub').statusMessage, undefined);
+        assert.strictEqual(event.getBuildOf('a').status, 'ABORTED');
+        assert.strictEqual(event.getBuildOf('a').statusMessage, 'Aborted by 2');
+        assert.strictEqual(event.getBuildOf('b').status, 'SUCCESS');
+        assert.strictEqual(event.getBuildOf('b').statusMessage, undefined);
+        assert.strictEqual(event.getBuildOf('target').status, 'SUCCESS');
+        assert.strictEqual(event.getBuildOf('target').statusMessage, undefined);
+    });
+
+    it('[ ~a, ~b ] is not triggered when stop event', async () => {
+        const pipeline = await pipelineFactoryMock.createFromFile('~a_~b.yaml');
+
+        const event = await eventFactoryMock.create({
+            pipelineId: pipeline.id,
+            startFrom: 'hub'
+        });
+
+        await event.getBuildOf('hub').complete('SUCCESS');
+        event.status = 'ABORTED';
+        const buildA = event.getBuildOf('a');
+
+        buildA.status = 'ABORTED';
+        buildA.statusMessage = 'Aborted event by myself';
+
+        await event.getBuildOf('b').complete('ABORTED');
+
+        assert.equal(event.status, 'ABORTED');
+        assert.strictEqual(event.getBuildOf('hub').status, 'SUCCESS');
+        assert.strictEqual(event.getBuildOf('hub').statusMessage, undefined);
+        assert.strictEqual(event.getBuildOf('a').status, 'ABORTED');
+        assert.strictEqual(event.getBuildOf('a').statusMessage, 'Aborted event by myself');
+        assert.strictEqual(event.getBuildOf('b').status, 'ABORTED');
+        assert.strictEqual(event.getBuildOf('b').statusMessage, 'Aborted event by myself');
+        assert.isNull(event.getBuildOf('target'));
+    });
+
+    it('[ ~a, ~b ] is triggered and aborted when b is success at the same time as the event stops', async () => {
+        const pipeline = await pipelineFactoryMock.createFromFile('~a_~b.yaml');
+
+        const event = await eventFactoryMock.create({
+            pipelineId: pipeline.id,
+            startFrom: 'hub'
+        });
+
+        await event.getBuildOf('hub').complete('SUCCESS');
+        const buildA = event.getBuildOf('a');
+
+        event.status = 'ABORTED';
+        buildA.status = 'ABORTED';
+        buildA.statusMessage = 'Aborted event by myself';
+
+        assert.isNull(event.getBuildOf('target'));
+
+        event.status = 'IN_PROGRESS';
+        await event.getBuildOf('b').complete('SUCCESS');
+
+        // Even if the event status is overridden from ABORTED to IN_PROGRESS by an asynchronous update immediately
+        // after the event stop, all builds are stopped.
+        assert.strictEqual(event.status, 'ABORTED');
+        assert.strictEqual(event.getBuildOf('hub').status, 'SUCCESS');
+        assert.strictEqual(event.getBuildOf('hub').statusMessage, undefined);
+        assert.strictEqual(event.getBuildOf('a').status, 'ABORTED');
+        assert.strictEqual(event.getBuildOf('a').statusMessage, 'Aborted event by myself');
+        assert.strictEqual(event.getBuildOf('b').status, 'SUCCESS');
+        assert.strictEqual(event.getBuildOf('b').statusMessage, undefined);
+        assert.strictEqual(event.getBuildOf('target').status, 'ABORTED');
+        assert.strictEqual(event.getBuildOf('target').statusMessage, 'Aborted event by myself');
+    });
+
+    it('[ ~a, b, c ] is not triggered when b is success at the same time as the event stops', async () => {
+        const pipeline = await pipelineFactoryMock.createFromFile('~a_b_c.yaml');
+
+        const event = await eventFactoryMock.create({
+            pipelineId: pipeline.id,
+            startFrom: 'hub'
+        });
+
+        await event.getBuildOf('hub').complete('SUCCESS');
+        const buildC = event.getBuildOf('c');
+
+        event.status = 'ABORTED';
+        buildC.status = 'ABORTED';
+        buildC.statusMessage = 'Aborted event by myself';
+
+        event.status = 'IN_PROGRESS';
+        await event.getBuildOf('b').complete('SUCCESS');
+
+        // a's status is ABORTED by b's trigger processing.
+        assert.strictEqual(event.status, 'ABORTED');
+        assert.strictEqual(event.getBuildOf('hub').status, 'SUCCESS');
+        assert.strictEqual(event.getBuildOf('a').status, 'ABORTED');
+        assert.strictEqual(event.getBuildOf('a').statusMessage, 'Aborted event by myself');
+        assert.strictEqual(event.getBuildOf('b').status, 'SUCCESS');
+        assert.strictEqual(event.getBuildOf('b').statusMessage, undefined);
+        assert.strictEqual(event.getBuildOf('c').status, 'ABORTED');
+        assert.strictEqual(event.getBuildOf('c').statusMessage, 'Aborted event by myself');
+        assert.isNull(event.getBuildOf('target'));
+    });
+
+    it('[ sd@2:a ] is triggered when stopped upstream job before sd@2:a succeeds', async () => {
+        const upstreamPipeline = await pipelineFactoryMock.createFromFile('sd@2:a-upstream-b.yaml');
+        const downstreamPipeline = await pipelineFactoryMock.createFromFile('sd@2:a-downstream.yaml');
+
+        const upstreamEvent = await eventFactoryMock.create({
+            pipelineId: upstreamPipeline.id,
+            startFrom: 'hub'
+        });
+
+        await upstreamEvent.getBuildOf('hub').complete('SUCCESS');
+        await upstreamEvent.getBuildOf('a').complete('SUCCESS');
+
+        await upstreamEvent.getBuildOf('b').complete('ABORTED');
+
+        const downstreamEvent = downstreamPipeline.getLatestEvent();
+
+        await downstreamEvent.getBuildOf('a').complete('SUCCESS');
+        await upstreamEvent.getBuildOf('target').complete('SUCCESS');
+
+        assert.strictEqual(upstreamEvent.getBuildOf('hub').status, 'SUCCESS');
+        assert.strictEqual(upstreamEvent.getBuildOf('a').status, 'SUCCESS');
+        assert.strictEqual(upstreamEvent.getBuildOf('b').status, 'ABORTED');
+        assert.strictEqual(upstreamEvent.getBuildOf('b').statusMessage, 'Aborted by 3');
+        assert.strictEqual(downstreamEvent.getBuildOf('a').status, 'SUCCESS');
+        assert.strictEqual(upstreamEvent.getBuildOf('target').status, 'SUCCESS');
+        assert.strictEqual(upstreamPipeline.getBuildsOf('target').length, 1);
+    });
+
+    it('[ sd@2:a ] is not triggered when stopped upstream event before sd@2:a succeeds', async () => {
+        const upstreamPipeline = await pipelineFactoryMock.createFromFile('sd@2:a-upstream-b.yaml');
+        const downstreamPipeline = await pipelineFactoryMock.createFromFile('sd@2:a-downstream.yaml');
+
+        const upstreamEvent = await eventFactoryMock.create({
+            pipelineId: upstreamPipeline.id,
+            startFrom: 'hub'
+        });
+
+        await upstreamEvent.getBuildOf('hub').complete('SUCCESS');
+        await upstreamEvent.getBuildOf('a').complete('SUCCESS');
+        const buildB = await upstreamEvent.getBuildOf('b');
+
+        upstreamEvent.status = 'ABORTED';
+        buildB.status = 'ABORTED';
+        buildB.statusMessage = 'Aborted event by myself';
+
+        const downstreamEvent = downstreamPipeline.getLatestEvent();
+
+        await downstreamEvent.getBuildOf('a').complete('SUCCESS');
+        await upstreamEvent.getBuildOf('target').complete('SUCCESS');
+
+        assert.strictEqual(upstreamEvent.getBuildOf('hub').status, 'SUCCESS');
+        assert.strictEqual(upstreamEvent.getBuildOf('a').status, 'SUCCESS');
+        assert.strictEqual(upstreamEvent.getBuildOf('b').status, 'ABORTED');
+        assert.strictEqual(upstreamEvent.getBuildOf('b').statusMessage, 'Aborted event by myself');
+        assert.strictEqual(downstreamEvent.getBuildOf('a').status, 'SUCCESS');
+        assert.strictEqual(upstreamEvent.getBuildOf('target').status, 'ABORTED');
+        assert.strictEqual(upstreamEvent.getBuildOf('target').statusMessage, 'Aborted event by myself');
+        assert.strictEqual(upstreamPipeline.getBuildsOf('target').length, 1);
+    });
+
     describe('stages', () => {
         it('stage setup is triggered', async () => {
             const pipeline = await pipelineFactoryMock.createFromFile('stage-explicit-setup-teardown.yaml');
@@ -3487,6 +3661,68 @@ describe('trigger tests', () => {
 
             assert.equal(event.getBuildOf('target').status, 'RUNNING');
         });
+
+        it('stage jobs is triggered when stop build', async () => {
+            const pipeline = await pipelineFactoryMock.createFromFile('stage-explicit-setup-teardown-b.yaml');
+
+            const event = await eventFactoryMock.create({
+                pipelineId: pipeline.id,
+                startFrom: 'hub'
+            });
+
+            await event.getBuildOf('hub').complete('SUCCESS');
+            await event.getBuildOf('a').complete('SUCCESS');
+
+            await event.getBuildOf('b').complete('ABORTED');
+            assert.strictEqual(event.getBuildOf('b').status, 'ABORTED');
+            assert.strictEqual(event.getBuildOf('b').statusMessage, 'Aborted by 3');
+
+            assert.isNull(event.getBuildOf('target1'));
+            assert.isNull(event.getBuildOf('target2'));
+
+            await event.getBuildOf('stage@red:setup').complete('SUCCESS');
+
+            // triggered by stage setup job
+            assert.equal(event.getBuildOf('target1').status, 'RUNNING');
+            assert.equal(event.getBuildOf('target2').status, 'RUNNING');
+
+            await event.getBuildOf('target1').complete('SUCCESS');
+
+            assert.equal(event.getBuildOf('target3').status, 'CREATED');
+
+            await event.getBuildOf('target2').complete('SUCCESS');
+
+            // overwrite stage job's required
+            assert.equal(event.getBuildOf('target3').status, 'RUNNING');
+        });
+
+        it('stage jobs are aborted when stop event', async () => {
+            const pipeline = await pipelineFactoryMock.createFromFile('stage-explicit-setup-teardown-b.yaml');
+
+            const event = await eventFactoryMock.create({
+                pipelineId: pipeline.id,
+                startFrom: 'hub'
+            });
+
+            await event.getBuildOf('hub').complete('SUCCESS');
+            await event.getBuildOf('a').complete('SUCCESS');
+            const buildB = await event.getBuildOf('b');
+
+            event.status = 'ABORTED';
+            buildB.status = 'ABORTED';
+            buildB.statusMessage = 'Aborted event by myself';
+
+            assert.isNull(event.getBuildOf('target1'));
+            assert.isNull(event.getBuildOf('target2'));
+
+            await event.getBuildOf('stage@red:setup').complete('SUCCESS');
+
+            assert.strictEqual(event.getBuildOf('stage@red:setup').status, 'ABORTED');
+            assert.isNull(event.getBuildOf('target1'));
+            assert.isNull(event.getBuildOf('target2'));
+            assert.isNull(event.getBuildOf('target3'));
+            assert.strictEqual(event.getBuildOf('stage@red:teardown').status, 'ABORTED');
+        });
     });
 
     describe('virtual job', () => {
@@ -3583,6 +3819,82 @@ describe('trigger tests', () => {
 
             await event.getBuildOf('c').complete('SUCCESS');
             assert.equal(event.getBuildOf('d7').status, 'RUNNING');
+        });
+
+        it('skip execution of virtual jobs when stop build', async () => {
+            const pipeline = await pipelineFactoryMock.createFromFile('virtual-jobs.yaml');
+
+            const event = await eventFactoryMock.create({
+                pipelineId: pipeline.id,
+                startFrom: 'hub'
+            });
+
+            await event.getBuildOf('hub').complete('SUCCESS');
+            assert.strictEqual(event.getBuildOf('a').status, 'RUNNING');
+            assert.strictEqual(event.getBuildOf('b').status, 'RUNNING');
+            assert.strictEqual(event.getBuildOf('c').status, 'RUNNING');
+
+            await event.getBuildOf('c').complete('ABORTED');
+            assert.strictEqual(event.getBuildOf('c').status, 'ABORTED');
+            assert.strictEqual(event.getBuildOf('c').statusMessage, 'Aborted by 4');
+            assert.isNull(event.getBuildOf('d7'));
+
+            await event.getBuildOf('a').complete('SUCCESS');
+            assertVirtualBuildSuccess(event.getBuildOf('d1'));
+            assertVirtualBuildSuccess(event.getBuildOf('d2'));
+            assertVirtualBuildSuccess(event.getBuildOf('d3'));
+            assertVirtualBuildSuccess(event.getBuildOf('d4'));
+
+            assert.strictEqual(event.getBuildOf('d5').status, 'CREATED');
+            assert.isNull(event.getBuildOf('d6'));
+            assert.strictEqual(event.getBuildOf('d7').status, 'CREATED');
+            assertVirtualBuildSuccess(event.getBuildOf('target1'));
+            assert.strictEqual(event.getBuildOf('target2').status, 'RUNNING');
+
+            await event.getBuildOf('b').complete('SUCCESS');
+            assertVirtualBuildSuccess(event.getBuildOf('d5'));
+            assertVirtualBuildSuccess(event.getBuildOf('d6'));
+            assert.isNull(event.getBuildOf('d7'));
+        });
+
+        it('skip execution of virtual jobs when stop event', async () => {
+            const pipeline = await pipelineFactoryMock.createFromFile('virtual-jobs.yaml');
+
+            const event = await eventFactoryMock.create({
+                pipelineId: pipeline.id,
+                startFrom: 'hub'
+            });
+
+            await event.getBuildOf('hub').complete('SUCCESS');
+            assert.strictEqual(event.getBuildOf('a').status, 'RUNNING');
+            assert.strictEqual(event.getBuildOf('b').status, 'RUNNING');
+            assert.strictEqual(event.getBuildOf('c').status, 'RUNNING');
+
+            await event.getBuildOf('a').complete('SUCCESS');
+            assert.strictEqual(event.getBuildOf('a').status, 'SUCCESS');
+
+            assertVirtualBuildSuccess(event.getBuildOf('d1'));
+            assertVirtualBuildSuccess(event.getBuildOf('d2'));
+            assertVirtualBuildSuccess(event.getBuildOf('d3'));
+            assertVirtualBuildSuccess(event.getBuildOf('d4'));
+
+            assert.strictEqual(event.getBuildOf('d5').status, 'CREATED');
+            assert.strictEqual(event.getBuildOf('d6').status, 'CREATED');
+            assert.strictEqual(event.getBuildOf('d7').status, 'CREATED');
+            assertVirtualBuildSuccess(event.getBuildOf('target1'));
+            assert.strictEqual(event.getBuildOf('target2').status, 'RUNNING');
+
+            const buildC = event.getBuildOf('c');
+
+            event.status = 'ABORTED';
+            buildC.status = 'ABORTED';
+            buildC.statusMessage = 'Aborted event by myself';
+
+            await event.getBuildOf('b').complete('SUCCESS');
+            assert.strictEqual(event.getBuildOf('b').status, 'ABORTED');
+            assert.strictEqual(event.getBuildOf('d5').status, 'ABORTED');
+            assert.strictEqual(event.getBuildOf('d6').status, 'ABORTED');
+            assert.strictEqual(event.getBuildOf('d7').status, 'ABORTED');
         });
     });
 });
