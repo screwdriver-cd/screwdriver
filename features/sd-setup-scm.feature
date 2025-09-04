@@ -1,6 +1,5 @@
 @sd-setup-scm
 @parallel
-@x1
 Feature: sd-setup-scm
 
     Confirm that the environment variables related to Git in sd-setup-scm function works with Screwdriver.cd
@@ -41,6 +40,7 @@ Feature: sd-setup-scm
         And the "not-shallow-clone-single-branch" job is triggered
         Then the "not-shallow-clone-single-branch" build succeeded
 
+    @x1
     Scenario: External config build
         Given an existing pipeline for sd-setup-scm:parent
         Given an existing pipeline for sd-setup-scm:child
