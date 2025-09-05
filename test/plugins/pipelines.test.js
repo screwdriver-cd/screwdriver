@@ -2956,7 +2956,7 @@ describe('pipeline plugin test', () => {
             });
         });
 
-        it('returns 200 when update the pipeline for sonar badges', () => {
+        it('returns 200 when setting initial badges', () => {
             options.auth.credentials = {
                 username,
                 scmContext,
@@ -2991,7 +2991,7 @@ describe('pipeline plugin test', () => {
             });
         });
 
-        it('returns 200 when updating the pipeline to remove sonar badges', () => {
+        it('returns 200 when updating the pipeline to remove badge', () => {
             options.auth.credentials = {
                 username,
                 scmContext,
@@ -3011,8 +3011,7 @@ describe('pipeline plugin test', () => {
             };
 
             const updatedPipelineMockLocal = {
-                ...updatedPipelineMock,
-                badges: {}
+                ...updatedPipelineMock
             };
 
             updatedPipelineMockLocal.toJson = sinon.stub().returns(updatedPipelineMockLocal);
@@ -3021,8 +3020,111 @@ describe('pipeline plugin test', () => {
             pipelineFactoryMock.get.withArgs({ id: `${id}` }).resolves(pipelineMock);
 
             return server.inject(options).then(reply => {
+                const responsePayload = JSON.parse(reply.payload);
+
                 assert.calledOnce(pipelineMock.update);
-                assert.include(reply.payload.badges, {});
+                assert.equal(responsePayload.badges, undefined);
+                assert.equal(reply.statusCode, 200);
+            });
+        });
+
+        it('returns 200 when updating the pipeline sonar badge', () => {
+            options.auth.credentials = {
+                username,
+                scmContext,
+                pipelineId: id,
+                scope: ['pipeline']
+            };
+
+            const existingBadges = {
+                other: {
+                    name: 'not-sonar',
+                    uri: 'https://not-sonar.screwdriver.cd/pipeline112233'
+                }
+            };
+
+            pipelineMock.badges = existingBadges;
+
+            const badges = {
+                sonar: {
+                    name: 'my-sonar-dashboard',
+                    uri: 'https://sonar.screwdriver.cd/pipeline112233'
+                }
+            };
+
+            options.payload.badges = badges;
+
+            const updatedPipelineMockLocal = {
+                ...updatedPipelineMock,
+                badges: {
+                    ...existingBadges,
+                    ...badges
+                }
+            };
+
+            updatedPipelineMockLocal.toJson = sinon.stub().returns(updatedPipelineMockLocal);
+            pipelineMock.sync.resolves(updatedPipelineMockLocal);
+
+            pipelineFactoryMock.get.withArgs({ id: `${id}` }).resolves(pipelineMock);
+
+            return server.inject(options).then(reply => {
+                const responsePayload = JSON.parse(reply.payload);
+
+                assert.calledOnce(pipelineMock.update);
+                assert.deepEqual(responsePayload.badges.other, existingBadges.other);
+                assert.deepEqual(responsePayload.badges.sonar, badges.sonar);
+                assert.equal(reply.statusCode, 200);
+            });
+        });
+
+        it('returns 200 when removing the pipeline sonar badge', () => {
+            options.auth.credentials = {
+                username,
+                scmContext,
+                pipelineId: id,
+                scope: ['pipeline']
+            };
+
+            const existingBadge = {
+                other: {
+                    name: 'not-sonar',
+                    uri: 'https://not-sonar.screwdriver.cd/pipeline112233'
+                }
+            };
+            const sonarBadge = {
+                sonar: {
+                    name: 'my-sonar-dashboard',
+                    uri: 'https://sonar.screwdriver.cd/pipeline112233'
+                }
+            };
+
+            pipelineMock.badges = {
+                ...existingBadge,
+                ...sonarBadge
+            };
+
+            options.payload.badges = {
+                sonar: {}
+            };
+
+            const updatedPipelineMockLocal = {
+                ...updatedPipelineMock,
+                badges: {
+                    ...existingBadge
+                }
+            };
+
+            updatedPipelineMockLocal.toJson = sinon.stub().returns(updatedPipelineMockLocal);
+            pipelineMock.sync.resolves(updatedPipelineMockLocal);
+
+            pipelineFactoryMock.get.withArgs({ id: `${id}` }).resolves(pipelineMock);
+
+            return server.inject(options).then(reply => {
+                const responsePayload = JSON.parse(reply.payload);
+
+                assert.calledOnce(pipelineMock.update);
+                assert.deepEqual(responsePayload.badges.other, existingBadge.other);
+                assert.equal(responsePayload.badges.sonar, undefined);
                 assert.equal(reply.statusCode, 200);
             });
         });
