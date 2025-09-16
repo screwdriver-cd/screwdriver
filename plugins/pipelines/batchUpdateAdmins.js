@@ -1,12 +1,11 @@
 'use strict';
 
-const boom = require('@hapi/boom');
 const schema = require('screwdriver-data-schema');
 const joi = require('joi');
 const idSchema = schema.models.pipeline.base.extract('id');
 const scmContextSchema = schema.models.pipeline.base.extract('scmContext');
 const usernameSchema = schema.models.user.base.extract('username');
-const { updatePipelineAdmins } = require('./helper/updateAdmins');
+const { batchUpdatePipelineAdmins } = require('./helper/updateAdmins');
 
 module.exports = () => ({
     method: 'PUT',
@@ -17,35 +16,16 @@ module.exports = () => ({
         tags: ['api', 'pipelines'],
         auth: {
             strategies: ['token'],
-            scope: ['user', '!guest']
+            scope: ['user', '!guest', 'admin']
         },
         handler: async (request, h) => {
-            const { scmContext, username, scmUserId } = request.auth.credentials;
+            const { scmContext, username, scope } = request.auth.credentials;
             const { payload } = request;
+            const { userFactory } = request.server.app;
+            const isSDAdmin = scope.includes('admin');
+            const user = await userFactory.get({ username, scmContext });
 
-            const { bannerFactory } = request.server.app;
-
-            // Check token permissions
-            // Only SD cluster admins can update the admins
-            const scmDisplayName = bannerFactory.scm.getDisplayName({ scmContext });
-
-            const adminDetails = request.server.plugins.banners.screwdriverAdminDetails(
-                username,
-                scmDisplayName,
-                scmUserId
-            );
-
-            if (!adminDetails.isAdmin) {
-                throw boom.forbidden(
-                    `User ${username} does not have Screwdriver administrative privileges to update the admins for pipelines`
-                );
-            }
-
-            await Promise.all(
-                payload.map(e => {
-                    return updatePipelineAdmins(e, request.server);
-                })
-            );
+            await batchUpdatePipelineAdmins(payload, user, isSDAdmin, request.server);
 
             return h.response().code(204);
         },

@@ -4801,6 +4801,24 @@ describe('pipeline plugin test', () => {
         const pipelineId = 123;
         let options;
 
+        const userSDAdmin = {
+            username: 'arya_github',
+            id: 400,
+            getPermissions: sinon.stub()
+        };
+
+        const userPipelineAdmin = {
+            username: 'arya_github',
+            id: 500,
+            getPermissions: sinon.stub()
+        };
+
+        const userPipelineNonAdmin = {
+            username: 'thor_github',
+            id: 600,
+            getPermissions: sinon.stub()
+        };
+
         const userSam = {
             username: 'sam_screwdriver',
             id: 666
@@ -4828,32 +4846,39 @@ describe('pipeline plugin test', () => {
                 },
                 auth: {
                     credentials: {
-                        username: pipelineId,
-                        pipelineId,
+                        username: userPipelineAdmin.username,
                         scmContext: 'github:github.com',
-                        scope: ['pipeline']
+                        scope: ['user']
                     },
                     strategy: ['token']
                 }
             };
 
-            screwdriverAdminDetailsMock.returns({ isAdmin: false });
+            userPipelineAdmin.getPermissions.resolves({ admin: true });
+            userFactoryMock.get.resolves(userPipelineAdmin);
+            userPipelineNonAdmin.getPermissions.resolves({ admin: false });
         });
 
-        it('returns 200 and update the admins when requested by a valid pipeline', () => {
+        it('returns 200 and update the admins when requested a pipeline admin', () => {
             const pipelineMock = getPipelineMocks(testPipeline);
 
             pipelineMock.adminUserIds = [userSam.id];
-            pipelineFactoryMock.get.resolves(pipelineMock);
+            pipelineFactoryMock.list.resolves([pipelineMock]);
 
             userFactoryMock.list.resolves([userJohn, userRob]);
 
             pipelineMock.update.returns(pipelineMock);
 
             return server.inject(options).then(reply => {
-                assert.calledWith(pipelineFactoryMock.get, {
-                    id: pipelineId
+                assert.calledOnce(userFactoryMock.get);
+                assert.calledWith(userFactoryMock.get, {
+                    username: userPipelineAdmin.username,
+                    scmContext: 'github:github.com'
                 });
+
+                assert.calledWith(pipelineFactoryMock.list, { params: { id: [123] } });
+
+                assert.calledOnce(userPipelineAdmin.getPermissions);
 
                 assert.calledWith(userFactoryMock.list, {
                     params: {
@@ -4870,20 +4895,40 @@ describe('pipeline plugin test', () => {
         });
 
         it('returns 200 and update the admins when requested by a SD admin', () => {
-            options.auth.credentials.scope = ['user'];
-            options.auth.credentials.username = 'admin_user';
-            screwdriverAdminDetailsMock.returns({ isAdmin: true });
+            options.auth.credentials.scope = ['user', 'admin'];
+            options.auth.credentials.username = userSDAdmin.username;
+
+            userFactoryMock.get.resolves(userSDAdmin);
 
             const pipelineMock = getPipelineMocks(testPipeline);
 
             pipelineMock.adminUserIds = [userSam.id];
-            pipelineFactoryMock.get.resolves(pipelineMock);
+            pipelineFactoryMock.list.resolves([pipelineMock]);
 
             userFactoryMock.list.resolves([userJohn, userRob]);
 
             pipelineMock.update.returns(pipelineMock);
 
             return server.inject(options).then(reply => {
+                assert.calledOnce(userFactoryMock.get);
+                assert.calledWith(userFactoryMock.get, {
+                    username: userSDAdmin.username,
+                    scmContext: 'github:github.com'
+                });
+
+                assert.calledWith(pipelineFactoryMock.list, { params: { id: [123] } });
+
+                assert.callCount(userSDAdmin.getPermissions, 0);
+
+                assert.calledWith(userFactoryMock.list, {
+                    params: {
+                        username: ['john_screwdriver', 'rob_screwdriver'],
+                        scmContext: 'github:git.screwdriver.com'
+                    }
+                });
+
+                assert.calledOnce(pipelineMock.update);
+
                 assert.equal(reply.statusCode, 200);
                 assert.deepEqual(pipelineMock.adminUserIds, [userSam.id, userJohn.id, userRob.id]);
             });
@@ -4893,13 +4938,30 @@ describe('pipeline plugin test', () => {
             const pipelineMock = getPipelineMocks(testPipeline);
 
             pipelineMock.adminUserIds = [userSam.id];
-            pipelineFactoryMock.get.resolves(pipelineMock);
+            pipelineFactoryMock.list.resolves([pipelineMock]);
 
             userFactoryMock.list.resolves([userJohn]);
 
             pipelineMock.update.returns(pipelineMock);
 
             return server.inject(options).then(reply => {
+                assert.calledOnce(userFactoryMock.get);
+                assert.calledWith(userFactoryMock.get, {
+                    username: userPipelineAdmin.username,
+                    scmContext: 'github:github.com'
+                });
+
+                assert.calledWith(pipelineFactoryMock.list, { params: { id: [123] } });
+
+                assert.calledWith(userFactoryMock.list, {
+                    params: {
+                        username: ['john_screwdriver', 'rob_screwdriver'],
+                        scmContext: 'github:git.screwdriver.com'
+                    }
+                });
+
+                assert.calledOnce(pipelineMock.update);
+
                 assert.equal(reply.statusCode, 200);
                 assert.deepEqual(pipelineMock.adminUserIds, [userSam.id, userJohn.id]);
             });
@@ -4932,34 +4994,28 @@ describe('pipeline plugin test', () => {
             });
         });
 
-        it('returns 403 because when not requested by same pipeline', () => {
-            options.auth.credentials.scope = ['pipeline'];
-            options.auth.credentials.username = 687;
-
-            return server.inject(options).then(reply => {
-                assert.equal(reply.statusCode, 403);
-                assert.equal(
-                    reply.result.message,
-                    'User 687 is not authorized to update admins for the pipeline (id=123)'
-                );
-            });
-        });
-
         it('returns 403 because when requested by non SD admin user', () => {
             options.auth.credentials.scope = ['user'];
-            options.auth.credentials.username = 'non_admin_user';
+            options.auth.credentials.username = userPipelineNonAdmin.username;
+
+            userFactoryMock.get.resolves(userPipelineNonAdmin);
+
+            const pipelineMock = getPipelineMocks(testPipeline);
+
+            pipelineMock.adminUserIds = [userSam.id];
+            pipelineFactoryMock.list.resolves([pipelineMock]);
 
             return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 403);
                 assert.equal(
                     reply.result.message,
-                    'User non_admin_user does not have Screwdriver administrative privileges to update the admins for the pipeline (id=123)'
+                    'User thor_github does not have admin permission for the pipeline (id=123) repo and is not allowed to update admins'
                 );
             });
         });
 
         it('returns 404 when pipeline does not exist', () => {
-            pipelineFactoryMock.get.resolves(null);
+            pipelineFactoryMock.list.resolves([]);
 
             return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 404);
@@ -4971,11 +5027,14 @@ describe('pipeline plugin test', () => {
             const pipelineMock = getPipelineMocks(testPipeline);
 
             pipelineMock.state = 'DELETING';
-            pipelineFactoryMock.get.resolves(pipelineMock);
+            pipelineFactoryMock.list.resolves([pipelineMock]);
 
             return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 409);
-                assert.equal(reply.result.message, 'This pipeline is being deleted.');
+                assert.equal(
+                    reply.result.message,
+                    'Skipped updating admins for pipeline (id=123) as it is being deleted.'
+                );
             });
         });
     });
@@ -4985,6 +5044,10 @@ describe('pipeline plugin test', () => {
         let pipelineMockB;
 
         let options;
+
+        let userSDAdmin;
+        let userPipelineAdmin;
+        let userPipelineNonAdmin;
 
         const userSam = {
             username: 'sam_screwdriver',
@@ -5009,19 +5072,40 @@ describe('pipeline plugin test', () => {
         const adminsUserScmContext = 'github:git.screwdriver.com';
 
         beforeEach(() => {
+            userSDAdmin = {
+                username: 'hercules_github',
+                id: 400,
+                getPermissions: sinon.stub()
+            };
+
+            userPipelineAdmin = {
+                username: 'arya_github',
+                id: 500,
+                getPermissions: sinon.stub()
+            };
+
+            userPipelineNonAdmin = {
+                username: 'thor_github',
+                id: 600,
+                getPermissions: sinon.stub()
+            };
+
             pipelineMockA = getPipelineMocks(testPipeline);
+            pipelineMockA.scmUri = 'github.com:12345:branchName';
             pipelineMockA.id = 123;
             pipelineMockA.adminUserIds = [userSam.id];
-            pipelineFactoryMock.get.withArgs({ id: pipelineMockA.id }).resolves(pipelineMockA);
             pipelineMockA.update.returns(pipelineMockA);
             userFactoryMock.list.onCall(0).resolves([userJohn, userRob]);
 
             pipelineMockB = getPipelineMocks(testPipeline);
+            pipelineMockA.scmUri = 'github.com:67890:branchName';
             pipelineMockB.id = 456;
             pipelineMockB.adminUserIds = [userSam.id];
-            pipelineFactoryMock.get.withArgs({ id: pipelineMockB.id }).resolves(pipelineMockB);
             pipelineMockB.update.returns(pipelineMockB);
             userFactoryMock.list.onCall(1).resolves([userJohn, userVictor]);
+
+            pipelineFactoryMock.list.withArgs({ params: { id: [123, 456] } }).resolves([pipelineMockA, pipelineMockB]);
+
             options = {
                 method: 'PUT',
                 url: `/pipelines/updateAdmins`,
@@ -5039,7 +5123,7 @@ describe('pipeline plugin test', () => {
                 ],
                 auth: {
                     credentials: {
-                        username: 'admin_user',
+                        username: userPipelineAdmin.username,
                         scmContext: 'github:github.com',
                         scope: ['user']
                     },
@@ -5047,16 +5131,51 @@ describe('pipeline plugin test', () => {
                 }
             };
 
-            screwdriverAdminDetailsMock.returns({ isAdmin: true });
+            userPipelineAdmin.getPermissions.resolves({ admin: true });
+            userFactoryMock.get.resolves(userPipelineAdmin);
+            userPipelineNonAdmin.getPermissions.resolves({ admin: false });
         });
 
-        it('returns 200 and update the admins when requested by a SD admin', () => {
+        it('returns 200 and update the admins when requested by a pipeline admin', () => {
             return server.inject(options).then(reply => {
+                assert.calledOnce(userFactoryMock.get);
+                assert.calledWith(userFactoryMock.get, {
+                    username: userPipelineAdmin.username,
+                    scmContext: 'github:github.com'
+                });
+
+                assert.calledWith(pipelineFactoryMock.list, { params: { id: [123, 456] } });
                 assert.equal(reply.statusCode, 204);
                 assert.deepEqual(pipelineMockA.adminUserIds, [userSam.id, userJohn.id, userRob.id]);
                 assert.deepEqual(pipelineMockB.adminUserIds, [userSam.id, userJohn.id, userVictor.id]);
-                assert.calledTwice(pipelineFactoryMock.get);
                 assert.calledTwice(userFactoryMock.list);
+                assert.calledTwice(userPipelineAdmin.getPermissions);
+                assert.calledWith(userPipelineAdmin.getPermissions, pipelineMockA.scmUri);
+                assert.calledWith(userPipelineAdmin.getPermissions, pipelineMockB.scmUri);
+                assert.calledOnce(pipelineMockA.update);
+                assert.calledOnce(pipelineMockB.update);
+            });
+        });
+
+        it('returns 200 and update the admins when requested by a SD admin', () => {
+            options.auth.credentials.scope = ['user', 'admin'];
+            options.auth.credentials.username = userSDAdmin.username;
+
+            userFactoryMock.get.resolves(userSDAdmin);
+
+            return server.inject(options).then(reply => {
+                assert.calledOnce(userFactoryMock.get);
+                assert.calledWith(userFactoryMock.get, {
+                    username: userSDAdmin.username,
+                    scmContext: 'github:github.com'
+                });
+
+                assert.calledWith(pipelineFactoryMock.list, { params: { id: [123, 456] } });
+                assert.equal(reply.statusCode, 204);
+                assert.deepEqual(pipelineMockA.adminUserIds, [userSam.id, userJohn.id, userRob.id]);
+                assert.deepEqual(pipelineMockB.adminUserIds, [userSam.id, userJohn.id, userVictor.id]);
+                assert.calledTwice(userFactoryMock.list);
+                assert.notCalled(userSDAdmin.getPermissions);
                 assert.calledOnce(pipelineMockA.update);
                 assert.calledOnce(pipelineMockB.update);
             });
@@ -5077,12 +5196,14 @@ describe('pipeline plugin test', () => {
             delete options.payload[0].scmContext;
 
             return server.inject(options).then(reply => {
-                assert.equal(reply.statusCode, 400);
-                assert.equal(reply.result.message, 'Invalid request payload input');
-                assert.notCalled(pipelineFactoryMock.get);
+                assert.notCalled(userFactoryMock.get);
+                assert.notCalled(pipelineFactoryMock.list);
                 assert.notCalled(userFactoryMock.list);
                 assert.notCalled(pipelineMockA.update);
                 assert.notCalled(pipelineMockB.update);
+
+                assert.equal(reply.statusCode, 400);
+                assert.equal(reply.result.message, 'Invalid request payload input');
             });
         });
 
@@ -5090,12 +5211,14 @@ describe('pipeline plugin test', () => {
             delete options.payload[0].usernames;
 
             return server.inject(options).then(reply => {
-                assert.equal(reply.statusCode, 400);
-                assert.equal(reply.result.message, 'Invalid request payload input');
-                assert.notCalled(pipelineFactoryMock.get);
+                assert.notCalled(userFactoryMock.get);
+                assert.notCalled(pipelineFactoryMock.list);
                 assert.notCalled(userFactoryMock.list);
                 assert.notCalled(pipelineMockA.update);
                 assert.notCalled(pipelineMockB.update);
+
+                assert.equal(reply.statusCode, 400);
+                assert.equal(reply.result.message, 'Invalid request payload input');
             });
         });
 
@@ -5103,38 +5226,64 @@ describe('pipeline plugin test', () => {
             options.payload[0].usernames = [];
 
             return server.inject(options).then(reply => {
-                assert.equal(reply.statusCode, 400);
-                assert.equal(reply.result.message, 'Invalid request payload input');
-                assert.notCalled(pipelineFactoryMock.get);
+                assert.notCalled(userFactoryMock.get);
+                assert.notCalled(pipelineFactoryMock.list);
                 assert.notCalled(userFactoryMock.list);
                 assert.notCalled(pipelineMockA.update);
                 assert.notCalled(pipelineMockB.update);
+
+                assert.equal(reply.statusCode, 400);
+                assert.equal(reply.result.message, 'Invalid request payload input');
             });
         });
 
-        it('returns 403 because when requested by non SD admin user', () => {
-            options.auth.credentials.username = 'non_admin_user';
-            screwdriverAdminDetailsMock.returns({ isAdmin: false });
+        it('returns 403 because when requested by pipeline non-admin user', () => {
+            options.auth.credentials.scope = ['user'];
+            options.auth.credentials.username = userPipelineNonAdmin.username;
+
+            userFactoryMock.get.resolves(userPipelineNonAdmin);
 
             return server.inject(options).then(reply => {
+                assert.calledOnce(userFactoryMock.get);
+                assert.calledWith(userFactoryMock.get, {
+                    username: userPipelineNonAdmin.username,
+                    scmContext: 'github:github.com'
+                });
+
+                assert.calledWith(pipelineFactoryMock.list, { params: { id: [123, 456] } });
+                assert.calledTwice(userPipelineNonAdmin.getPermissions);
+                assert.calledWith(userPipelineNonAdmin.getPermissions, pipelineMockA.scmUri);
+                assert.calledWith(userPipelineNonAdmin.getPermissions, pipelineMockB.scmUri);
+                assert.notCalled(userFactoryMock.list);
+                assert.notCalled(pipelineMockA.update);
+                assert.notCalled(pipelineMockB.update);
+
                 assert.equal(reply.statusCode, 403);
                 assert.equal(
                     reply.result.message,
-                    'User non_admin_user does not have Screwdriver administrative privileges to update the admins for pipelines'
+                    'User thor_github does not have admin permission for the pipeline (id=123) repo and is not allowed to update admins'
                 );
             });
         });
 
         it('returns 404 when pipeline does not exist', () => {
-            pipelineFactoryMock.get.withArgs({ id: pipelineMockA.id }).resolves(null);
+            pipelineFactoryMock.list.withArgs({ params: { id: [123, 456] } }).resolves([pipelineMockB]);
 
             return server.inject(options).then(reply => {
-                assert.equal(reply.statusCode, 404);
-                assert.equal(reply.result.message, `Pipeline ${pipelineMockA.id} does not exist`);
-                assert.calledTwice(pipelineFactoryMock.get);
+                assert.calledOnce(userFactoryMock.get);
+                assert.calledWith(userFactoryMock.get, {
+                    username: userPipelineAdmin.username,
+                    scmContext: 'github:github.com'
+                });
+                assert.calledOnce(pipelineFactoryMock.list);
+                assert.calledOnce(userPipelineAdmin.getPermissions);
+                assert.calledWith(userPipelineAdmin.getPermissions, pipelineMockB.scmUri);
                 assert.calledOnce(userFactoryMock.list);
                 assert.notCalled(pipelineMockA.update);
                 assert.calledOnce(pipelineMockB.update);
+
+                assert.equal(reply.statusCode, 404);
+                assert.equal(reply.result.message, `Pipeline ${pipelineMockA.id} does not exist`);
             });
         });
 
@@ -5142,12 +5291,24 @@ describe('pipeline plugin test', () => {
             pipelineMockA.state = 'DELETING';
 
             return server.inject(options).then(reply => {
-                assert.equal(reply.statusCode, 409);
-                assert.equal(reply.result.message, 'This pipeline is being deleted.');
-                assert.calledTwice(pipelineFactoryMock.get);
+                assert.calledOnce(userFactoryMock.get);
+                assert.calledWith(userFactoryMock.get, {
+                    username: userPipelineAdmin.username,
+                    scmContext: 'github:github.com'
+                });
+                assert.calledOnce(pipelineFactoryMock.list);
+                assert.calledTwice(userPipelineAdmin.getPermissions);
+                assert.calledWith(userPipelineAdmin.getPermissions, pipelineMockA.scmUri);
+                assert.calledWith(userPipelineAdmin.getPermissions, pipelineMockB.scmUri);
                 assert.calledOnce(userFactoryMock.list);
                 assert.notCalled(pipelineMockA.update);
                 assert.calledOnce(pipelineMockB.update);
+
+                assert.equal(reply.statusCode, 409);
+                assert.equal(
+                    reply.result.message,
+                    'Skipped updating admins for pipeline (id=123) as it is being deleted.'
+                );
             });
         });
     });

@@ -15,12 +15,11 @@ module.exports = () => ({
         tags: ['api', 'pipelines'],
         auth: {
             strategies: ['token'],
-            scope: ['user', '!guest', 'pipeline']
+            scope: ['user', '!guest', 'admin']
         },
         handler: async (request, h) => {
             const { id } = request.params;
-            const { scmContext, username, scmUserId, scope } = request.auth.credentials;
-            const isPipeline = scope.includes('pipeline');
+            const { scmContext, username, scope } = request.auth.credentials;
 
             const { usernames } = request.payload;
             const payloadScmContext = request.payload.scmContext;
@@ -31,31 +30,11 @@ module.exports = () => ({
                 throw boom.badRequest(`Payload must contain scmContext`);
             }
 
-            const { bannerFactory } = request.server.app;
+            const { userFactory } = request.server.app;
 
-            // Check token permissions
-            if (isPipeline) {
-                if (username !== id) {
-                    throw boom.forbidden(
-                        `User ${username} is not authorized to update admins for the pipeline (id=${id})`
-                    );
-                }
-            } else {
-                // Only SD cluster admins can update the admins
-                const scmDisplayName = bannerFactory.scm.getDisplayName({ scmContext });
+            const isSDAdmin = scope.includes('admin');
 
-                const adminDetails = request.server.plugins.banners.screwdriverAdminDetails(
-                    username,
-                    scmDisplayName,
-                    scmUserId
-                );
-
-                if (!adminDetails.isAdmin) {
-                    throw boom.forbidden(
-                        `User ${username} does not have Screwdriver administrative privileges to update the admins for the pipeline (id=${id})`
-                    );
-                }
-            }
+            const user = await userFactory.get({ username, scmContext });
 
             const updatedPipeline = await updatePipelineAdmins(
                 {
@@ -63,6 +42,8 @@ module.exports = () => ({
                     scmContext: payloadScmContext,
                     usernames
                 },
+                user,
+                isSDAdmin,
                 request.server
             );
 
