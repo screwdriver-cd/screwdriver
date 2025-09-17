@@ -3011,7 +3011,8 @@ describe('pipeline plugin test', () => {
             };
 
             const updatedPipelineMockLocal = {
-                ...updatedPipelineMock
+                ...updatedPipelineMock,
+                badges: {}
             };
 
             updatedPipelineMockLocal.toJson = sinon.stub().returns(updatedPipelineMockLocal);
@@ -3023,7 +3024,7 @@ describe('pipeline plugin test', () => {
                 const responsePayload = JSON.parse(reply.payload);
 
                 assert.calledOnce(pipelineMock.update);
-                assert.equal(responsePayload.badges, undefined);
+                assert.deepEqual(responsePayload.badges, {});
                 assert.equal(reply.statusCode, 200);
             });
         });
@@ -3110,7 +3111,8 @@ describe('pipeline plugin test', () => {
             const updatedPipelineMockLocal = {
                 ...updatedPipelineMock,
                 badges: {
-                    ...existingBadge
+                    ...existingBadge,
+                    sonar: {}
                 }
             };
 
@@ -3124,7 +3126,7 @@ describe('pipeline plugin test', () => {
 
                 assert.calledOnce(pipelineMock.update);
                 assert.deepEqual(responsePayload.badges.other, existingBadge.other);
-                assert.equal(responsePayload.badges.sonar, undefined);
+                assert.deepEqual(responsePayload.badges.sonar, {});
                 assert.equal(reply.statusCode, 200);
             });
         });

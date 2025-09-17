@@ -166,26 +166,22 @@ module.exports = () => ({
             }
 
             if (badges) {
-                if (!oldPipeline.badges) {
-                    oldPipeline.badges = badges;
-                } else {
-                    const updatedBadges = {
-                        ...oldPipeline.badges
-                    };
+                const updatedBadges = {
+                    ...oldPipeline.badges
+                };
 
-                    Object.keys(badges).forEach(badgeKey => {
-                        if (Object.keys(badges[badgeKey]).length > 0) {
-                            updatedBadges[badgeKey] = badges[badgeKey];
-                        } else {
-                            delete updatedBadges[badgeKey];
-                        }
-                    });
-
-                    if (Object.keys(updatedBadges).length === 0) {
-                        delete oldPipeline.badges;
+                Object.keys(badges).forEach(badgeKey => {
+                    if (Object.keys(badges[badgeKey]).length > 0) {
+                        updatedBadges[badgeKey] = badges[badgeKey];
                     } else {
-                        oldPipeline.badges = updatedBadges;
+                        updatedBadges[badgeKey] = {};
                     }
+                });
+
+                if (Object.keys(updatedBadges).length === 0) {
+                    oldPipeline.badges = {};
+                } else {
+                    oldPipeline.badges = updatedBadges;
                 }
             }
 
