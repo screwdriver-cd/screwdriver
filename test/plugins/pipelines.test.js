@@ -4859,7 +4859,7 @@ describe('pipeline plugin test', () => {
             userPipelineNonAdmin.getPermissions.resolves({ admin: false });
         });
 
-        it('returns 200 and update the admins when requested a pipeline admin', () => {
+        it('returns 200 and update the admins when requested by a pipeline admin', () => {
             const pipelineMock = getPipelineMocks(testPipeline);
 
             pipelineMock.adminUserIds = [userSam.id];
