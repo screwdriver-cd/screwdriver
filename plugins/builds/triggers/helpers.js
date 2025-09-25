@@ -625,9 +625,9 @@ async function emitBuildStatusEvent({ server, build, pipeline, event, job }) {
 
     let isFixed = false;
 
-    if (build.status === 'SUCCESS') {
-        const failureBuild = await job.getLatestBuild({ status: 'FAILURE' });
-        const successBuild = await job.getLatestBuild({ status: 'SUCCESS' });
+    if (build.status === Status.SUCCESS) {
+        const failureBuild = await job.getLatestBuild({ status: Status.FAILURE });
+        const successBuild = await job.getLatestBuild({ status: Status.SUCCESS });
 
         // Identify whether this build resulted in a previously failed job to become successful.
         isFixed = !!((failureBuild && !successBuild) || failureBuild.id > successBuild.id);
