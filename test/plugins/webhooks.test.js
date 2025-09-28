@@ -297,6 +297,7 @@ describe('webhooks plugin test', () => {
 
             return server.inject(options).then(() => {
                 assert.calledOnce(pipelineFactoryMock.scm.parseHook);
+                assert.calledWith(pipelineFactoryMock.scm.parseHook, reqHeaders, '{}');
                 assert.calledWith(queueWebhookMock.executor.enqueueWebhook, {
                     ...parsed,
                     pluginOptions: webhookConfig,

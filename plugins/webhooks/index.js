@@ -77,15 +77,7 @@ const webhooksPlugin = {
                         }
 
                         const data = Buffer.concat(chunks).toString();
-                        let parsedPayload;
-
-                        try {
-                            parsedPayload = JSON.parse(data);
-                        } catch (err) {
-                            throw boom.badData('Cannot parse payload');
-                        }
-
-                        const parsed = await scm.parseHook(request.headers, parsedPayload);
+                        const parsed = await scm.parseHook(request.headers, data);
 
                         if (!parsed) {
                             // for all non-matching events or actions
