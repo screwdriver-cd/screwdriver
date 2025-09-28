@@ -15,9 +15,9 @@ class JoinBase {
     /**
      * Base class for AND trigger and RemoteJoin
      * @param {Object} server Server object
-     * @param {EventFactory} srever.app.eventFactory Server app object
-     * @param {BuildFactory} srever.app.buildFactory Server app object
-     * @param {JobFactory} srever.app.jobFactory Server app object
+     * @param {EventFactory} server.app.eventFactory Server app object
+     * @param {BuildFactory} server.app.buildFactory Server app object
+     * @param {JobFactory} server.app.jobFactory Server app object
      * @param {Object} config Configuration object
      * @param {Build} config.build
      * @param {String} config.username
