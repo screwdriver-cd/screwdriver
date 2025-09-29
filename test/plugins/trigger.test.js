@@ -3492,7 +3492,7 @@ describe('trigger tests', () => {
             assert.equal(event.getBuildOf('PR-1:stage@simple:teardown').status, 'SUCCESS');
         });
 
-        it('stage jobs are triggered in PR when chainPR is enabled', async () => {
+        it('debug stage jobs are triggered in PR when chainPR is enabled', async () => {
             const pipeline = await pipelineFactoryMock.createFromFile('stage-pr.yaml');
 
             pipeline.addPRJobs(1);

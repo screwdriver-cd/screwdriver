@@ -607,18 +607,66 @@ async function getParentBuildStatus({ joinListNames, joinBuilds }) {
 }
 
 /**
+ * Emit 'build_status' event to notify
+ * @param {Object} arg
+ * @param {Object} arg.server Server object
+ * @param {Build} arg.build Build
+ * @param {Pipeline} [arg.pipeline] Pipeline
+ * @param {Event} [arg.event] Event
+ * @param {Job} [arg.job] Job
+ * @returns {Promise}
+ */
+async function emitBuildStatusEvent({ server, build, pipeline, event, job }) {
+    const { buildFactory } = server.app;
+
+    event = event || (await build.event); // eslint-disable-line no-param-reassign
+    job = job || (await build.job); // eslint-disable-line no-param-reassign
+    pipeline = pipeline || (await job.pipeline); // eslint-disable-line no-param-reassign
+
+    let isFixed = false;
+
+    if (build.status === Status.SUCCESS) {
+        const failureBuild = await job.getLatestBuild({ status: Status.FAILURE });
+        const successBuild = await job.getLatestBuild({ status: Status.SUCCESS });
+
+        // Identify whether this build resulted in a previously failed job to become successful.
+        isFixed = !!((failureBuild && !successBuild) || failureBuild.id > successBuild.id);
+    }
+
+    return server.events.emit('build_status', {
+        settings: job.permutations[0].settings,
+        status: build.status,
+        event: event.toJson(),
+        pipeline: pipeline.toJson(),
+        jobName: job.name,
+        build: build.toJson(),
+        buildLink: `${buildFactory.uiUri}/pipelines/${pipeline.id}/builds/${build.id}`,
+        isFixed
+    });
+}
+
+/**
  * Update virtual build status to SUCCESS and init metadata
- * @param {Build} build
+ * @param {Object} arg
+ * @param {Object} arg.server Server object
+ * @param {Build} arg.build Build
+ * @param {Pipeline} [arg.pipeline] Pipeline
+ * @param {Event} [arg.event] Event
+ * @param {Job} [arg.job] Job
  * @returns {Promise<Build>}
  */
-async function updateVirtualBuildSuccess(build) {
+async function updateVirtualBuildSuccess({ server, build, pipeline, event, job }) {
     build.status = Status.SUCCESS;
     build.statusMessage = BUILD_STATUS_MESSAGES.SKIP_VIRTUAL_JOB.statusMessage;
     build.statusMessageType = BUILD_STATUS_MESSAGES.SKIP_VIRTUAL_JOB.statusMessageType;
 
     await build.initMeta();
 
-    return build.update();
+    const newBuild = await build.update();
+
+    await emitBuildStatusEvent({ server, build: newBuild, pipeline, event, job });
+
+    return newBuild;
 }
 
 /**
@@ -628,6 +676,7 @@ async function updateVirtualBuildSuccess(build) {
  *          if no failure, start new build
  * Otherwise, do nothing
  * @param {Object} arg If the build is done or not
+ * @param {Object} arg.server Server object
  * @param {String[]} arg.joinListNames Join list names
  * @param {Build} arg.newBuild Next build
  * @param {Job} arg.job Next job
@@ -639,6 +688,7 @@ async function updateVirtualBuildSuccess(build) {
  * @returns {Promise<Build|null>} The newly updated/created build
  */
 async function handleNewBuild({
+    server,
     joinListNames,
     newBuild,
     job,
@@ -687,7 +737,7 @@ async function handleNewBuild({
 
     // Bypass execution of the build if the job is virtual
     if (isVirtualJob && !hasFreezeWindows(job)) {
-        return updateVirtualBuildSuccess(newBuild);
+        return updateVirtualBuildSuccess({ server, build: newBuild, event, job });
     }
 
     // All join builds finished successfully, and it's clear that a new build has not been started before.
@@ -1203,6 +1253,7 @@ module.exports = {
     getJoinBuilds,
     getParentBuildStatus,
     handleNewBuild,
+    emitBuildStatusEvent,
     ensureStageTeardownBuildExists,
     getBuildsForGroupEvent,
     createJoinObject,
