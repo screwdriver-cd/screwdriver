@@ -168,6 +168,30 @@ function getExternalEvent(currentBuild, pipelineId, eventFactory) {
 }
 
 /**
+ * Helper function to fetch external workflow belonging to group evnets
+ * @param {Event} currentEvent Event for current completed job
+ * @param {String} pipelineId Pipeline ID for next job to be triggered.
+ * @param {EventFactory} eventFactory Factory for querying event data store.
+ * @returns {Promise<Object>} Workflow graph of next job's pipeline
+ */
+async function getExternalWorkflowGraph(currentEvent, pipelineId, eventFactory) {
+    const groupExternalEvents = await eventFactory.list({
+        params: {
+            groupEventId: currentEvent.groupEventId,
+            pipelineId
+        },
+        sortBy: 'id',
+        sort: 'descending'
+    });
+
+    if (groupExternalEvents.length === 0) {
+        return null;
+    }
+
+    return groupExternalEvents[0].workflowGraph;
+}
+
+/**
  * Create event for downstream pipeline that need to be rebuilt
  * @param {Object} config Configuration object
  * @param {PipelineFactory} config.pipelineFactory Pipeline Factory
@@ -954,10 +978,15 @@ async function createJoinObject(nextJobNames, current, eventFactory) {
             jobs = [];
 
             const externalEvent = pipelineObj.event || (await getExternalEvent(build, nextJobPipelineId, eventFactory));
+            const externalWorkflowGraph = externalEvent
+                ? externalEvent.workflowGraph
+                : await getExternalWorkflowGraph(event, nextJobPipelineId, eventFactory);
 
             if (externalEvent) {
                 pipelineObj.event = externalEvent;
-                jobs = workflowParser.getSrcForJoin(externalEvent.workflowGraph, { jobName: nextJobName });
+            }
+            if (externalWorkflowGraph) {
+                jobs = workflowParser.getSrcForJoin(externalWorkflowGraph, { jobName: nextJobName });
             }
         } else {
             jobs = workflowParser.getSrcForJoin(event.workflowGraph, { jobName });
