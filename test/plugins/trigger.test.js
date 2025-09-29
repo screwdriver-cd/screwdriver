@@ -565,6 +565,25 @@ describe('trigger tests', () => {
         assert.equal(pipeline.getBuildsOf('target').length, 1);
     });
 
+    it('[ a, b ] is triggered in detached event belonging to group event', async () => {
+        const pipeline = await pipelineFactoryMock.createFromFile('a_b.yaml');
+
+        const event = await eventFactoryMock.create({
+            pipelineId: pipeline.id,
+            startFrom: 'hub'
+        });
+
+        await event.run();
+
+        // Create event from "Start pipeline from here"
+        const detachedEvent = await event.restartFrom('detached');
+        const restartEvent = await detachedEvent.restartFrom('a');
+
+        await restartEvent.getBuildOf('a').complete('SUCCESS');
+
+        assert.equal(restartEvent.getBuildOf('target').status, 'RUNNING');
+    });
+
     it('Multiple [ a, b ] is triggered', async () => {
         const pipeline = await pipelineFactoryMock.createFromFile('a_b-multiple.yaml');
 
