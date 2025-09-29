@@ -823,6 +823,7 @@ class JobFactoryMock {
         };
 
         this.records.push(job);
+        job.pipeline = job.pipeline || this.server.app.pipelineFactory.get(job.pipelineId);
         job.toJson.returns({ ...job });
         job.parsePRJobName = type => {
             const match = job.name.match(PR_JOB_NAME);

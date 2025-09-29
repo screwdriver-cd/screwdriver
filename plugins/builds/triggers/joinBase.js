@@ -14,19 +14,20 @@ const { createInternalBuild, updateParentBuilds, handleNewBuild } = require('./h
 class JoinBase {
     /**
      * Base class for AND trigger and RemoteJoin
-     * @param {Object} app Server app object
-     * @param {EventFactory} app.eventFactory Server app object
-     * @param {BuildFactory} app.buildFactory Server app object
-     * @param {JobFactory} app.jobFactory Server app object
+     * @param {Object} server Server object
+     * @param {EventFactory} server.app.eventFactory Server app object
+     * @param {BuildFactory} server.app.buildFactory Server app object
+     * @param {JobFactory} server.app.jobFactory Server app object
      * @param {Object} config Configuration object
      * @param {Build} config.build
      * @param {String} config.username
      * @param {String} config.scmContext
      */
-    constructor(app, config) {
-        this.eventFactory = app.eventFactory;
-        this.buildFactory = app.buildFactory;
-        this.jobFactory = app.jobFactory;
+    constructor(server, config) {
+        this.server = server;
+        this.eventFactory = server.app.eventFactory;
+        this.buildFactory = server.app.buildFactory;
+        this.jobFactory = server.app.jobFactory;
 
         this.currentBuild = config.build;
         this.username = config.username;
@@ -89,6 +90,7 @@ class JoinBase {
         }
 
         return handleNewBuild({
+            server: this.server,
             joinListNames,
             newBuild,
             job: nextJob,

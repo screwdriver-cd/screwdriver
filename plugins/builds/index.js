@@ -65,14 +65,15 @@ async function deleteBuild(buildConfig, buildFactory) {
 /**
  * Trigger the next jobs of the current job
  * @param { import('./types/index').ServerConfig }  config  Configuration object
- * @param { import('./types/index').ServerApp }     app     Server app object
+ * @param { Object }                                server     Server object
+ * @param { import('./types/index').ServerApp }     server.app     Server app object
  * @return {Promise<null>}                                  Resolves to the newly created build or null
  */
-async function triggerNextJobs(config, app) {
+async function triggerNextJobs(config, server) {
     const currentPipeline = config.pipeline;
     const currentJob = config.job;
     const currentBuild = config.build;
-    const { jobFactory, buildFactory, eventFactory, pipelineFactory, stageFactory, stageBuildFactory } = app;
+    const { jobFactory, buildFactory, eventFactory, pipelineFactory, stageFactory, stageBuildFactory } = server.app;
 
     /** @type {EventModel} */
     const currentEvent = await eventFactory.get({ id: currentBuild.eventId });
@@ -92,8 +93,8 @@ async function triggerNextJobs(config, app) {
 
     // Trigger OrTrigger and AndTrigger for current pipeline jobs.
     // Helper function to handle triggering jobs in same pipeline
-    const orTrigger = new OrTrigger(app, config);
-    const andTrigger = new AndTrigger(app, config, currentEvent);
+    const orTrigger = new OrTrigger(server, config);
+    const andTrigger = new AndTrigger(server, config, currentEvent);
     const currentPipelineNextJobs = extractCurrentPipelineJoinData(pipelineJoinData, currentPipeline.id);
 
     const downstreamOfNextJobsToBeProcessed = [];
@@ -155,7 +156,8 @@ async function triggerNextJobs(config, app) {
                     eventId: currentEvent.id
                 });
 
-                if (stageBuild) {
+                // The next build is only created (not started) when nextBuild is null
+                if (stageBuild && nextBuild) {
                     await updateStageBuildStatus({ stageBuild, newStatus: nextBuild.status, job: nextJob });
                 }
 
@@ -182,8 +184,8 @@ async function triggerNextJobs(config, app) {
 
     // Trigger RemoteJoin and RemoteTrigger for current and external pipeline jobs.
     // Helper function to handle triggering jobs in external pipeline
-    const remoteTrigger = new RemoteTrigger(app, config);
-    const remoteJoin = new RemoteJoin(app, config, currentEvent);
+    const remoteTrigger = new RemoteTrigger(server, config);
+    const remoteJoin = new RemoteJoin(server, config, currentEvent);
     const externalPipelineJoinData = extractExternalJoinData(pipelineJoinData, currentPipeline.id);
 
     for (const [joinedPipelineId, joinedPipeline] of Object.entries(externalPipelineJoinData)) {
@@ -375,7 +377,7 @@ async function triggerNextJobs(config, app) {
     }
 
     for (const nextConfig of downstreamOfNextJobsToBeProcessed) {
-        await triggerNextJobs(nextConfig, app);
+        await triggerNextJobs(nextConfig, server);
     }
 
     return null;

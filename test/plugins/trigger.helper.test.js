@@ -1123,9 +1123,11 @@ describe('handleNewBuild function', () => {
     const handleNewBuild = RewiredTriggerHelper.__get__('handleNewBuild');
     const joinListNames = ['a'];
 
+    let serverMock;
     let newBuildMock;
     let jobMock;
     let eventMock;
+    let pipelineMock;
     let buildFactoryMock;
 
     beforeEach(() => {
@@ -1137,19 +1139,38 @@ describe('handleNewBuild function', () => {
             initMeta: sinon.stub().resolves(),
             update: sinon.stub().resolves(),
             start: sinon.stub().resolvesThis(),
-            remove: sinon.stub().resolves()
+            remove: sinon.stub().resolves(),
+            toJson: sinon.stub()
+        };
+        newBuildMock.update.resolves(newBuildMock);
+
+        pipelineMock = {
+            toJson: sinon.stub()
         };
 
         jobMock = {
             id: 23,
             name: 'main',
-            permutations: [{}]
+            permutations: [{}],
+            getLatestBuild: sinon.stub().resolves([]),
+            pipeline: Promise.resolve(pipelineMock)
         };
 
-        eventMock = {};
+        eventMock = {
+            toJson: sinon.stub()
+        };
 
         buildFactoryMock = {
             get: sinon.stub().resolves({ status: Status.SUCCESS })
+        };
+
+        serverMock = {
+            app: {
+                buildFactory: buildFactoryMock
+            },
+            events: {
+                emit: sinon.stub().resolves()
+            }
         };
 
         sinon.stub(logger, 'info');
@@ -1163,6 +1184,7 @@ describe('handleNewBuild function', () => {
         buildFactoryMock.get.resolves({ status: Status.RUNNING });
 
         const result = await handleNewBuild({
+            server: serverMock,
             joinListNames,
             newBuild: newBuildMock,
             job: jobMock,
@@ -1181,6 +1203,7 @@ describe('handleNewBuild function', () => {
         newBuildMock.status = Status.RUNNING;
 
         const result = await handleNewBuild({
+            server: serverMock,
             joinListNames,
             newBuild: newBuildMock,
             job: jobMock,
@@ -1200,6 +1223,7 @@ describe('handleNewBuild function', () => {
         buildFactoryMock.get.resolves({ status: Status.FAILURE });
 
         const result = await handleNewBuild({
+            server: serverMock,
             joinListNames,
             newBuild: newBuildMock,
             job: jobMock,
@@ -1221,6 +1245,7 @@ describe('handleNewBuild function', () => {
         buildFactoryMock.get.resolves({ status: Status.FAILURE });
 
         const result = await handleNewBuild({
+            server: serverMock,
             joinListNames,
             newBuild: newBuildMock,
             job: jobMock,
@@ -1239,6 +1264,7 @@ describe('handleNewBuild function', () => {
 
     it('should start new build if all join builds finished successfully', async () => {
         const result = await handleNewBuild({
+            server: serverMock,
             joinListNames,
             newBuild: newBuildMock,
             job: jobMock,
@@ -1254,6 +1280,7 @@ describe('handleNewBuild function', () => {
 
     it('should skip the execution of virtual job and mark the build as successful', async () => {
         await handleNewBuild({
+            server: serverMock,
             joinListNames,
             newBuild: newBuildMock,
             job: jobMock,
@@ -1274,6 +1301,7 @@ describe('handleNewBuild function', () => {
         jobMock.permutations[0].freezeWindows = [];
 
         await handleNewBuild({
+            server: serverMock,
             joinListNames,
             newBuild: newBuildMock,
             job: jobMock,
@@ -1292,6 +1320,7 @@ describe('handleNewBuild function', () => {
         jobMock.permutations[0].freezeWindows = ['* 10-21 ? * *'];
 
         await handleNewBuild({
+            server: serverMock,
             joinListNames,
             newBuild: newBuildMock,
             job: jobMock,
