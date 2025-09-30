@@ -8,3 +8,5 @@ jobs:
     requires: [ ~sd@1:a ]
   b:
     requires: [ ~sd@1:a ]
+  detached:
+    requires: []

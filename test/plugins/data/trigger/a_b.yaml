@@ -12,3 +12,5 @@ jobs:
     requires: [ ~hub ]
   target:
     requires: [ a, b ]
+  detached:
+    requires: []

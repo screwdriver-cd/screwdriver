@@ -413,6 +413,7 @@ describe('build plugin test', () => {
             buildMock.update.resolves(buildMock);
             buildFactoryMock.get.resolves(buildMock);
             buildFactoryMock.list.resolves([]);
+            buildFactoryMock.getLatestBuilds.resolves([]);
             stepMock = getBuildMock({
                 buildId: id,
                 name: initStepName
