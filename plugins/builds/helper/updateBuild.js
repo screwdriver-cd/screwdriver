@@ -5,7 +5,7 @@ const hoek = require('@hapi/hoek');
 const merge = require('lodash.mergewith');
 const { PR_JOB_NAME, PR_STAGE_NAME, STAGE_TEARDOWN_PATTERN } = require('screwdriver-data-schema').config.regex;
 const { getFullStageJobName } = require('../../helper');
-const { updateVirtualBuildSuccess } = require('../triggers/helpers');
+const { updateVirtualBuildSuccess, emitBuildStatusEvent } = require('../triggers/helpers');
 const TERMINAL_STATUSES = ['FAILURE', 'ABORTED', 'UNSTABLE', 'COLLAPSED'];
 const FINISHED_STATUSES = ['SUCCESS', ...TERMINAL_STATUSES];
 const NON_TERMINATED_STATUSES = ['CREATED', 'RUNNING', 'QUEUED', 'BLOCKED', 'FROZEN'];
@@ -58,25 +58,6 @@ function stopBuilds(builds, statusMessage) {
     }
 
     return { unchangedBuilds, changedBuilds };
-}
-
-/**
- * Identify whether this build resulted in a previously failed job to become successful.
- *
- * @method isFixedBuild
- * @param  {Build}          build       Build Object
- * @param  {JobFactory}     jobFactory  Job Factory instance
- */
-async function isFixedBuild(build, jobFactory) {
-    if (build.status !== 'SUCCESS') {
-        return false;
-    }
-
-    const job = await jobFactory.get(build.jobId);
-    const failureBuild = await job.getLatestBuild({ status: 'FAILURE' });
-    const successBuild = await job.getLatestBuild({ status: 'SUCCESS' });
-
-    return !!((failureBuild && !successBuild) || failureBuild.id > successBuild.id);
 }
 
 /**
@@ -405,7 +386,6 @@ async function updateBuildAndTriggerDownstreamJobs(config, build, server, userna
         throw boom.badRequest(`Cannot update builds to ${desiredStatus}`);
     }
 
-    let isFixed = Promise.resolve(false);
     let stopFrozen = null;
 
     // If the event is Aborted, check if there are any builds within the same event
@@ -429,7 +409,6 @@ async function updateBuildAndTriggerDownstreamJobs(config, build, server, userna
         await updateInitStep(build, server.app);
     } else {
         stopFrozen = stopFrozenBuild(build, currentStatus);
-        isFixed = isFixedBuild(build, jobFactory);
     }
 
     const [newBuild, newEvent] = await Promise.all([build.update(), event.update(), stopFrozen]);
@@ -437,16 +416,7 @@ async function updateBuildAndTriggerDownstreamJobs(config, build, server, userna
     const pipeline = await job.pipeline;
 
     if (desiredStatus) {
-        await server.events.emit('build_status', {
-            settings: job.permutations[0].settings,
-            status: newBuild.status,
-            event: newEvent.toJson(),
-            pipeline: pipeline.toJson(),
-            jobName: job.name,
-            build: newBuild.toJson(),
-            buildLink: `${buildFactory.uiUri}/pipelines/${pipeline.id}/builds/${build.id}`,
-            isFixed: await isFixed
-        });
+        await emitBuildStatusEvent({ server, build: newBuild, pipeline, event: newEvent, job });
     }
 
     const skipFurther = /\[(skip further)\]/.test(newEvent.causeMessage);
@@ -485,7 +455,7 @@ async function updateBuildAndTriggerDownstreamJobs(config, build, server, userna
     } else if (newBuild.status === 'SUCCESS' && isStageTeardown && stageBuildHasFailure) {
         await removeJoinBuilds({ pipeline, job, build: newBuild, event: newEvent, stage }, server.app);
     } else {
-        await triggerNextJobs({ pipeline, job, build: newBuild, username, scmContext, event: newEvent }, server.app);
+        await triggerNextJobs({ pipeline, job, build: newBuild, username, scmContext, event: newEvent }, server);
     }
 
     // Determine if stage teardown build should start
@@ -520,7 +490,13 @@ async function updateBuildAndTriggerDownstreamJobs(config, build, server, userna
                 stageTeardownBuild.parentBuildId = stageJobBuilds.map(b => b.id);
 
                 if (teardownNode && teardownNode.virtual) {
-                    await updateVirtualBuildSuccess(stageTeardownBuild);
+                    await updateVirtualBuildSuccess({
+                        server,
+                        build: stageTeardownBuild,
+                        pipeline,
+                        event: newEvent,
+                        job: stageTeardownJob
+                    });
                     await updateStageBuildStatus({ stageBuild, newStatus: 'SUCCESS', job: stageTeardownJob });
                 } else {
                     stageTeardownBuild.status = 'QUEUED';

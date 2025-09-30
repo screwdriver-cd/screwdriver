@@ -13,19 +13,20 @@ const { createInternalBuild, Status, updateVirtualBuildSuccess, hasFreezeWindows
 class OrBase {
     /**
      * Trigger the next jobs of the current job
-     * @param {Object} app Server app object
-     * @param {BuildFactory} app.buildFactory
-     * @param {JobFactory} app.jobFactory
-     * @param {PipelineFactory} app.pipelineFactory
+     * @param {Object} server Server object
+     * @param {BuildFactory} server.app.buildFactory
+     * @param {JobFactory} server.app.jobFactory
+     * @param {PipelineFactory} server.app.pipelineFactory
      * @param {Object} config Configuration object
      * @param {Build} config.currentBuild
      * @param {String} config.username
      * @param {String} config.scmContext
      */
-    constructor(app, config) {
-        this.buildFactory = app.buildFactory;
-        this.jobFactory = app.jobFactory;
-        this.pipelineFactory = app.pipelineFactory;
+    constructor(server, config) {
+        this.server = server;
+        this.buildFactory = server.app.buildFactory;
+        this.jobFactory = server.app.jobFactory;
+        this.pipelineFactory = server.app.pipelineFactory;
 
         this.currentBuild = config.build;
         this.username = config.username;
@@ -59,7 +60,7 @@ class OrBase {
 
             // Bypass execution of the build if the job is virtual
             if (isNextJobVirtual && !hasWindows) {
-                return updateVirtualBuildSuccess(nextBuild);
+                return updateVirtualBuildSuccess({ server: this.server, build: nextBuild, event, job: nextJob });
             }
 
             nextBuild.status = Status.QUEUED;
@@ -86,7 +87,7 @@ class OrBase {
 
         // Bypass execution of the build if the job is virtual
         if (isNextJobVirtual && !hasWindows) {
-            await updateVirtualBuildSuccess(nextBuild);
+            await updateVirtualBuildSuccess({ server: this.server, build: nextBuild, event, job: nextJob });
         }
 
         return nextBuild;
