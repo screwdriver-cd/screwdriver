@@ -816,6 +816,11 @@ describe('build plugin test', () => {
                     getPermissions: sinon.stub().resolves({ push: true })
                 };
                 const expected = hoek.applyToDefaults(testBuildWithSteps, { status: 'ABORTED' });
+                const expectedMeta = {
+                    commit: { sha: '123', message: 'test message' },
+                    build: { id: 123 },
+                    foo: 'bar'
+                };
                 const options = {
                     method: 'PUT',
                     url: `/builds/${id}`,
@@ -831,6 +836,7 @@ describe('build plugin test', () => {
                     }
                 };
 
+                buildMock.meta = expectedMeta;
                 buildMock.job = sinon.stub().resolves(jobMock)();
                 buildFactoryMock.get.resolves(buildMock);
                 buildMock.toJson.returns(testBuild);
@@ -840,6 +846,7 @@ describe('build plugin test', () => {
                 return server.inject(options).then(reply => {
                     assert.deepEqual(reply.result, expected);
                     assert.calledWith(buildFactoryMock.get, id);
+                    assert.deepEqual(buildMock.meta, expectedMeta);
                     assert.equal(buildMock.statusMessage, 'Aborted by test-user');
                     assert.equal(reply.statusCode, 200);
                 });

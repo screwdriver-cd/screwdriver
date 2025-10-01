@@ -3,6 +3,7 @@
 const boom = require('@hapi/boom');
 const hoek = require('@hapi/hoek');
 const merge = require('lodash.mergewith');
+const isEmpty = require('lodash.isempty');
 const { PR_JOB_NAME, PR_STAGE_NAME, STAGE_TEARDOWN_PATTERN } = require('screwdriver-data-schema').config.regex;
 const { getFullStageJobName } = require('../../helper');
 const { updateVirtualBuildSuccess, emitBuildStatusEvent } = require('../triggers/helpers');
@@ -370,7 +371,7 @@ async function updateBuildAndTriggerDownstreamJobs(config, build, server, userna
         build.statusMessage = statusMessage || build.statusMessage;
         build.statusMessageType = statusMessageType || build.statusMessageType;
     } else if (['SUCCESS', 'FAILURE', 'ABORTED'].includes(desiredStatus)) {
-        build.meta = meta || {};
+        build.meta = isEmpty(meta) ? build.meta || {} : meta;
         event.meta = merge({}, event.meta, build.meta);
         build.endTime = new Date().toISOString();
     } else if (desiredStatus === 'RUNNING') {
