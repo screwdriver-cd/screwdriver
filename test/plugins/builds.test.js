@@ -3980,7 +3980,7 @@ describe('build plugin test', () => {
                         assert.calledWith(eventFactoryMock.create.secondCall, expectedEventArgs2);
                         sinon.assert.calledOnceWithMatch(
                             loggerMock.error,
-                            'Error in createExternalEvent:2 from pipeline:123-a-event:8888'
+                            'Error in selection/creation externalEvent:2 from pipeline:123-a-event:8888'
                         );
                     });
                 });
@@ -6293,7 +6293,7 @@ describe('build plugin test', () => {
                         return newServer.inject(options).then(() => {
                             const { lock, unlock } = lockMock;
 
-                            assert.calledOnce(lock);
+                            assert.calledTwice(lock);
                             assert.called(unlock);
                         });
                     });
@@ -6305,7 +6305,7 @@ describe('build plugin test', () => {
                         return newServer.inject(options).then(() => {
                             const { lock, unlock } = lockMock;
 
-                            assert.calledOnce(lock);
+                            assert.calledTwice(lock);
                             assert.called(unlock);
                         });
                     });

@@ -192,10 +192,20 @@ async function triggerNextJobs(config, server) {
         const isCurrentPipeline = strToInt(joinedPipelineId) === currentPipeline.id;
         const remoteJoinName = `sd@${currentPipeline.id}:${originalCurrentJobName}`;
         const remoteTriggerName = `~${remoteJoinName}`;
-        let lock;
-        let resource;
+        let groupEventLock;
+        let groupEventResource;
+        let externalEventResource;
+        let externalEventLock;
 
         let externalEvent = joinedPipeline.event;
+
+        let isRestartPipeline = false;
+
+        if (currentEvent.parentEventId) {
+            const parentEvent = await eventFactory.get({ id: currentEvent.parentEventId });
+
+            isRestartPipeline = parentEvent && strToInt(currentEvent.pipelineId) === strToInt(parentEvent.pipelineId);
+        }
 
         // This includes CREATED builds too
         const groupEventBuilds = await getBuildsForGroupEvent(currentEvent.groupEventId, buildFactory);
@@ -209,85 +219,89 @@ async function triggerNextJobs(config, server) {
             });
 
             groupEventBuilds.push(...parallelBuilds);
-        } else {
-            const sameParentEvents = await getSameParentEvents({
-                eventFactory,
-                parentEventId: currentEvent.id,
-                pipelineId: strToInt(joinedPipelineId)
-            });
-
-            if (sameParentEvents.length > 0) {
-                externalEvent = sameParentEvents[0];
-            }
         }
 
-        let isRestartPipeline = false;
+        try {
+            // serialize external-event selection/creation and prevent duplicate events under concurrent triggers.
+            groupEventResource = `pipeline:${joinedPipelineId}:groupEvent:${currentEvent.groupEventId}`;
+            groupEventLock = await locker.lock(groupEventResource);
 
-        if (currentEvent.parentEventId) {
-            const parentEvent = await eventFactory.get({ id: currentEvent.parentEventId });
+            if (!externalEvent) {
+                const sameParentEvents = await getSameParentEvents({
+                    eventFactory,
+                    parentEventId: currentEvent.id,
+                    pipelineId: strToInt(joinedPipelineId)
+                });
 
-            isRestartPipeline = parentEvent && strToInt(currentEvent.pipelineId) === strToInt(parentEvent.pipelineId);
-        }
-
-        // If user used external trigger syntax, the jobs are triggered as external
-        if (isCurrentPipeline) {
-            externalEvent = null;
-        } else if (isRestartPipeline) {
-            // If parentEvent and currentEvent have the same pipelineId, then currentEvent is the event that started the restart
-            // If restarted from the downstream pipeline, the remote trigger must create a new event in the upstream pipeline
-            const sameParentEvents = await getSameParentEvents({
-                eventFactory,
-                parentEventId: currentEvent.id,
-                pipelineId: strToInt(joinedPipelineId)
-            });
-
-            externalEvent = sameParentEvents.length > 0 ? sameParentEvents[0] : null;
-        }
-
-        // no need to lock if there is no external event
-        if (externalEvent) {
-            resource = `pipeline:${joinedPipelineId}:event:${externalEvent.id}`;
-        }
-
-        // Create a new external event
-        // First downstream trigger, restart case, same pipeline trigger as external
-        if (!externalEvent) {
-            const { parentBuilds } = parseJobInfo({
-                currentBuild,
-                currentPipeline,
-                currentJob
-            });
-
-            const externalEventConfig = {
-                pipelineFactory,
-                eventFactory,
-                externalPipelineId: joinedPipelineId,
-                parentBuildId: currentBuild.id,
-                parentBuilds,
-                causeMessage: `Triggered by ${remoteJoinName}`,
-                parentEventId: currentEvent.id,
-                startFrom: remoteTriggerName,
-                skipMessage: 'Skip bulk external builds creation', // Don't start builds in eventFactory.
-                groupEventId: currentEvent.groupEventId // groupEventId is the id of the first triggered event (use the upstream pipeline's in the downstream pipeline)
-            };
-
-            const buildsToRestart = buildsToRestartFilter(joinedPipeline, groupEventBuilds, currentEvent, currentBuild);
-            const isRestart = buildsToRestart.length > 0;
-
-            // Restart case
-            if (isRestart) {
-                externalEventConfig.parentBuilds = buildsToRestart[0].parentBuilds;
+                if (sameParentEvents.length > 0) {
+                    externalEvent = sameParentEvents[0];
+                }
             }
 
-            try {
-                externalEvent = await createExternalEvent(externalEventConfig);
-            } catch (err) {
-                // The case of triggered external pipeline which is already deleted from DB, etc
-                logger.error(
-                    `Error in createExternalEvent:${joinedPipelineId} from pipeline:${currentPipeline.id}-${currentJob.name}-event:${currentEvent.id}`,
-                    err
+            // If user used external trigger syntax, the jobs are triggered as external
+            if (isCurrentPipeline) {
+                externalEvent = null;
+            } else if (isRestartPipeline) {
+                // If parentEvent and currentEvent have the same pipelineId, then currentEvent is the event that started the restart
+                // If restarted from the downstream pipeline, the remote trigger must create a new event in the upstream pipeline
+                const sameParentEvents = await getSameParentEvents({
+                    eventFactory,
+                    parentEventId: currentEvent.id,
+                    pipelineId: strToInt(joinedPipelineId)
+                });
+
+                externalEvent = sameParentEvents.length > 0 ? sameParentEvents[0] : null;
+            }
+
+            // no need to lock if there is no external event
+            if (externalEvent) {
+                externalEventResource = `pipeline:${joinedPipelineId}:event:${externalEvent.id}`;
+            }
+
+            // Create a new external event
+            // First downstream trigger, restart case, same pipeline trigger as external
+            if (!externalEvent) {
+                const { parentBuilds } = parseJobInfo({
+                    currentBuild,
+                    currentPipeline,
+                    currentJob
+                });
+
+                const externalEventConfig = {
+                    pipelineFactory,
+                    eventFactory,
+                    externalPipelineId: joinedPipelineId,
+                    parentBuildId: currentBuild.id,
+                    parentBuilds,
+                    causeMessage: `Triggered by ${remoteJoinName}`,
+                    parentEventId: currentEvent.id,
+                    startFrom: remoteTriggerName,
+                    skipMessage: 'Skip bulk external builds creation', // Don't start builds in eventFactory.
+                    groupEventId: currentEvent.groupEventId // groupEventId is the id of the first triggered event (use the upstream pipeline's in the downstream pipeline)
+                };
+
+                const buildsToRestart = buildsToRestartFilter(
+                    joinedPipeline,
+                    groupEventBuilds,
+                    currentEvent,
+                    currentBuild
                 );
+                const isRestart = buildsToRestart.length > 0;
+
+                // Restart case
+                if (isRestart) {
+                    externalEventConfig.parentBuilds = buildsToRestart[0].parentBuilds;
+                }
+
+                externalEvent = await createExternalEvent(externalEventConfig);
             }
+        } catch (err) {
+            logger.error(
+                `Error in selection/creation externalEvent:${joinedPipelineId} from pipeline:${currentPipeline.id}-${currentJob.name}-event:${currentEvent.id}`,
+                err
+            );
+        } finally {
+            await locker.unlock(groupEventLock, groupEventResource);
         }
 
         // Skip trigger process if createExternalEvent fails
@@ -310,7 +324,7 @@ async function triggerNextJobs(config, server) {
                 let nextBuild;
 
                 try {
-                    if (resource) lock = await locker.lock(resource);
+                    if (externalEventResource) externalEventLock = await locker.lock(externalEventResource);
 
                     if (isOrTrigger(externalEvent.workflowGraph, remoteTriggerName, nextJobName)) {
                         nextBuild = await remoteTrigger.execute(
@@ -369,9 +383,9 @@ async function triggerNextJobs(config, server) {
                         `Error in triggerJobsInExternalPipeline:${joinedPipelineId} from pipeline:${currentPipeline.id}-${currentJob.name}-event:${currentEvent.id} `,
                         err
                     );
+                } finally {
+                    await locker.unlock(externalEventLock, externalEventResource);
                 }
-
-                await locker.unlock(lock, resource);
             }
         }
     }
