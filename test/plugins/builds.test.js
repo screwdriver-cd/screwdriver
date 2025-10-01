@@ -413,6 +413,7 @@ describe('build plugin test', () => {
             buildMock.update.resolves(buildMock);
             buildFactoryMock.get.resolves(buildMock);
             buildFactoryMock.list.resolves([]);
+            buildFactoryMock.getLatestBuilds.resolves([]);
             stepMock = getBuildMock({
                 buildId: id,
                 name: initStepName
@@ -598,6 +599,130 @@ describe('build plugin test', () => {
                     isFixed: true
                 });
                 assert.equal(reply.statusCode, 200);
+            });
+        });
+
+        it('emits event build_status from next virtual job', () => {
+            eventMock.workflowGraph = {
+                nodes: [
+                    { name: '~pr' },
+                    { name: '~commit' },
+                    { name: 'a', id: 1 },
+                    { name: 'b', id: 2, virtual: true }
+                ],
+                edges: [
+                    { src: '~pr', dest: 'a' },
+                    { src: '~commit', dest: 'a' },
+                    { src: 'a', dest: 'b' }
+                ]
+            };
+
+            const userMock = {
+                username: id,
+                getPermissions: sinon.stub().resolves({ push: true })
+            };
+            const options = {
+                method: 'PUT',
+                url: `/builds/1`,
+                payload: {
+                    status: 'SUCCESS'
+                },
+                auth: {
+                    credentials: {
+                        username: 1,
+                        scmContext,
+                        scope: ['build']
+                    },
+                    strategy: ['token']
+                }
+            };
+
+            const jobA = {
+                id: 1,
+                name: 'a',
+                pipelineId,
+                state: 'ENABLED',
+                getLatestBuild: sinon.stub().returns([]),
+                permutations: [
+                    {
+                        settings: {
+                            email: 'foo@bar.com'
+                        }
+                    }
+                ],
+                pipeline: Promise.resolve(pipelineMock)
+            };
+            const jobB = {
+                ...jobA,
+                id: 1234,
+                name: 'b'
+            };
+
+            const buildA = {
+                // Complete this build
+                ...buildMock,
+                id: 1,
+                jobId: 1,
+                eventId: '8888',
+                status: 'RUNNING',
+                update: sinon.stub(),
+                toJson: () => 'BUILD A JSON',
+                job: Promise.resolve(jobA)
+            };
+            const buildB = {
+                // Trigger this build as virtual
+                id: 2,
+                jobId: 1234,
+                eventId: '8888',
+                status: 'CREATED',
+                settings: { email: 'foo@example.com' },
+                update: sinon.stub(),
+                initMeta: sinon.stub(),
+                toJson: () => 'BUILD B JSON',
+                job: Promise.resolve(jobB)
+            };
+
+            buildA.update.resolves(buildA);
+            buildB.update.resolves(buildB);
+
+            jobFactoryMock.get.withArgs({ name: 'b', pipelineId }).resolves(jobB);
+            buildFactoryMock.get.withArgs(1).resolves(buildA);
+            buildFactoryMock.get.withArgs({ eventId: '8888', jobId: 1234 }).resolves(buildB);
+            buildFactoryMock.create.resolves(buildB);
+            buildFactoryMock.uiUri = 'http://foo.bar';
+            userFactoryMock.get.resolves(userMock);
+
+            server.events = {
+                emit: sinon.stub().resolves(null)
+            };
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 200);
+                assert.calledTwice(server.events.emit);
+                assert.calledWith(server.events.emit.firstCall, 'build_status', {
+                    build: 'BUILD A JSON',
+                    buildLink: 'http://foo.bar/pipelines/123/builds/1',
+                    jobName: 'a',
+                    event: { id: 123 },
+                    pipeline: { id: 123 },
+                    settings: {
+                        email: 'foo@bar.com'
+                    },
+                    status: 'SUCCESS',
+                    isFixed: false
+                });
+                assert.calledWith(server.events.emit.secondCall, 'build_status', {
+                    build: 'BUILD B JSON',
+                    buildLink: 'http://foo.bar/pipelines/123/builds/2',
+                    jobName: 'b',
+                    event: { id: 123 },
+                    pipeline: { id: 123 },
+                    settings: {
+                        email: 'foo@bar.com'
+                    },
+                    status: 'SUCCESS',
+                    isFixed: false
+                });
             });
         });
 
@@ -2257,6 +2382,7 @@ describe('build plugin test', () => {
 
                     teardownBuildMock.status = 'CREATED';
                     teardownBuildMock.update.resolves(teardownBuildMock);
+                    teardownBuildMock.pipeline = Promise.resolve(pipelineMock);
                     buildFactoryMock.get.withArgs({ eventId: '8888', jobId: 1234 }).resolves(buildMock);
                     buildFactoryMock.get.withArgs({ eventId: '8888', jobId: 1235 }).resolves(teardownBuildMock);
 
@@ -2597,6 +2723,7 @@ describe('build plugin test', () => {
                     pipelineId,
                     state: 'ENABLED',
                     parsePRJobName: sinon.stub().returns('b'),
+                    getLatestBuild: sinon.stub().returns([]),
                     permutations: [
                         {
                             settings: {
@@ -2770,7 +2897,8 @@ describe('build plugin test', () => {
                     const jobD = {
                         ...jobB,
                         id: 4,
-                        name: 'd'
+                        name: 'd',
+                        pipeline: Promise.resolve(pipelineMock)
                     };
 
                     const jobE = {
@@ -2781,7 +2909,8 @@ describe('build plugin test', () => {
                     const jobF = {
                         ...jobB,
                         id: 6,
-                        name: 'f'
+                        name: 'f',
+                        pipeline: Promise.resolve(pipelineMock)
                     };
 
                     const buildA = {
@@ -2817,7 +2946,8 @@ describe('build plugin test', () => {
                         endTime: '',
                         meta: {},
                         initMeta: sinon.stub(),
-                        update: sinon.stub()
+                        update: sinon.stub(),
+                        toJson: sinon.stub()
                     };
                     const buildE = {
                         // Trigger this build from buildD
@@ -2839,7 +2969,8 @@ describe('build plugin test', () => {
                         parentBuildId: buildD.id,
                         meta: {},
                         initMeta: sinon.stub(),
-                        update: sinon.stub()
+                        update: sinon.stub(),
+                        toJson: sinon.stub()
                     };
 
                     const jobEConfig = {
@@ -2871,6 +3002,7 @@ describe('build plugin test', () => {
 
                     buildA.update.resolves(buildA);
                     buildD.update.resolves(buildD);
+                    buildF.update.resolves(buildF);
 
                     jobFactoryMock.get.withArgs({ name: 'd', pipelineId: pipelineMock.id }).resolves(jobD);
                     jobFactoryMock.get.withArgs({ name: 'e', pipelineId: pipelineMock.id }).resolves(jobE);

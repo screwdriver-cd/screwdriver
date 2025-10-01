@@ -74,10 +74,10 @@ describe('webhooks plugin test', () => {
                         username: 'sd-buildbot',
                         ignoreCommitsBy: ['batman', 'superman'],
                         restrictPR: 'fork',
-                        chainPR: false,
-                        maxBytes: 10
+                        chainPR: false
                     }
-                }
+                },
+                maxBytes: 100
             }
         });
         server.app.buildFactory.apiUri = apiUri;
@@ -93,8 +93,11 @@ describe('webhooks plugin test', () => {
     });
 
     it('registers the plugin', () => {
+        const route = server.table().find(r => r.path === '/webhooks' && r.method === 'post');
+
         assert.isOk(server.registrations.webhooks);
         assert.equal(server.app.buildFactory.tokenGen('12345'), '{"username":"12345","scope":["temporal"]}');
+        assert.equal(route.settings.payload.maxBytes, 100);
     });
 
     it('throws exception when config not passed', () => {
@@ -256,8 +259,7 @@ describe('webhooks plugin test', () => {
                 username: 'sd-buildbot',
                 ignoreCommitsBy: ['batman', 'superman'],
                 restrictPR: 'fork',
-                chainPR: false,
-                maxBytes: 10
+                chainPR: false
             };
 
             pipelineFactoryMock.scm.parseHook.resolves(parsed);
@@ -287,8 +289,7 @@ describe('webhooks plugin test', () => {
                 username: 'sd-buildbot',
                 ignoreCommitsBy: ['batman', 'superman'],
                 restrictPR: 'fork',
-                chainPR: false,
-                maxBytes: 10
+                chainPR: false
             };
 
             pipelineFactoryMock.scm.parseHook.resolves(parsed);
@@ -297,6 +298,7 @@ describe('webhooks plugin test', () => {
 
             return server.inject(options).then(() => {
                 assert.calledOnce(pipelineFactoryMock.scm.parseHook);
+                assert.calledWith(pipelineFactoryMock.scm.parseHook, reqHeaders, '{}');
                 assert.calledWith(queueWebhookMock.executor.enqueueWebhook, {
                     ...parsed,
                     pluginOptions: webhookConfig,

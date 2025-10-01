@@ -403,14 +403,19 @@ class EventFactoryMock {
         event.restartFrom = async jobName => {
             const restartBuild = event.getBuildOf(jobName);
 
-            const restartEvent = await this.create({
+            const restartConfig = {
                 pipelineId: pipeline.id,
                 groupEventId: event.groupEventId || event.id,
                 parentEventId: event.id,
-                parentBuilds: restartBuild.parentBuilds,
-                parentBuildId: restartBuild.parentBuildId,
                 startFrom: jobName
-            });
+            };
+
+            if (restartBuild) {
+                restartConfig.parentBuilds = restartBuild.parentBuilds;
+                restartConfig.parentBuildId = restartBuild.parentBuildId;
+            }
+
+            const restartEvent = await this.create(restartConfig);
 
             return restartEvent;
         };
@@ -504,15 +509,27 @@ class EventFactoryMock {
      * @returns {Event[]}
      */
     async list({ params }) {
-        const { parentEventId, pipelineId } = params;
+        const { parentEventId, groupEventId, pipelineId } = params;
 
-        const childEvents = this.getChildEvents(parentEventId);
+        return this.records.filter(event => {
+            if (!event) {
+                return false;
+            }
 
-        if (pipelineId) {
-            return childEvents.filter(event => event && event.pipelineId === pipelineId);
-        }
+            if (parentEventId && parseInt(event.parentEventId, 10) !== parseInt(parentEventId, 10)) {
+                return false;
+            }
 
-        return childEvents;
+            if (groupEventId && parseInt(event.groupEventId, 10) !== parseInt(groupEventId, 10)) {
+                return false;
+            }
+
+            if (pipelineId && parseInt(event.pipelineId, 10) !== parseInt(pipelineId, 10)) {
+                return false;
+            }
+
+            return true;
+        });
     }
 
     /**
@@ -806,6 +823,7 @@ class JobFactoryMock {
         };
 
         this.records.push(job);
+        job.pipeline = job.pipeline || this.server.app.pipelineFactory.get(job.pipelineId);
         job.toJson.returns({ ...job });
         job.parsePRJobName = type => {
             const match = job.name.match(PR_JOB_NAME);

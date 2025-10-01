@@ -15,8 +15,7 @@ const providerSchema = joi
             .string()
             .valid('all', 'none', 'branch', 'fork', 'all-admin', 'none-admin', 'branch-admin', 'fork-admin')
             .optional(),
-        chainPR: joi.boolean().optional(),
-        maxBytes: joi.number().integer().optional()
+        chainPR: joi.boolean().optional()
     })
     .unknown(false);
 
@@ -44,6 +43,7 @@ const webhooksPlugin = {
             joi.object().pattern(joi.string(), providerSchema).min(1).required(),
             'Invalid config for plugin-webhooks'
         );
+        const maxBytes = parseInt(options.maxBytes, 10) || DEFAULT_MAX_BYTES;
 
         server.route({
             method: 'POST',
@@ -58,7 +58,7 @@ const webhooksPlugin = {
                     }
                 },
                 payload: {
-                    maxBytes: parseInt(pluginOptions.maxBytes, 10) || DEFAULT_MAX_BYTES,
+                    maxBytes,
                     parse: false,
                     output: 'stream'
                 },
@@ -77,15 +77,7 @@ const webhooksPlugin = {
                         }
 
                         const data = Buffer.concat(chunks).toString();
-                        let parsedPayload;
-
-                        try {
-                            parsedPayload = JSON.parse(data);
-                        } catch (err) {
-                            throw boom.badData('Cannot parse payload');
-                        }
-
-                        const parsed = await scm.parseHook(request.headers, parsedPayload);
+                        const parsed = await scm.parseHook(request.headers, data);
 
                         if (!parsed) {
                             // for all non-matching events or actions

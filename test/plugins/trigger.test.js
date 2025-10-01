@@ -565,6 +565,25 @@ describe('trigger tests', () => {
         assert.equal(pipeline.getBuildsOf('target').length, 1);
     });
 
+    it('[ a, b ] is triggered in detached event belonging to group event', async () => {
+        const pipeline = await pipelineFactoryMock.createFromFile('a_b.yaml');
+
+        const event = await eventFactoryMock.create({
+            pipelineId: pipeline.id,
+            startFrom: 'hub'
+        });
+
+        await event.run();
+
+        // Create event from "Start pipeline from here"
+        const detachedEvent = await event.restartFrom('detached');
+        const restartEvent = await detachedEvent.restartFrom('a');
+
+        await restartEvent.getBuildOf('a').complete('SUCCESS');
+
+        assert.equal(restartEvent.getBuildOf('target').status, 'RUNNING');
+    });
+
     it('Multiple [ a, b ] is triggered', async () => {
         const pipeline = await pipelineFactoryMock.createFromFile('a_b-multiple.yaml');
 
@@ -1779,6 +1798,35 @@ describe('trigger tests', () => {
         const downstreamRestartEvent = await downstreamEvent.restartFrom('b');
 
         assert.isNull(downstreamRestartEvent.getBuildOf('a'));
+        await downstreamRestartEvent.getBuildOf('b').complete('SUCCESS');
+
+        const upstreamRestartEvent = upstreamPipeline.getLatestEvent();
+
+        assert.equal(upstreamRestartEvent.getBuildOf('target').status, 'RUNNING');
+        assert.equal(upstreamPipeline.getBuildsOf('target').length, 2);
+    });
+
+    it('[ sd@2:a, sd@2:b ] is triggered in detached event belonging to group event', async () => {
+        const upstreamPipeline = await pipelineFactoryMock.createFromFile('sd@2:a_sd@2:b-upstream.yaml');
+        const downstreamPipeline = await pipelineFactoryMock.createFromFile('sd@2:a_sd@2:b-downstream.yaml');
+
+        const upstreamEvent = await eventFactoryMock.create({
+            pipelineId: upstreamPipeline.id,
+            startFrom: 'hub'
+        });
+
+        await upstreamEvent.run();
+
+        const downstreamEvent = downstreamPipeline.getLatestEvent();
+
+        await downstreamEvent.getBuildOf('a').complete('SUCCESS');
+        await downstreamEvent.getBuildOf('b').complete('SUCCESS');
+        await upstreamEvent.getBuildOf('target').complete('SUCCESS');
+
+        // This means "Start pipeline from here" (not "Restart pipeline from here")
+        const downstreamDetachedEvent = await downstreamEvent.restartFrom('detached');
+        const downstreamRestartEvent = await downstreamDetachedEvent.restartFrom('b');
+
         await downstreamRestartEvent.getBuildOf('b').complete('SUCCESS');
 
         const upstreamRestartEvent = upstreamPipeline.getLatestEvent();
@@ -3492,7 +3540,7 @@ describe('trigger tests', () => {
             assert.equal(event.getBuildOf('PR-1:stage@simple:teardown').status, 'SUCCESS');
         });
 
-        it('stage jobs are triggered in PR when chainPR is enabled', async () => {
+        it('debug stage jobs are triggered in PR when chainPR is enabled', async () => {
             const pipeline = await pipelineFactoryMock.createFromFile('stage-pr.yaml');
 
             pipeline.addPRJobs(1);
