@@ -101,6 +101,7 @@
     "jsonwebtoken": "^9.0.0",
     "license-checker": "^25.0.1",
     "lodash.mergewith": "^4.6.2",
+    "lodash.isempty": "^4.4.0",
     "ndjson": "^2.0.0",
     "node-env-file": "^0.1.8",
     "prom-client": "^12.0.0",
