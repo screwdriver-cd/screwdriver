@@ -263,7 +263,8 @@ describe('pipeline plugin test', () => {
         };
         eventFactoryMock = {
             create: sinon.stub().resolves(null),
-            list: sinon.stub().resolves(null)
+            list: sinon.stub().resolves(null),
+            getPipelineTypeBuildEvents: sinon.stub().resolves(null)
         };
         stageFactoryMock = {
             list: sinon.stub()
@@ -1456,7 +1457,7 @@ describe('pipeline plugin test', () => {
             eventsPrMock = getEventsMocks(testEventsPr);
             eventsMock[0].getBuilds.resolves(getBuildMocks(testBuilds));
             eventsPrMock[0].getBuilds.resolves(getBuildMocks(testBuilds));
-            eventFactoryMock.list.resolves(eventsMock);
+            eventFactoryMock.getPipelineTypeBuildEvents.resolves(eventsMock);
         });
 
         it('returns 200 to for a valid build', () =>
@@ -1466,7 +1467,7 @@ describe('pipeline plugin test', () => {
             }));
 
         it('returns 200 to for a valid PR build', () => {
-            eventFactoryMock.list.resolves(eventsPrMock);
+            eventFactoryMock.getPipelineTypeBuildEvents.resolves(eventsPrMock);
 
             return server.inject(`/pipelines/${id}/badge`).then(reply => {
                 assert.equal(reply.statusCode, 200);
@@ -1484,7 +1485,7 @@ describe('pipeline plugin test', () => {
         });
 
         it('returns 200 to unknown for an event that does not exist', () => {
-            eventFactoryMock.list.resolves([]);
+            eventFactoryMock.getPipelineTypeBuildEvents.resolves([]);
 
             return server.inject(`/pipelines/${id}/badge`).then(reply => {
                 assert.equal(reply.statusCode, 200);
