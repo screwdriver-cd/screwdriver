@@ -208,8 +208,7 @@ async function triggerNextJobs(config, server) {
         }
 
         // This includes CREATED builds too
-        const groupEventBuilds =
-            externalEvent !== undefined ? await getBuildsForGroupEvent(externalEvent.groupEventId, buildFactory) : [];
+        const groupEventBuilds = await getBuildsForGroupEvent(currentEvent.groupEventId, buildFactory);
 
         // fetch builds created due to trigger
         if (externalEvent) {
@@ -278,7 +277,7 @@ async function triggerNextJobs(config, server) {
                     parentEventId: currentEvent.id,
                     startFrom: remoteTriggerName,
                     skipMessage: 'Skip bulk external builds creation', // Don't start builds in eventFactory.
-                    groupEventId: null
+                    groupEventId: currentEvent.groupEventId // groupEventId is the id of the first triggered event (use the upstream pipeline's in the downstream pipeline)
                 };
 
                 const buildsToRestart = buildsToRestartFilter(
@@ -291,20 +290,7 @@ async function triggerNextJobs(config, server) {
 
                 // Restart case
                 if (isRestart) {
-                    // 'joinedPipeline.event.id' is restart event, not group event.
-                    const groupEvent = await eventFactory.get({ id: joinedPipeline.event.id });
-
-                    externalEventConfig.groupEventId = groupEvent.groupEventId;
                     externalEventConfig.parentBuilds = buildsToRestart[0].parentBuilds;
-                } else {
-                    const sameParentEvents = await getSameParentEvents({
-                        eventFactory,
-                        parentEventId: currentEvent.groupEventId,
-                        pipelineId: strToInt(joinedPipelineId)
-                    });
-
-                    externalEventConfig.groupEventId =
-                        sameParentEvents.length > 0 ? sameParentEvents[0].groupEventId : currentEvent.groupEventId;
                 }
 
                 externalEvent = await createExternalEvent(externalEventConfig);
