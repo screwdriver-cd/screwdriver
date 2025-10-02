@@ -28,6 +28,7 @@ const metricsRoute = require('./metrics');
 const latestBuild = require('./latestBuild');
 const latestCommitEvent = require('./latestCommitEvent');
 const getAdmin = require('./admins/get');
+const listAdminsRoute = require('./admins/list');
 const deleteCache = require('./caches/delete');
 const openPrRoute = require('./openPr');
 const createTemplateRoute = require('./templates/create');
@@ -265,6 +266,7 @@ const pipelinesPlugin = {
             latestBuild(),
             latestCommitEvent(),
             getAdmin(),
+            listAdminsRoute(),
             deleteCache(),
             openPrRoute(),
             createTemplateRoute(),
