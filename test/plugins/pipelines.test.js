@@ -74,6 +74,14 @@ const decorateJobMock = job => {
     return mock;
 };
 
+const decorateUserMock = user => {
+    const mock = hoek.clone(user);
+
+    mock.toJson = sinon.stub().returns(user);
+
+    return mock;
+};
+
 const getJobsMocks = jobs => {
     if (Array.isArray(jobs)) {
         return jobs.map(decorateJobMock);
@@ -5312,6 +5320,175 @@ describe('pipeline plugin test', () => {
                     reply.result.message,
                     'Skipped updating admins for pipeline (id=123) as it is being deleted.'
                 );
+            });
+        });
+    });
+
+    describe('GET /pipelines/{id}/admins', () => {
+        let pipelineMock;
+
+        let options;
+
+        let userGithubSam;
+        let userGithubJohn;
+        let userGithubRob;
+        let userBitBucketSam;
+        let userBitBucketVictor;
+
+        beforeEach(() => {
+            userGithubSam = decorateUserMock({
+                id: 701,
+                username: 'sam_github',
+                scmContext,
+                token: 'someTokenSam',
+                settings: { hello: 'world' }
+            });
+
+            userGithubJohn = decorateUserMock({
+                id: 702,
+                username: 'john_github',
+                scmContext,
+                token: 'someTokenJohn',
+                settings: { hello: 'world' }
+            });
+
+            userGithubRob = decorateUserMock({
+                id: 703,
+                username: 'rob_github',
+                scmContext,
+                token: 'someTokenRob',
+                settings: { hello: 'world' }
+            });
+
+            userBitBucketSam = decorateUserMock({
+                id: 801,
+                username: 'sam_bitbucket',
+                scmContext: differentScmContext,
+                token: 'someTokenSam',
+                settings: { hello: 'world' }
+            });
+
+            userBitBucketVictor = decorateUserMock({
+                id: 802,
+                username: 'victor_bitbucket',
+                scmContext: differentScmContext,
+                token: 'someTokenVictor',
+                settings: { hello: 'world' }
+            });
+
+            pipelineMock = getPipelineMocks(testPipeline);
+            pipelineMock.scmContext = scmContext;
+            pipelineMock.adminUserIds = [userGithubSam.id, userBitBucketSam.id, userBitBucketVictor.id];
+            pipelineMock.admins = {
+                [userGithubSam.username]: true,
+                [userGithubJohn.username]: true,
+                [userGithubRob.username]: false
+            };
+
+            pipelineFactoryMock.get.withArgs(pipelineMock.id).resolves(pipelineMock);
+
+            userFactoryMock.list
+                .withArgs({
+                    params: {
+                        username: [userGithubSam.username, userGithubJohn.username],
+                        scmContext
+                    }
+                })
+                .resolves([userGithubSam, userGithubJohn]);
+            userFactoryMock.list
+                .withArgs({
+                    params: {
+                        id: pipelineMock.adminUserIds
+                    }
+                })
+                .resolves([userGithubSam, userBitBucketSam, userBitBucketVictor]);
+
+            options = {
+                method: 'GET',
+                url: `/pipelines/${pipelineMock.id}/admins`,
+                auth: {
+                    credentials: {
+                        username,
+                        scmContext,
+                        scope: ['user']
+                    },
+                    strategy: ['token']
+                }
+            };
+        });
+
+        it('returns 200 and admin users for pipeline from all the scmContexts', () =>
+            server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 200);
+
+                const res = JSON.parse(reply.payload);
+
+                assert.calledOnce(pipelineFactoryMock.get);
+                assert.calledTwice(userFactoryMock.list);
+                assert.deepEqual(res, [
+                    {
+                        id: 701,
+                        scmContext: 'github:github.com',
+                        username: 'sam_github'
+                    },
+                    {
+                        id: 702,
+                        scmContext: 'github:github.com',
+                        username: 'john_github'
+                    },
+                    {
+                        id: 801,
+                        scmContext: 'bitbucket:bitbucket.org',
+                        username: 'sam_bitbucket'
+                    },
+                    {
+                        id: 802,
+                        scmContext: 'bitbucket:bitbucket.org',
+                        username: 'victor_bitbucket'
+                    }
+                ]);
+            }));
+
+        it('returns 200 and admin users for pipeline from all the scmContexts when requested by Screwdriver admin', () => {
+            options.auth.credentials.scope = ['user', 'admin'];
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 200);
+
+                const res = JSON.parse(reply.payload);
+
+                assert.calledOnce(pipelineFactoryMock.get);
+                assert.calledTwice(userFactoryMock.list);
+                assert.deepEqual(res, [
+                    {
+                        id: 701,
+                        scmContext: 'github:github.com',
+                        username: 'sam_github'
+                    },
+                    {
+                        id: 702,
+                        scmContext: 'github:github.com',
+                        username: 'john_github'
+                    },
+                    {
+                        id: 801,
+                        scmContext: 'bitbucket:bitbucket.org',
+                        username: 'sam_bitbucket'
+                    },
+                    {
+                        id: 802,
+                        scmContext: 'bitbucket:bitbucket.org',
+                        username: 'victor_bitbucket'
+                    }
+                ]);
+            });
+        });
+
+        it('returns 500 when datastore fails', () => {
+            pipelineFactoryMock.get.withArgs(pipelineMock.id).rejects(new Error('fittoburst'));
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 500);
             });
         });
     });
