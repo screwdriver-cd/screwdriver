@@ -631,6 +631,27 @@ async function getParentBuildStatus({ joinListNames, joinBuilds }) {
 }
 
 /**
+ * Identify whether this build resulted in a previously failed job to become successful.
+ *
+ * @method isFixedBuild
+ * @param  {Build}     build  Build Object
+ * @param  {Job}       job    Job Object
+ * @return {Promise<Boolean>}
+ */
+async function isFixedBuild({ build, job }) {
+    if (build.status !== Status.SUCCESS) {
+        return false;
+    }
+
+    job = job || (await build.job); // eslint-disable-line no-param-reassign
+
+    const failureBuild = await job.getLatestBuild({ status: Status.FAILURE });
+    const successBuild = await job.getLatestBuild({ status: Status.SUCCESS });
+
+    return !!((failureBuild && !successBuild) || failureBuild.id > successBuild.id);
+}
+
+/**
  * Emit 'build_status' event to notify
  * @param {Object} arg
  * @param {Object} arg.server Server object
@@ -640,22 +661,12 @@ async function getParentBuildStatus({ joinListNames, joinBuilds }) {
  * @param {Job} [arg.job] Job
  * @returns {Promise}
  */
-async function emitBuildStatusEvent({ server, build, pipeline, event, job }) {
+async function emitBuildStatusEvent({ server, build, pipeline, event, job, isFixed = false }) {
     const { buildFactory } = server.app;
 
     event = event || (await build.event); // eslint-disable-line no-param-reassign
     job = job || (await build.job); // eslint-disable-line no-param-reassign
     pipeline = pipeline || (await job.pipeline); // eslint-disable-line no-param-reassign
-
-    let isFixed = false;
-
-    if (build.status === Status.SUCCESS) {
-        const failureBuild = await job.getLatestBuild({ status: Status.FAILURE });
-        const successBuild = await job.getLatestBuild({ status: Status.SUCCESS });
-
-        // Identify whether this build resulted in a previously failed job to become successful.
-        isFixed = !!((failureBuild && !successBuild) || failureBuild.id > successBuild.id);
-    }
 
     return server.events.emit('build_status', {
         settings: job.permutations[0].settings,
@@ -1282,6 +1293,7 @@ module.exports = {
     getJoinBuilds,
     getParentBuildStatus,
     handleNewBuild,
+    isFixedBuild,
     emitBuildStatusEvent,
     ensureStageTeardownBuildExists,
     getBuildsForGroupEvent,
