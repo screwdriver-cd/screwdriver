@@ -6,7 +6,7 @@ const merge = require('lodash.mergewith');
 const isEmpty = require('lodash.isempty');
 const { PR_JOB_NAME, PR_STAGE_NAME, STAGE_TEARDOWN_PATTERN } = require('screwdriver-data-schema').config.regex;
 const { getFullStageJobName } = require('../../helper');
-const { updateVirtualBuildSuccess, emitBuildStatusEvent } = require('../triggers/helpers');
+const { updateVirtualBuildSuccess, emitBuildStatusEvent, isFixedBuild } = require('../triggers/helpers');
 const TERMINAL_STATUSES = ['FAILURE', 'ABORTED', 'UNSTABLE', 'COLLAPSED'];
 const FINISHED_STATUSES = ['SUCCESS', ...TERMINAL_STATUSES];
 const NON_TERMINATED_STATUSES = ['CREATED', 'RUNNING', 'QUEUED', 'BLOCKED', 'FROZEN'];
@@ -412,12 +412,14 @@ async function updateBuildAndTriggerDownstreamJobs(config, build, server, userna
         stopFrozen = stopFrozenBuild(build, currentStatus);
     }
 
-    const [newBuild, newEvent] = await Promise.all([build.update(), event.update(), stopFrozen]);
-    const job = await newBuild.job;
+    const job = await build.job;
     const pipeline = await job.pipeline;
+    const isFixed = await isFixedBuild({ build, job });
+
+    const [newBuild, newEvent] = await Promise.all([build.update(), event.update(), stopFrozen]);
 
     if (desiredStatus) {
-        await emitBuildStatusEvent({ server, build: newBuild, pipeline, event: newEvent, job });
+        await emitBuildStatusEvent({ server, build: newBuild, pipeline, event: newEvent, job, isFixed });
     }
 
     const skipFurther = /\[(skip further)\]/.test(newEvent.causeMessage);
