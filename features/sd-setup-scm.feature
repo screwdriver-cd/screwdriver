@@ -41,10 +41,10 @@ Feature: sd-setup-scm
         Then the "not-shallow-clone-single-branch" build succeeded
         # recursive-clone
         And the "recursive-clone" job is triggered
-        Then the pipeline job "recursive-clone" is success
+        Then the "recursive-clone" build succeeded
         # not-recursive-clone
         And the "not-recursive-clone" job is triggered
-        Then the pipeline job "not-recursive-clone" is success
+        Then the "not-recursive-clone" build succeeded
 
     @x1
     Scenario: External config build
@@ -84,10 +84,10 @@ Feature: sd-setup-scm
         Then the "not-shallow-clone-single-branch" build succeeded
         # recursive-clone
         And the "recursive-clone" job is triggered
-        Then the pipeline job "recursive-clone" is success
+        Then the "recursive-clone" build succeeded
         # not-recursive-clone
         And the "not-recursive-clone" job is triggered
-        Then the pipeline job "not-recursive-clone" is success
+        Then the "not-recursive-clone" build succeeded
 
     Scenario: PR build
         Given an existing pipeline for sd-setup-scm
@@ -105,8 +105,8 @@ Feature: sd-setup-scm
         And the "not-shallow-clone-single-branch" PR job is triggered
         Then the "not-shallow-clone-single-branch" PR build succeeded
         # recursive-clone
-        And the "recursive-clone" job is triggered
-        Then the pipeline job "recursive-clone" is success
+        And the "recursive-clone" PR job is triggered
+        Then the "recursive-clone" PR build succeeded
         # not-recursive-clone
-        And the "not-recursive-clone" job is triggered
-        Then the pipeline job "not-recursive-clone" is success
+        And the "not-recursive-clone" PR job is triggered
+        Then the "not-recursive-clone" PR build succeeded
