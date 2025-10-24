@@ -9,7 +9,7 @@ const hoek = require('@hapi/hoek');
 const testBuild = require('./data/build.json');
 const testBuilds = require('./data/builds.json');
 const testStageBuilds = require('./data/stageBuilds.json');
-const testEvent = require('./data/events.json')[0];
+const testEventBase = require('./data/events.json')[0];
 const testEventPr = require('./data/eventsPr.json')[0];
 
 sinon.assert.expose(assert, { prefix: '' });
@@ -69,20 +69,25 @@ describe('event plugin test', () => {
     let jobFactoryMock;
     let plugin;
     let server;
+    let testEvent;
+
+    const commitSha = testBuild.sha;
+    const anotherCommitSha = 'b5bed0b64e2e9ec8a9970b8d070df7570376c498';
 
     before(() => {
         sinon.stub(badgeMaker, 'makeBadge').callsFake(format => `${format.label}: ${format.message}`);
     });
 
     beforeEach(async () => {
+        testEvent = hoek.clone(testEventBase);
         screwdriverAdminDetailsMock = sinon.stub().returns({ isAdmin: true });
         eventFactoryMock = {
             get: sinon.stub(),
             create: sinon.stub(),
             scm: {
-                getCommitSha: sinon.stub().resolves(testBuild.sha),
+                getCommitSha: sinon.stub().resolves(commitSha),
                 getPrInfo: sinon.stub().resolves({
-                    sha: testBuild.sha,
+                    sha: commitSha,
                     ref: 'prref',
                     prSource: 'branch',
                     url: 'https://github.com/screwdriver-cd/ui/pull/292',
@@ -316,7 +321,7 @@ describe('event plugin test', () => {
         const checkoutUrl = 'git@github.com:screwdriver-cd/data-model.git#master';
         const parentBuilds = { 123: { eventId: 8888, jobs: { main: 12345 } } };
         const prInfo = {
-            sha: testBuild.sha,
+            sha: commitSha,
             ref: 'prref',
             prSource: 'branch',
             url: 'https://github.com/screwdriver-cd/ui/pull/292',
@@ -400,7 +405,7 @@ describe('event plugin test', () => {
                 pipelineId,
                 scmContext,
                 startFrom: '~commit',
-                sha: '58393af682d61de87789fb4961645c42180cec5a',
+                sha: commitSha,
                 type: 'pipeline',
                 username,
                 meta
@@ -1066,6 +1071,29 @@ describe('event plugin test', () => {
             });
         });
 
+        it('returns 201 when it successfully creates a PR event using latest commit sha even when a different sha is specified in the payload', () => {
+            options.payload.startFrom = 'PR-1:main';
+            options.payload.sha = anotherCommitSha;
+
+            eventConfig.startFrom = 'PR-1:main';
+            eventConfig.prNum = '1';
+            eventConfig.type = 'pr';
+            eventConfig.chainPR = false;
+            eventConfig.prInfo = prInfo;
+            eventConfig.changedFiles = ['screwdriver.yaml'];
+            ({ ref: eventConfig.prRef, prSource: eventConfig.prSource } = prInfo);
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 201);
+                assert.calledWith(userMock.getPermissions, scmUri, scmContext, scmRepo);
+                assert.calledWith(eventFactoryMock.create, eventConfig);
+                assert.calledOnce(eventFactoryMock.scm.getCommitSha);
+                assert.calledOnce(eventFactoryMock.scm.getPrInfo);
+                assert.calledWith(eventFactoryMock.scm.getPrInfo, { ...scmConfig, prNum: eventConfig.prNum });
+                assert.calledOnce(eventFactoryMock.scm.getChangedFiles);
+            });
+        });
+
         it('returns 201 when it successfully creates a PR event for given prNum', () => {
             eventConfig.startFrom = 'PR-1:main';
             eventConfig.prNum = '1';
@@ -1235,7 +1263,7 @@ describe('event plugin test', () => {
 
         it('returns 201 when it successfully creates a PR event with parent event', () => {
             eventConfig.parentEventId = parentEventId;
-            eventConfig.sha = testBuild.sha;
+            eventConfig.sha = commitSha;
             eventConfig.startFrom = 'PR-1:main';
             eventConfig.prNum = '1';
             eventConfig.type = 'pr';
@@ -1385,7 +1413,7 @@ describe('event plugin test', () => {
             options.payload.startFrom = 'PR-1:main';
             userMock.getPermissions.resolves({ push: false });
             eventFactoryMock.scm.getPrInfo.resolves({
-                sha: testBuild.sha,
+                sha: commitSha,
                 ref: 'prref',
                 prSource: 'branch',
                 url: 'https://github.com/screwdriver-cd/ui/pull/292',

@@ -21,7 +21,7 @@ module.exports = () => ({
 
         handler: async (request, h) => {
             const { buildFactory, jobFactory, eventFactory, pipelineFactory, userFactory } = request.server.app;
-            const { buildId, causeMessage, creator } = request.payload;
+            const { buildId, causeMessage, creator, sha } = request.payload;
             const { scmContext, username, scope } = request.auth.credentials;
             const { scm } = eventFactory;
             const { isValidToken } = request.server.plugins.pipelines;
@@ -62,6 +62,10 @@ module.exports = () => ({
                 username,
                 meta: request.payload.meta // always exists because default is {}
             };
+
+            if (sha) {
+                payload.sha = sha;
+            }
 
             if (parentEventId) {
                 payload.parentEventId = parentEventId;
@@ -219,18 +223,20 @@ module.exports = () => ({
                 }
             }
 
-            let sha;
+            let latestCommitSha;
 
             try {
                 // User has good permissions, create an event
-                sha = await scm.getCommitSha(scmConfig);
+                latestCommitSha = await scm.getCommitSha(scmConfig);
             } catch (err) {
                 if (err.statusCode) {
                     throw boom.boomify(err, { statusCode: err.statusCode });
                 }
             }
 
-            payload.sha = sha;
+            if (!payload.sha || prNum) {
+                payload.sha = latestCommitSha;
+            }
 
             // If there is parentEvent, pass workflowGraph, meta and sha to payload
             // Skip PR, for PR builds, we should always start from latest commit
