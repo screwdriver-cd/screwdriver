@@ -3155,6 +3155,69 @@ describe('startHookEvent test', () => {
                 });
             });
 
+            it('archives prJobs in multiple pipelines with same repo when PR is closed', () => {
+                const job1 = {
+                    id: 1,
+                    name: 'PR-1:main',
+                    getRunningBuilds: sinon.stub().resolves([]),
+                    update: sinon.stub().resolves(null),
+                    archived: false
+                };
+                const job2 = {
+                    id: 2,
+                    name: 'PR-1:main2',
+                    getRunningBuilds: sinon.stub().resolves([]),
+                    update: sinon.stub().resolves(null),
+                    archived: false
+                };
+                const job3 = {
+                    id: 3,
+                    name: 'PR-2:main',
+                    getRunningBuilds: sinon.stub().resolves([]),
+                    update: sinon.stub().resolves(null),
+                    archived: false
+                };
+                const pMock1 = getPipelineMocks({
+                    id: 'pipelineHash1',
+                    scmUri: 'github.com:123456:branch1',
+                    annotations: {},
+                    admins: {
+                        baxterthehacker: false
+                    },
+                    getJobs: sinon.stub().resolves([job1])
+                });
+                const pMock2 = getPipelineMocks({
+                    id: 'pipelineHash2',
+                    scmUri: 'github.com:123456:branch2',
+                    annotations: {},
+                    admins: {
+                        baxterthehacker: false
+                    },
+                    getJobs: sinon.stub().resolves([job2])
+                });
+
+                pipelineFactoryMock.list
+                    .withArgs({
+                        search: { field: 'scmUri', keyword: `github.com:123456:%` },
+                        params: { state: 'ACTIVE' }
+                    })
+                    .resolves([pipelineMock, pMock1, pMock2]);
+
+                pipelineMock.getJobs.resolves([job1]);
+                pMock1.getJobs.resolves([job2]);
+                pMock2.getJobs.resolves([job3]);
+
+                return startHookEvent(request, responseHandler, parsed).then(reply => {
+                    assert.equal(reply.statusCode, 200);
+                    assert.calledOnce(job1.update);
+                    assert.calledOnce(job2.update);
+                    // assert.calledOnce(job3.update);
+                    assert.isTrue(job1.archived);
+                    assert.isTrue(job2.archived);
+                    assert.isFalse(job3.archived);
+                });
+            });
+
             it('throws error when failed', () => {
                 jobMock.update.rejects(new Error('Failed to update'));
                 pipelineFactoryMock.list
@@ -3264,7 +3327,7 @@ describe('startHookEvent test', () => {
                         assert.calledWith(eventFactoryMock.create, expected);
                         assert.equal(reply.statusCode, 201);
                         assert.calledOnce(pipelineMock.update);
-                        assert.calledTwice(pipelineFactoryMock.list);
+                        assert.calledThrice(pipelineFactoryMock.list);
                         assert.calledWith(pipelineFactoryMock.list.firstCall, {
                             params: { state: 'ACTIVE' },
                             search: { field: 'scmUri', keyword: 'github.com:123456:%' }

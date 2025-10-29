@@ -716,6 +716,53 @@ async function batchStopJobs({ pipelines, prNum, action, name }) {
 }
 
 /**
+ * Archive PR jobs when PR closed
+ * @method archivePRJobs
+ * @param  {Object}         scmConfig       Response toolkit
+ * @param  {Hapi.request}   request         Request from user
+ * @param  {String}         prNum           Pull request number
+ * @param  {PipelineFactory}pipelineFactory PipelineFactory object
+ * @param  {String}         hookId          Unique ID for this scm event
+ * @return {Promise}
+ */
+async function archivePRJobs(scmConfig, request, prNum, pipelineFactory, hookId) {
+    const { scmUri } = scmConfig;
+    const splitUri = scmUri.split(':');
+    const scmRepoId = `${splitUri[0]}:${splitUri[1]}`;
+    const listConfig = {
+        search: { field: 'scmUri', keyword: `${scmRepoId}:%` },
+        params: {
+            state: 'ACTIVE'
+        }
+    };
+    const pipelines = await pipelineFactory.list(listConfig);
+    const prJobName = `PR-${prNum}`;
+    const updatePRJobs = job =>
+        stopJob({ job, prNum, action: 'Closed' })
+            .then(() => request.log(['webhook', hookId, job.id], `${job.name} stopped`))
+            .then(() => {
+                job.archived = true;
+
+                return job.update();
+            })
+            .then(() => request.log(['webhook', hookId, job.id], `${job.name} disabled and archived`));
+
+    await Promise.all(
+        pipelines.map(p =>
+            p.getJobs({ type: 'pr' }).then(jobs => {
+                const prJobs = jobs.filter(j => j.name.includes(prJobName));
+
+                return Promise.all(prJobs.map(j => updatePRJobs(j)));
+            })
+        )
+    ).catch(err => {
+        logger.error(`Failed to pullRequestClosed: [${hookId}]: ${err}`);
+
+        throw err;
+    });
+}
+
+/**
  * Create a new job and start the build for an opened pull-request
  * @async  pullRequestOpened
  * @param  {Object}       options
@@ -862,30 +909,10 @@ async function createPrClosedEvent(options, request) {
  * @param  {Hapi.reply}   reply                     Reply to user
  */
 async function pullRequestClosed(options, request, h) {
-    const { pipelines, hookId, name, prNum, action } = options;
-    const updatePRJobs = job =>
-        stopJob({ job, prNum, action })
-            .then(() => request.log(['webhook', hookId, job.id], `${job.name} stopped`))
-            .then(() => {
-                job.archived = true;
-
-                return job.update();
-            })
-            .then(() => request.log(['webhook', hookId, job.id], `${job.name} disabled and archived`));
+    const { pipelines, hookId } = options;
+    const prClosedJobs = [];
 
     try {
-        await Promise.all(
-            pipelines.map(p =>
-                p.getJobs({ type: 'pr' }).then(jobs => {
-                    const prJobs = jobs.filter(j => j.name.includes(name));
-
-                    return Promise.all(prJobs.map(j => updatePRJobs(j)));
-                })
-            )
-        );
-
-        const prClosedJobs = [];
-
         for (const p of pipelines) {
             const jobs = await p.getJobs({ type: 'pipeline' });
             const filteredJobs = jobs.filter(
@@ -1056,6 +1083,9 @@ function pullRequestEvent(pluginOptions, request, h, parsed, token) {
             return triggeredPipelines(pipelineFactory, scmConfig, branch, type, action, changedFiles, releaseName, ref);
         })
         .then(async pipelines => {
+            if (action === 'closed') {
+                await archivePRJobs(scmConfig, request, prNum, pipelineFactory, hookId);
+            }
             if (!pipelines || pipelines.length === 0) {
                 const message = `Skipping since Pipeline triggered by PRs against ${fullCheckoutUrl} does not exist`;
 
