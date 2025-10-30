@@ -3211,7 +3211,6 @@ describe('startHookEvent test', () => {
                     assert.equal(reply.statusCode, 200);
                     assert.calledOnce(job1.update);
                     assert.calledOnce(job2.update);
-                    // assert.calledOnce(job3.update);
                     assert.isTrue(job1.archived);
                     assert.isTrue(job2.archived);
                     assert.isFalse(job3.archived);
