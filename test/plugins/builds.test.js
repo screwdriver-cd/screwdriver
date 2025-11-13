@@ -4620,6 +4620,162 @@ describe('build plugin test', () => {
                     });
                 });
 
+                it('triggers a single build from a virtual job when the join loops back to the original pipeline', () => {
+                    // For a pipeline like this:
+                    //  a ------> b -----> c (virtual job) -----> d
+                    //    -> ~sd@123:a --➚
+                    const pipeline2JobC = {
+                        id: 6,
+                        pipelineId: 2,
+                        name: 'c',
+                        state: 'ENABLED',
+                        parsePRJobName: sinon.stub().returns('c'),
+                        permutations: [
+                            {
+                                settings: {
+                                    email: 'foo@bar.com'
+                                }
+                            }
+                        ],
+                        pipeline: { id: 2, toJson: sinon.stub() }
+                    };
+                    const pipeline2JobD = {
+                        id: 9,
+                        pipelineId: 2,
+                        name: 'd',
+                        state: 'ENABLED',
+                        parsePRJobName: sinon.stub().returns('d'),
+                        permutations: [
+                            {
+                                settings: {
+                                    email: 'foo@bar.com'
+                                }
+                            }
+                        ],
+                        pipeline: { id: 2, toJson: sinon.stub() }
+                    };
+
+                    jobFactoryMock.get.withArgs({ pipelineId: '2', name: 'c' }).resolves(pipeline2JobC);
+                    jobFactoryMock.get.withArgs(pipeline2JobC.id).resolves(pipeline2JobC);
+
+                    jobFactoryMock.get.withArgs({ pipelineId: 2, name: 'd' }).resolves(pipeline2JobD);
+                    jobFactoryMock.get.withArgs(pipeline2JobD.id).resolves(pipeline2JobD);
+
+                    eventMock.workflowGraph = {
+                        nodes: [
+                            { name: '~pr' },
+                            { name: '~commit' },
+                            { name: 'a', id: 1 },
+                            { name: '~sd@2:a', id: 4 },
+                            { name: 'sd@2:c', id: 6 }
+                        ],
+                        edges: [
+                            { src: '~sd@2:a', dest: 'a' },
+                            { src: 'a', dest: 'sd@2:c' }
+                        ]
+                    };
+                    buildMock.parentBuilds = {
+                        2: { eventId: '8887', jobs: { a: 12345 } }
+                    };
+                    const parentBuilds = {
+                        123: { eventId: '8888', jobs: { a: 12346 } },
+                        2: { eventId: '8887', jobs: { a: 12345, b: 12347 } }
+                    };
+                    const buildC = {
+                        jobId: 6,
+                        status: 'CREATED',
+                        parentBuilds,
+                        start: sinon.stub().resolves()
+                    };
+                    const updatedBuildC = Object.assign(buildC, {
+                        parentBuilds,
+                        start: sinon.stub().resolves(),
+                        initMeta: sinon.stub().resolves(),
+                        toJson: sinon.stub()
+                    });
+
+                    buildC.update = sinon.stub().resolves(updatedBuildC);
+                    const externalEventMock = {
+                        sha: '58393af682d61de87789fb4961645c42180cec5a',
+                        pr: {},
+                        id: 8887,
+                        configPipelineSha: 'abc123',
+                        pipelineId: 2,
+                        baseBranch: 'master',
+                        startFrom: '~commit',
+                        causeMessage: '',
+                        builds: [
+                            {
+                                id: 888,
+                                jobId: 4,
+                                status: 'SUCCESS'
+                            },
+                            {
+                                id: 889,
+                                jobId: 8,
+                                status: 'SUCCESS'
+                            }
+                        ],
+                        getBuilds: sinon.stub().resolves([
+                            {
+                                id: 888,
+                                jobId: 4,
+                                status: 'SUCCESS'
+                            },
+                            {
+                                id: 889,
+                                jobId: 8,
+                                status: 'SUCCESS'
+                            }
+                        ]),
+                        workflowGraph: {
+                            nodes: [
+                                { name: '~pr' },
+                                { name: '~commit' },
+                                { name: 'a', id: 4 },
+                                { name: 'b', id: 8 },
+                                { name: 'c', id: 6, virtual: true },
+                                { name: '~sd@123:a', id: 3 },
+                                { name: 'd', id: 9 }
+                            ],
+                            edges: [
+                                { src: '~pr', dest: 'a' },
+                                { src: '~commit', dest: 'a' },
+                                { src: 'a', dest: '~sd@123:a' },
+                                { src: '~sd@123:a', dest: 'c', join: true },
+                                { src: 'b', dest: 'c', join: true },
+                                { src: 'c', dest: 'd' }
+                            ]
+                        },
+                        toJson: sinon.stub()
+                    };
+
+                    buildFactoryMock.getLatestBuilds.resolves([
+                        {
+                            jobId: 6,
+                            eventId: 8887,
+                            status: 'CREATED',
+                            update: sinon.stub().resolves(updatedBuildC)
+                        }
+                    ]);
+                    eventFactoryMock.get.withArgs('8887').resolves(externalEventMock);
+                    eventFactoryMock.get.withArgs(8889).resolves({ ...externalEventMock, id: '8889' });
+                    eventFactoryMock.list.resolves([{ ...externalEventMock, id: '8889' }]);
+                    buildFactoryMock.get.withArgs({ eventId: externalEventMock.id, jobId: 6 }).resolves(null);
+                    buildFactoryMock.get.withArgs(5555).resolves({ status: 'SUCCESS' }); // d is done
+                    newServer.events = {
+                        emit: sinon.stub().resolves()
+                    };
+                    buildFactoryMock.get.withArgs({ eventId: externalEventMock.id, jobId: 9 }).resolves(null);
+                    buildFactoryMock.create.resolves({});
+
+                    return newServer.inject(options).then(() => {
+                        assert.notCalled(eventFactoryMock.create);
+                        assert.calledOnce(buildFactoryMock.create);
+                        assert.calledTwice(eventFactoryMock.get);
+                    });
+                });
+
                 it('starts multiple builds with the existing downstream event', () => {
                     const pipeline2JobC = {
                         id: 6,
