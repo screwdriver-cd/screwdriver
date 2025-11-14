@@ -97,7 +97,7 @@
     "hapi-swagger": "^17.2.1",
     "ioredis": "^5.2.3",
     "joi": "^17.7.0",
-    "js-yaml": "^3.14.1",
+    "js-yaml": "^4.1.1",
     "jsonwebtoken": "^9.0.0",
     "license-checker": "^25.0.1",
     "lodash.mergewith": "^4.6.2",
