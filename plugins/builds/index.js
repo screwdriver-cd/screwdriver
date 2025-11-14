@@ -73,10 +73,9 @@ async function triggerNextJobs(config, server) {
     const currentPipeline = config.pipeline;
     const currentJob = config.job;
     const currentBuild = config.build;
+    const currentEvent = config.event;
     const { jobFactory, buildFactory, eventFactory, pipelineFactory, stageFactory, stageBuildFactory } = server.app;
 
-    /** @type {EventModel} */
-    const currentEvent = await eventFactory.get({ id: currentBuild.eventId });
     const current = {
         pipeline: currentPipeline,
         build: currentBuild,
@@ -357,10 +356,10 @@ async function triggerNextJobs(config, server) {
                         const stageBuild = await getStageBuild({
                             stageFactory,
                             stageBuildFactory,
-                            workflowGraph: currentEvent.workflowGraph,
+                            workflowGraph: externalEvent.workflowGraph,
                             jobName: nextJob.name,
                             pipelineId: currentPipeline.id,
-                            eventId: currentEvent.id
+                            eventId: externalEvent.id
                         });
 
                         if (stageBuild) {
@@ -370,7 +369,7 @@ async function triggerNextJobs(config, server) {
                         if (nextBuild && nextBuild.status === Status.SUCCESS) {
                             downstreamOfNextJobsToBeProcessed.push({
                                 build: nextBuild,
-                                event: currentEvent,
+                                event: externalEvent,
                                 job: nextJob,
                                 pipeline: await nextJob.pipeline,
                                 scmContext: config.scmContext,
