@@ -60,7 +60,8 @@ function getAdminUsersFromPipelineSCMContext(pipeline, userFactory) {
  * whose registered SCM context differs from the pipeline's context.
  */
 function getAdminUsersFromOtherSCMContext(pipeline, userFactory) {
-    const { adminUserIds, scmContext } = pipeline;
+    const { scmContext } = pipeline;
+    const adminUserIds = pipeline.adminUserIds ? pipeline.adminUserIds : [];
 
     const listConfig = {
         params: {
