@@ -959,6 +959,52 @@ describe('startHookEvent test', () => {
             });
         });
 
+        it('returns 201 on success', () => {
+            parsed.username = 'batman';
+
+            const releaseWorkflowMock = {
+                nodes: [{ name: '~release' }, { name: 'main' }],
+                edges: [{ src: '~release', dest: 'main' }]
+            };
+
+            pipelineMock.workflowGraph = releaseWorkflowMock;
+            pipelineMock.jobs = Promise.resolve([mainJobMock]);
+            pipelineFactoryMock.list.resolves([pipelineMock]);
+
+            return startHookEvent(request, responseHandler, parsed).then(reply => {
+                assert.equal(reply.statusCode, 201);
+                assert.calledOnce(pipelineFactoryMock.scm.getCommitRefSha);
+                assert.calledWith(pipelineFactoryMock.scm.getCommitRefSha, sinon.match({ refType: 'tags' }));
+                assert.calledWith(eventFactoryMock.create, {
+                    pipelineId: pipelineMock.id,
+                    type: 'pipeline',
+                    webhooks: true,
+                    username: parsed.username,
+                    scmContext,
+                    sha,
+                    configPipelineSha: latestSha,
+                    startFrom: '~release',
+                    baseBranch: 'master',
+                    causeMessage: `Merged by ${parsed.username}`,
+                    changedFiles: undefined,
+                    releaseName: 'release01',
+                    ref: 'v0.0.1',
+                    meta: {
+                        sd: {
+                            release: {
+                                id: 123456,
+                                name: 'release01',
+                                author: 'testuser'
+                            },
+                            tag: {
+                                name: 'v0.0.1'
+                            }
+                        }
+                    }
+                });
+            });
+        });
+
         it('returns 201 on success on a regular expression', () => {
             const releaseWorkflowMock1 = {
                 nodes: [{ name: '~release:/^release-test-/' }, { name: 'main' }],
