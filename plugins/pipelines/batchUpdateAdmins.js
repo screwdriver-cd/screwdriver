@@ -36,7 +36,7 @@ module.exports = () => ({
                     joi.object({
                         id: idSchema.required(),
                         scmContext: scmContextSchema.required(),
-                        usernames: joi.array().items(usernameSchema).min(1).max(50).required()
+                        usernames: joi.array().items(usernameSchema).min(1).max(200).required()
                     })
                 )
                 .min(1)
