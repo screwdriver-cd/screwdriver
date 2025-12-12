@@ -584,6 +584,55 @@ describe('startHookEvent test', () => {
             });
         });
 
+        it('returns 201 on success when tag is created by an ignored user', () => {
+            parsed.username = 'batman';
+
+            const tagWorkflowMock = {
+                nodes: [{ name: '~tag' }, { name: 'main' }],
+                edges: [{ src: '~tag', dest: 'main' }]
+            };
+
+            pipelineMock.workflowGraph = tagWorkflowMock;
+            pipelineMock.jobs = Promise.resolve([mainJobMock]);
+
+            return startHookEvent(request, responseHandler, parsed).then(reply => {
+                assert.equal(reply.statusCode, 201);
+                assert.calledOnce(pipelineFactoryMock.scm.getCommitRefSha);
+                assert.calledWith(pipelineFactoryMock.scm.getCommitRefSha, sinon.match({ refType: 'tags' }));
+                assert.calledTwice(pipelineFactoryMock.list);
+                assert.calledWith(pipelineFactoryMock.list.firstCall, {
+                    params: { state: 'ACTIVE' },
+                    search: { field: 'scmUri', keyword: 'github.com:123456:%' }
+                });
+                assert.calledWith(pipelineFactoryMock.list.secondCall, {
+                    params: { state: 'ACTIVE' },
+                    search: { field: 'subscribedScmUrlsWithActions', keyword: '%github.com:123456:%' }
+                });
+                assert.calledWith(eventFactoryMock.create, {
+                    pipelineId: pipelineMock.id,
+                    type: 'pipeline',
+                    webhooks: true,
+                    username: parsed.username,
+                    scmContext,
+                    sha,
+                    configPipelineSha: latestSha,
+                    startFrom: '~tag',
+                    baseBranch: 'master',
+                    causeMessage: `Merged by ${parsed.username}`,
+                    changedFiles: undefined,
+                    ref: 'v0.0.1',
+                    releaseName: undefined,
+                    meta: {
+                        sd: {
+                            tag: {
+                                name: 'v0.0.1'
+                            }
+                        }
+                    }
+                });
+            });
+        });
+
         it('returns 201 on success on a regular expression', () => {
             const tagWorkflowMock1 = {
                 nodes: [{ name: '~tag:/^tag-test-/' }, { name: 'main' }],
@@ -891,6 +940,52 @@ describe('startHookEvent test', () => {
                     startFrom: '~release',
                     baseBranch: 'master',
                     causeMessage: `Merged by ${username}`,
+                    changedFiles: undefined,
+                    releaseName: 'release01',
+                    ref: 'v0.0.1',
+                    meta: {
+                        sd: {
+                            release: {
+                                id: 123456,
+                                name: 'release01',
+                                author: 'testuser'
+                            },
+                            tag: {
+                                name: 'v0.0.1'
+                            }
+                        }
+                    }
+                });
+            });
+        });
+
+        it('returns 201 on success', () => {
+            parsed.username = 'batman';
+
+            const releaseWorkflowMock = {
+                nodes: [{ name: '~release' }, { name: 'main' }],
+                edges: [{ src: '~release', dest: 'main' }]
+            };
+
+            pipelineMock.workflowGraph = releaseWorkflowMock;
+            pipelineMock.jobs = Promise.resolve([mainJobMock]);
+            pipelineFactoryMock.list.resolves([pipelineMock]);
+
+            return startHookEvent(request, responseHandler, parsed).then(reply => {
+                assert.equal(reply.statusCode, 201);
+                assert.calledOnce(pipelineFactoryMock.scm.getCommitRefSha);
+                assert.calledWith(pipelineFactoryMock.scm.getCommitRefSha, sinon.match({ refType: 'tags' }));
+                assert.calledWith(eventFactoryMock.create, {
+                    pipelineId: pipelineMock.id,
+                    type: 'pipeline',
+                    webhooks: true,
+                    username: parsed.username,
+                    scmContext,
+                    sha,
+                    configPipelineSha: latestSha,
+                    startFrom: '~release',
+                    baseBranch: 'master',
+                    causeMessage: `Merged by ${parsed.username}`,
                     changedFiles: undefined,
                     releaseName: 'release01',
                     ref: 'v0.0.1',

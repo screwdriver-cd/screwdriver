@@ -1421,7 +1421,7 @@ async function startHookEvent(request, h, webhookConfig) {
         }
 
         // if skip ci then don't return
-        if (ignoreUser && ignoreUser.length !== 0 && !skipMessage) {
+        if (action !== 'tag' && action !== 'release' && ignoreUser && ignoreUser.length !== 0 && !skipMessage) {
             const commitAuthors =
                 Array.isArray(webhookConfig.commitAuthors) && webhookConfig.commitAuthors.length !== 0
                     ? webhookConfig.commitAuthors
