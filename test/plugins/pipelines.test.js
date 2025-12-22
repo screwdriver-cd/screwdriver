@@ -1451,6 +1451,49 @@ describe('pipeline plugin test', () => {
             }));
     });
 
+    describe('GET /pipelines/{id}/lastSuccessfulEvent', () => {
+        const id = 1234;
+        let options;
+        let events;
+
+        beforeEach(() => {
+            options = {
+                method: 'GET',
+                url: `/pipelines/${id}/lastSuccessfulEvent`
+            };
+
+            events = getEventsMocks(testEvents);
+        });
+
+        it('returns 404 if successful event does not exist', () => {
+            eventFactoryMock.list.resolves([]);
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 404);
+            });
+        });
+
+        it('returns 200 if found last successful event', () => {
+            eventFactoryMock.list.resolves(events);
+
+            server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 200);
+                assert.calledWith(eventFactoryMock.list, {
+                    params: {
+                        pipelineId: id,
+                        type: 'pipeline'
+                    },
+                    sort: 'descending',
+                    sortBy: 'id',
+                    paginate: {
+                        count: 1
+                    }
+                });
+                assert.deepEqual(reply.result, testEvents[0]);
+            });
+        });
+    });
+
     describe('GET /pipelines/{id}/badge', () => {
         const id = '123';
         let pipelineMock;
