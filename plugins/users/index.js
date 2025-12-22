@@ -3,6 +3,7 @@
 const getSettingsRoute = require('./settings/get');
 const updateSettingsRoute = require('./settings/update');
 const removeSettingsRoute = require('./settings/delete');
+const getUserRoute = require('./get');
 
 /**
  * Users API Plugin
@@ -12,7 +13,7 @@ const removeSettingsRoute = require('./settings/delete');
 const usersPlugin = {
     name: 'users',
     async register(server) {
-        server.route([getSettingsRoute(), updateSettingsRoute(), removeSettingsRoute()]);
+        server.route([getSettingsRoute(), updateSettingsRoute(), removeSettingsRoute(), getUserRoute()]);
     }
 };
 

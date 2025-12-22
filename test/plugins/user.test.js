@@ -24,8 +24,12 @@ describe('user plugin test', () => {
     let userFactoryMock;
     let userMock;
     let settings;
-    const scmContext = 'github.com';
+    const scmContext = 'github:github.com';
+    const differentScmContext = 'bitbucket:bitbucket.org';
     const username = 'testuser';
+    let authMock;
+    let generateTokenMock;
+    let generateProfileMock;
 
     beforeEach(async () => {
         // eslint-disable-next-line global-require
@@ -54,9 +58,23 @@ describe('user plugin test', () => {
         server.auth.strategy('token', 'custom');
         server.auth.strategy('session', 'custom');
 
-        return server.register({
-            plugin
-        });
+        generateProfileMock = sinon.stub();
+        generateTokenMock = sinon.stub();
+
+        authMock = {
+            name: 'auth',
+            register: s => {
+                s.expose('generateToken', generateTokenMock);
+                s.expose('generateProfile', generateProfileMock);
+            }
+        };
+
+        return server.register([
+            {
+                plugin
+            },
+            { plugin: authMock }
+        ]);
     });
 
     afterEach(() => {
@@ -269,6 +287,157 @@ describe('user plugin test', () => {
 
             return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 500);
+            });
+        });
+    });
+
+    describe('GET /users/{username}', () => {
+        let options;
+
+        let userGithubSam;
+        let profile;
+        let userToken;
+
+        beforeEach(() => {
+            userGithubSam = getUserMock({
+                id: 701,
+                username: 'sam_github',
+                scmContext,
+                token: 'someTokenSam',
+                settings: { hello: 'world' }
+            });
+            profile = {
+                username: userGithubSam.username,
+                scmContext: userGithubSam.scmContext,
+                scope: ['user']
+            };
+            userToken = 'some-user-token';
+            userFactoryMock.get
+                .withArgs({
+                    username: userGithubSam.username,
+                    scmContext: userGithubSam.scmContext
+                })
+                .resolves(userGithubSam);
+
+            generateProfileMock.returns(profile);
+            generateTokenMock.returns(userToken);
+
+            options = {
+                method: 'GET',
+                url: `/users/${userGithubSam.username}?scmContext=${userGithubSam.scmContext}`,
+                auth: {
+                    credentials: {
+                        username,
+                        scmContext,
+                        scope: ['admin']
+                    },
+                    strategy: ['token']
+                }
+            };
+        });
+
+        it('returns 200 and the user matching the specified SCM username and context', () =>
+            server.inject(options).then(reply => {
+                assert.calledOnce(userFactoryMock.get);
+                assert.callCount(generateProfileMock, 0);
+                assert.callCount(generateTokenMock, 0);
+
+                assert.equal(reply.statusCode, 200);
+                const res = JSON.parse(reply.payload);
+
+                assert.deepEqual(res, {
+                    id: 701,
+                    scmContext: 'github:github.com',
+                    username: 'sam_github',
+                    settings: {
+                        hello: 'world'
+                    },
+                    token: 'someTokenSam'
+                });
+            }));
+
+        it('returns 200 and the user matching the specified SCM username and context along with the user token', () => {
+            options.url = `${options.url}&includeUserToken=true`;
+
+            return server.inject(options).then(reply => {
+                assert.calledOnce(userFactoryMock.get);
+                assert.calledWith(generateProfileMock, {
+                    username: userGithubSam.username,
+                    scmContext: userGithubSam.scmContext,
+                    scope: ['user']
+                });
+                assert.calledWith(generateTokenMock, profile);
+
+                assert.equal(reply.statusCode, 200);
+                const res = JSON.parse(reply.payload);
+
+                assert.deepEqual(res, {
+                    id: 701,
+                    scmContext: 'github:github.com',
+                    username: 'sam_github',
+                    settings: {
+                        hello: 'world'
+                    },
+                    token: 'someTokenSam',
+                    userToken: 'some-user-token'
+                });
+            });
+        });
+
+        it('returns 404 when the user does not exist matching the specified SCM username and context', () => {
+            options.url = `/users/${userGithubSam.username}?scmContext=${differentScmContext}`;
+
+            return server.inject(options).then(reply => {
+                assert.calledOnce(userFactoryMock.get);
+                assert.callCount(generateProfileMock, 0);
+                assert.callCount(generateTokenMock, 0);
+
+                assert.equal(reply.statusCode, 404);
+                const res = JSON.parse(reply.payload);
+
+                assert.deepEqual(res, {
+                    error: 'Not Found',
+                    message: 'User sam_github does not exist for the scmContext bitbucket:bitbucket.org',
+                    statusCode: 404
+                });
+            });
+        });
+
+        it('returns 400 when SCM context is not specified', () => {
+            options.url = `/users/${userGithubSam.username}`;
+
+            return server.inject(options).then(reply => {
+                assert.callCount(userFactoryMock.get, 0);
+                assert.callCount(generateProfileMock, 0);
+                assert.callCount(generateTokenMock, 0);
+
+                assert.equal(reply.statusCode, 400);
+                const res = JSON.parse(reply.payload);
+
+                assert.deepEqual(res, {
+                    error: 'Bad Request',
+                    message: 'Invalid request query input',
+                    statusCode: 400
+                });
+            });
+        });
+
+        it('returns 403 when not requested by SD admin', () => {
+            options.auth.credentials.scope = ['user'];
+
+            return server.inject(options).then(reply => {
+                assert.callCount(userFactoryMock.get, 0);
+                assert.callCount(generateProfileMock, 0);
+                assert.callCount(generateTokenMock, 0);
+
+                assert.equal(reply.statusCode, 403);
+                const res = JSON.parse(reply.payload);
+
+                assert.deepEqual(res, {
+                    error: 'Forbidden',
+                    message: 'Insufficient scope',
+                    statusCode: 403
+                });
             });
         });
     });
