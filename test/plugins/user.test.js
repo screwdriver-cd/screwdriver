@@ -403,7 +403,7 @@ describe('user plugin test', () => {
             });
         });
 
-        it('returns 404 when SCM context is not specified', () => {
+        it('returns 400 when SCM context is not specified', () => {
             options.url = `/users/${userGithubSam.username}`;
 
             return server.inject(options).then(reply => {
