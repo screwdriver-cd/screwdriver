@@ -1,6 +1,6 @@
 'use strict';
 
-const { createInternalBuild, Status, updateVirtualBuildSuccess, hasFreezeWindows } = require('./helpers');
+const { createInternalBuild, Status, updateVirtualBuildSuccess, hasFreezeWindows, hasBlockedBy } = require('./helpers');
 
 /**
  * @typedef {import('screwdriver-models').BuildFactory} BuildFactory
@@ -49,6 +49,7 @@ class OrBase {
         });
 
         const hasWindows = hasFreezeWindows(nextJob);
+        const isBlocked = hasBlockedBy(nextJob);
         const causeMessage = nextJob.name === event.startFrom ? event.causeMessage : '';
 
         if (nextBuild !== null) {
@@ -59,7 +60,7 @@ class OrBase {
             nextBuild.parentBuildId = [this.currentBuild.id];
 
             // Bypass execution of the build if the job is virtual
-            if (isNextJobVirtual && !hasWindows) {
+            if (isNextJobVirtual && !hasWindows && !isBlocked) {
                 return updateVirtualBuildSuccess({ server: this.server, build: nextBuild, event, job: nextJob });
             }
 
@@ -81,12 +82,12 @@ class OrBase {
             baseBranch: event.baseBranch || null,
             parentBuilds,
             parentBuildId: this.currentBuild.id,
-            start: hasWindows || !isNextJobVirtual,
+            start: isBlocked || hasWindows || !isNextJobVirtual,
             causeMessage
         });
 
         // Bypass execution of the build if the job is virtual
-        if (isNextJobVirtual && !hasWindows) {
+        if (isNextJobVirtual && !hasWindows && !isBlocked) {
             await updateVirtualBuildSuccess({ server: this.server, build: nextBuild, event, job: nextJob });
         }
 
