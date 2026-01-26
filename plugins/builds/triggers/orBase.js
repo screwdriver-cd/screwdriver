@@ -49,7 +49,7 @@ class OrBase {
         });
 
         const hasWindows = hasFreezeWindows(nextJob);
-        const isBlocked = hasBlockedBy(nextJob);
+        const hasBlocked = hasBlockedBy(nextJob);
         const causeMessage = nextJob.name === event.startFrom ? event.causeMessage : '';
 
         if (nextBuild !== null) {
@@ -60,7 +60,7 @@ class OrBase {
             nextBuild.parentBuildId = [this.currentBuild.id];
 
             // Bypass execution of the build if the job is virtual
-            if (isNextJobVirtual && !hasWindows && !isBlocked) {
+            if (isNextJobVirtual && !hasWindows && !hasBlocked) {
                 return updateVirtualBuildSuccess({ server: this.server, build: nextBuild, event, job: nextJob });
             }
 
@@ -82,12 +82,12 @@ class OrBase {
             baseBranch: event.baseBranch || null,
             parentBuilds,
             parentBuildId: this.currentBuild.id,
-            start: isBlocked || hasWindows || !isNextJobVirtual,
+            start: hasBlocked || hasWindows || !isNextJobVirtual,
             causeMessage
         });
 
         // Bypass execution of the build if the job is virtual
-        if (isNextJobVirtual && !hasWindows && !isBlocked) {
+        if (isNextJobVirtual && !hasWindows && !hasBlocked) {
             await updateVirtualBuildSuccess({ server: this.server, build: nextBuild, event, job: nextJob });
         }
 
