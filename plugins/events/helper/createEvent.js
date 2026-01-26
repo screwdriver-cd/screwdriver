@@ -21,7 +21,19 @@ function getVirtualJobIds(virtualNodeNames, prJobs) {
         const prJobName = prJob.name.match(PR_JOB_NAME);
         const nodeName = prJobName ? prJobName[2] : prJob.name;
 
+        // if prJob has blockedBy or freezeWindows annotation
+        // then it needs to be queued for scheduling
         if (virtualNodeNames.includes(nodeName)) {
+            const permutations = prJob.permutations || [];
+            const hasBlockedBy = permutations[0] && permutations[0].blockedBy;
+            const hasFreezeWindows = permutations[0] && permutations[0].freezeWindows;
+
+            const needsScheduling = Boolean(hasBlockedBy || hasFreezeWindows);
+
+            if (needsScheduling) {
+                return;
+            }
+
             virtualJobIds.push(prJob.id);
         }
     });
