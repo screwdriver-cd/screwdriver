@@ -140,6 +140,17 @@ function hasFreezeWindows(job) {
 }
 
 /**
+ * Checks if job has blockedBy
+ * @param {Job} job Job object
+ * @returns {Boolean}
+ */
+function hasBlockedBy(job) {
+    const { blockedBy } = job.permutations[0];
+
+    return blockedBy ? blockedBy.length > 0 : false;
+}
+
+/**
  * Get external pipelineId and job name from the `name`
  * @param {String} name Job name
  * @returns {{externalPipelineId: String, externalJobName: String}}
@@ -771,7 +782,7 @@ async function handleNewBuild({
     newBuild.parentBuildId = parentBuilds.map(build => build.id);
 
     // Bypass execution of the build if the job is virtual
-    if (isVirtualJob && !hasFreezeWindows(job)) {
+    if (isVirtualJob && !hasFreezeWindows(job) && !hasBlockedBy(job)) {
         return updateVirtualBuildSuccess({ server, build: newBuild, event, job });
     }
 
@@ -1310,6 +1321,7 @@ module.exports = {
     trimJobName,
     isStartFromMiddleOfCurrentStage,
     hasFreezeWindows,
+    hasBlockedBy,
     getNextJobStageName,
     updateVirtualBuildSuccess,
     BUILD_STATUS_MESSAGES
