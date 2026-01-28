@@ -913,6 +913,7 @@ describe('pipeline plugin test', () => {
             pipeline.remove.resolves(null);
             pipelineFactoryMock.get.withArgs(id).resolves(pipeline);
             bannerFactoryMock.scm.getDisplayName.withArgs({ scmContext }).returns(scmDisplayName);
+            screwdriverAdminDetailsMock.returns({ isAdmin: false });
         });
 
         afterEach(() => {
@@ -975,6 +976,16 @@ describe('pipeline plugin test', () => {
 
             return server.inject(options).then(reply => {
                 assert.deepEqual(reply.result, error);
+            });
+        });
+
+        it('returns 204 when the pipeline is active child pipeline and user is Screwdriver admin', () => {
+            screwdriverAdminDetailsMock.returns({ isAdmin: true });
+            pipeline.configPipelineId = 123;
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 204);
+                assert.calledOnce(pipeline.remove);
             });
         });
 
