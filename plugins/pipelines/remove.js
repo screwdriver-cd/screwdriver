@@ -32,14 +32,25 @@ module.exports = () => ({
                     if (pipeline.state === 'DELETING') {
                         throw boom.conflict('This pipeline is already being deleted.');
                     }
-                    if (pipeline.configPipelineId && pipeline.state !== 'INACTIVE') {
-                        throw boom.forbidden(
-                            'Child pipeline can only be removed' +
-                                ` after removing it from scmUrls in config pipeline ${pipeline.configPipelineId}`
-                        );
-                    }
                     if (!user) {
                         throw boom.notFound(`User ${username} does not exist`);
+                    }
+
+                    const scmDisplayName = bannerFactory.scm.getDisplayName({ scmContext });
+                    // Lookup whether user is admin
+                    const adminDetails = request.server.plugins.banners.screwdriverAdminDetails(
+                        username,
+                        scmDisplayName,
+                        scmUserId
+                    );
+
+                    if (pipeline.configPipelineId && pipeline.state !== 'INACTIVE') {
+                        if (!adminDetails.isAdmin) {
+                            throw boom.forbidden(
+                                'Child pipeline can only be removed' +
+                                    ` after removing it from scmUrls in config pipeline ${pipeline.configPipelineId}`
+                            );
+                        }
                     }
 
                     // ask the user for permissions on this repo
@@ -55,14 +66,6 @@ module.exports = () => ({
                                 }
                             })
                             .catch(error => {
-                                const scmDisplayName = bannerFactory.scm.getDisplayName({ scmContext });
-                                // Lookup whether user is admin
-                                const adminDetails = request.server.plugins.banners.screwdriverAdminDetails(
-                                    username,
-                                    scmDisplayName,
-                                    scmUserId
-                                );
-
                                 // Allow cluster admins to remove pipeline
                                 if (adminDetails.isAdmin) {
                                     return Promise.resolve(null);

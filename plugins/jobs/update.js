@@ -21,7 +21,7 @@ module.exports = () => ({
         handler: async (request, h) => {
             const { jobFactory, pipelineFactory, userFactory } = request.server.app;
             const { id } = request.params;
-            const { username, scmContext } = request.auth.credentials;
+            const { username, scmContext, scmUserId } = request.auth.credentials;
             const { isValidToken } = request.server.plugins.pipelines;
 
             const job = await jobFactory.get(id);
@@ -51,7 +51,13 @@ module.exports = () => ({
             const scmUri = await getScmUri({ pipeline, pipelineFactory });
 
             // Check the user's permission
-            await getUserPermissions({ user, scmUri, level: 'push' });
+            const adminDetails = request.server.plugins.banners.screwdriverAdminDetails(
+                username,
+                scmContext,
+                scmUserId
+            );
+
+            await getUserPermissions({ user, scmUri, level: 'push', isAdmin: adminDetails.isAdmin });
 
             Object.keys(request.payload).forEach(key => {
                 job[key] = request.payload[key];

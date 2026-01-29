@@ -472,6 +472,7 @@ describe('build plugin test', () => {
             eventMock.update.resolves(eventMock);
             jobFactoryMock.get.resolves(jobMock);
             bannerFactoryMock.scm.getDisplayName.withArgs({ scmContext }).returns(scmDisplayName);
+            screwdriverAdminDetailsMock.returns({ isAdmin: false });
         });
 
         it('emits event build_status', () => {
@@ -895,10 +896,10 @@ describe('build plugin test', () => {
                 });
             });
 
-            it('allow admin users to update build status to failure', () => {
+            it('allow cluster admin users to update build status to failure', () => {
                 const userMock = {
                     username: id,
-                    getPermissions: sinon.stub().resolves({ push: true })
+                    getPermissions: sinon.stub().resolves({ push: false })
                 };
                 const expected = hoek.applyToDefaults(testBuildWithSteps, { status: 'FAILURE' });
                 const options = {
@@ -922,6 +923,7 @@ describe('build plugin test', () => {
                 buildMock.toJsonWithSteps.resolves(expected);
                 buildMock.toJson.returns(testBuild);
                 userFactoryMock.get.resolves(userMock);
+                screwdriverAdminDetailsMock.returns({ isAdmin: true });
 
                 return server.inject(options).then(reply => {
                     assert.deepEqual(reply.result, expected);
@@ -931,7 +933,7 @@ describe('build plugin test', () => {
                 });
             });
 
-            it('does not allow admin users other than abort and failure', () => {
+            it('does not allow cluster admin users other than abort and failure', () => {
                 const options = {
                     method: 'PUT',
                     url: `/builds/${id}`,
@@ -946,6 +948,8 @@ describe('build plugin test', () => {
                         strategy: ['token']
                     }
                 };
+
+                screwdriverAdminDetailsMock.returns({ isAdmin: true });
 
                 return server.inject(options).then(reply => {
                     assert.equal(reply.statusCode, 400);
