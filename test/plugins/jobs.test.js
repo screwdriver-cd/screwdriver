@@ -252,6 +252,7 @@ describe('job plugin test', () => {
             jobMock = getJobMocks({ id, state });
             jobMock.update.resolves(jobMock);
             jobFactoryMock.get.resolves(jobMock);
+            screwdriverAdminDetailsMock.returns({ isAdmin: false });
         });
 
         it('returns 200 for updating a job that exists', () => {
@@ -310,6 +311,22 @@ describe('job plugin test', () => {
 
             return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 403);
+            });
+        });
+
+        it('returns 200 if user has no push access to the repo and user is Screwdriver admin', () => {
+            options.payload.state = 'DISABLED';
+            screwdriverAdminDetailsMock.returns({ isAdmin: true });
+            userMock.getPermissions.resolves({
+                push: false
+            });
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 200);
+                assert.deepEqual(reply.result, {
+                    id,
+                    state: 'DISABLED'
+                });
             });
         });
 

@@ -48,13 +48,17 @@ async function getUserPermissions({ user, scmUri, level = 'admin', isAdmin = fal
     // Check if user has push access or is a Screwdriver admin
     let permissions;
 
+    if (isAdmin) {
+        return null;
+    }
+
     try {
         permissions = await user.getPermissions(scmUri);
     } catch (err) {
         permissions = null;
     }
 
-    if (!permissions || (!permissions[level] && !isAdmin)) {
+    if (!permissions || !permissions[level]) {
         throw boom.forbidden(`User ${user.getFullDisplayName()} does not have ${level} permission for this repo`);
     }
 

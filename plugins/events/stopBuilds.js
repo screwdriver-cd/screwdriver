@@ -49,21 +49,24 @@ module.exports = () => ({
 
             // Check permissions
             let permissions;
-
-            try {
-                permissions = await user.getPermissions(pipeline.scmUri);
-            } catch (err) {
-                if (err.statusCode === 403 && pipeline.scmRepo && pipeline.scmRepo.private) {
-                    throw boom.notFound();
-                }
-                throw boom.boomify(err, { statusCode: err.statusCode });
-            }
-
             const adminDetails = request.server.plugins.banners.screwdriverAdminDetails(
                 username,
                 scmContext,
                 scmUserId
             );
+
+            try {
+                permissions = await user.getPermissions(pipeline.scmUri);
+            } catch (err) {
+                // Screwdriver admin can stop all events
+                if (!adminDetails.isAdmin) {
+                    if (err.statusCode === 403 && pipeline.scmRepo && pipeline.scmRepo.private) {
+                        throw boom.notFound();
+                    }
+                    throw boom.boomify(err, { statusCode: err.statusCode });
+                }
+            }
+
             const isPrOwner = hoek.reach(event, 'commit.author.username') === username;
 
             // PR author should be able to stop their own PR event
