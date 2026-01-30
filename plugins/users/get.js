@@ -3,6 +3,7 @@
 const boom = require('@hapi/boom');
 const joi = require('joi');
 const schema = require('screwdriver-data-schema');
+const logger = require('screwdriver-logger');
 const getSchema = schema.models.user.base.get;
 const usernameSchema = schema.models.user.base.extract('username');
 const scmContextSchema = schema.models.pipeline.base.extract('scmContext');
@@ -23,6 +24,7 @@ module.exports = () => ({
             const { username } = request.params;
             const { userFactory } = request.server.app;
             const { scmContext, includeUserToken } = request.query;
+            const { credentials } = request.auth;
 
             const user = await userFactory.get({
                 username,
@@ -34,6 +36,9 @@ module.exports = () => ({
             }
 
             if (includeUserToken) {
+                logger.info(
+                    `[Audit] User ${credentials.username}:${credentials.scmContext} requests ${username}:${scmContext}'s token.`
+                );
                 const profile = request.server.plugins.auth.generateProfile({
                     username: user.username,
                     scmContext: user.scmContext,
