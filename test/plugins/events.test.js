@@ -67,6 +67,7 @@ describe('event plugin test', () => {
     let userFactoryMock;
     let buildFactoryMock;
     let jobFactoryMock;
+    let bannerFactoryMock;
     let plugin;
     let server;
     let testEvent;
@@ -114,6 +115,11 @@ describe('event plugin test', () => {
             get: sinon.stub(),
             list: sinon.stub()
         };
+        bannerFactoryMock = {
+            scm: {
+                getDisplayName: sinon.stub().returns()
+            }
+        };
         bannerMock = {
             name: 'banners',
             register: s => {
@@ -133,7 +139,8 @@ describe('event plugin test', () => {
             userFactory: userFactoryMock,
             eventFactory: eventFactoryMock,
             buildFactory: buildFactoryMock,
-            jobFactory: jobFactoryMock
+            jobFactory: jobFactoryMock,
+            bannerFactory: bannerFactoryMock
         };
 
         server.auth.scheme('custom', () => ({
