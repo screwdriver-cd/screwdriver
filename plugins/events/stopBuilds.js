@@ -23,7 +23,7 @@ module.exports = () => ({
         },
 
         handler: async (request, h) => {
-            const { eventFactory, pipelineFactory, userFactory } = request.server.app;
+            const { eventFactory, pipelineFactory, userFactory, bannerFactory } = request.server.app;
             const { username, scmContext, scmUserId } = request.auth.credentials;
             const { isValidToken } = request.server.plugins.pipelines;
             const eventId = request.params.id;
@@ -49,9 +49,10 @@ module.exports = () => ({
 
             // Check permissions
             let permissions;
+            const scmDisplayName = bannerFactory.scm.getDisplayName({ scmContext });
             const adminDetails = request.server.plugins.banners.screwdriverAdminDetails(
                 username,
-                scmContext,
+                scmDisplayName,
                 scmUserId
             );
 

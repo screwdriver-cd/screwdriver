@@ -19,7 +19,7 @@ module.exports = () => ({
         },
 
         handler: async (request, h) => {
-            const { jobFactory, pipelineFactory, userFactory } = request.server.app;
+            const { jobFactory, pipelineFactory, userFactory, bannerFactory } = request.server.app;
             const { id } = request.params;
             const { username, scmContext, scmUserId } = request.auth.credentials;
             const { isValidToken } = request.server.plugins.pipelines;
@@ -51,9 +51,10 @@ module.exports = () => ({
             const scmUri = await getScmUri({ pipeline, pipelineFactory });
 
             // Check the user's permission
+            const scmDisplayName = bannerFactory.scm.getDisplayName({ scmContext });
             const adminDetails = request.server.plugins.banners.screwdriverAdminDetails(
                 username,
-                scmContext,
+                scmDisplayName,
                 scmUserId
             );
 
