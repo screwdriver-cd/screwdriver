@@ -49,9 +49,10 @@ module.exports = () => ({
 
             // Check permissions
             let permissions;
+            const scmDisplayName = scm.getDisplayName({ scmContext });
             const adminDetails = request.server.plugins.banners.screwdriverAdminDetails(
                 username,
-                scmContext,
+                scmDisplayName,
                 scmUserId
             );
 

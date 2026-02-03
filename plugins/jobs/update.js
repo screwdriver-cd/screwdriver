@@ -51,9 +51,10 @@ module.exports = () => ({
             const scmUri = await getScmUri({ pipeline, pipelineFactory });
 
             // Check the user's permission
+            const scmDisplayName = scm.getDisplayName({ scmContext });
             const adminDetails = request.server.plugins.banners.screwdriverAdminDetails(
                 username,
-                scmContext,
+                scmDisplayName,
                 scmUserId
             );
 
