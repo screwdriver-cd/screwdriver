@@ -5,6 +5,7 @@ shared:
     environment:
         DOCKER_REPO: screwdrivercd/screwdriver
         DOCKER_MULTI_PLATFORM_BUILDS_ENABLED: 1
+        FORCE_COLOR: 1 #for functional test (cucumber.js)
 
 jobs:
     main:
