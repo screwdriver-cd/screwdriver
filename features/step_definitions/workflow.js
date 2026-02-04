@@ -33,6 +33,8 @@ Before(
         this.repoName = 'functional-chainPR';
         this.pipelineId = null;
         this.builds = null;
+        this.branch = null;
+        this.commitBranch = null;
     }
 );
 
@@ -46,6 +48,7 @@ Given(
             this.getJwt(this.apiToken)
                 .then(response => {
                     this.jwt = response.body.token;
+                    this.branch = branch;
 
                     return github.createBranch(branch, this.repoOrg, this.repoName);
                 })
@@ -93,6 +96,8 @@ When(
         timeout: TEST_TIMEOUT_WITH_SCM
     },
     function step(branch) {
+        this.commitBranch = branch;
+
         return github
             .createBranch(branch, this.repoOrg, this.repoName)
             .then(() => github.createFile(branch, this.repoOrg, this.repoName))
@@ -137,6 +142,10 @@ When(
     },
     async function step(branch) {
         const sourceBranch = `${branch}-PR`;
+
+        this.commitBranch = branch;
+
+        await github.createBranch(branch, this.repoOrg, this.repoName);
 
         await github
             .removeBranch(this.repoOrg, this.repoName, sourceBranch)
@@ -505,13 +514,31 @@ Then(
 After(
     {
         tags: '@workflow',
-        timeout: TEST_TIMEOUT_DEFAULT
+        timeout: TEST_TIMEOUT_WITH_SCM
     },
-    function hook() {
+    async function hook() {
         if (this.pipelineId) {
-            return this.deletePipeline(this.pipelineId).catch(err => {
+            await this.deletePipeline(this.pipelineId).catch(err => {
                 // Pipeline already deleted
                 if (err.statusCode !== 404) {
+                    throw err;
+                }
+            });
+        }
+
+        if (this.branch && this.branch !== 'master') {
+            await github.removeBranch(this.repoOrg, this.repoName, this.branch).catch(err => {
+                // Branch already deleted
+                if (err.status !== 404) {
+                    throw err;
+                }
+            });
+        }
+
+        if (this.commitBranch && this.commitBranch !== 'master') {
+            await github.removeBranch(this.repoOrg, this.repoName, this.commitBranch).catch(err => {
+                // Branch already deleted
+                if (err.status !== 404) {
                     throw err;
                 }
             });
