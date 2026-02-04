@@ -4,7 +4,7 @@ const { Before, Given, When, Then } = require('@cucumber/cucumber');
 const Assert = require('chai').assert;
 const github = require('../support/github');
 const sdapi = require('../support/sdapi');
-const { TEST_TIMEOUT_DEFAULT, TEST_TIMEOUT_WITH_BUILD, TEST_TIMEOUT_WITH_SCM } = require('../support/constants');
+const { TEST_TIMEOUT_DEFAULT, TEST_TIMEOUT_WITH_SCM } = require('../support/constants');
 
 const RETRY = 5;
 
