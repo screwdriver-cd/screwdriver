@@ -5,7 +5,6 @@ const fs = require('mz/fs');
 const Assert = require('chai').assert;
 const request = require('screwdriver-request');
 const { Before, Given, Then, When, After } = require('@cucumber/cucumber');
-const request = require('screwdriver-request');
 const { TEST_TIMEOUT_DEFAULT, TEST_TIMEOUT_WITH_BUILD } = require('../support/constants');
 
 Before(
