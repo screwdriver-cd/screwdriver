@@ -206,17 +206,21 @@ When(/^a new commit is pushed against the pipeline's branch$/, { timeout: TEST_T
     });
 });
 
-When(/^a new Skip CI commit is pushed against the pipeline's branch$/, { timeout: TEST_TIMEOUT_WITH_SCM }, function step() {
-    this.testBranch = 'master';
-    const commitMessage = `[skip ci] ${new Date().toString()}`;
+When(
+    /^a new Skip CI commit is pushed against the pipeline's branch$/,
+    { timeout: TEST_TIMEOUT_WITH_SCM },
+    function step() {
+        this.testBranch = 'master';
+        const commitMessage = `[skip ci] ${new Date().toString()}`;
 
-    return github
-        .createFile(this.testBranch, this.repoOrg, this.repoName, undefined, commitMessage)
-        .then(({ data }) => {
-            this.sha = data.commit.sha;
-            this.latestSha = data.commit.sha;
-        });
-});
+        return github
+            .createFile(this.testBranch, this.repoOrg, this.repoName, undefined, commitMessage)
+            .then(({ data }) => {
+                this.sha = data.commit.sha;
+                this.latestSha = data.commit.sha;
+            });
+    }
+);
 
 When(
     /^a tag "([^"]+)" is created$/,
@@ -429,7 +433,8 @@ Then(
     }
 );
 
-Then(/^the GitHub status should be updated to reflect the build's status$/,
+Then(
+    /^the GitHub status should be updated to reflect the build's status$/,
     {
         timeout: TEST_TIMEOUT_WITH_SCM
     },
@@ -440,7 +445,8 @@ Then(/^the GitHub status should be updated to reflect the build's status$/,
     }
 );
 
-Then(/^the build should have a metadata for a (closed|merged) pr/,
+Then(
+    /^the build should have a metadata for a (closed|merged) pr/,
     {
         timeout: TEST_TIMEOUT_DEFAULT
     },

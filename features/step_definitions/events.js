@@ -120,20 +120,24 @@ Then(/^the "main" build succeeds$/, { timeout: TEST_TIMEOUT_WITH_BUILD }, functi
     });
 });
 
-Then(/^the "publish" build succeeds with the same eventId as the "main" build$/, { timeout: TEST_TIMEOUT_WITH_BUILD }, function step() {
-    return request({
-        url: `${this.instance}/${this.namespace}/jobs/${this.secondJobId}/builds`,
-        method: 'GET',
-        context: {
-            token: this.jwt
-        }
-    }).then(response => {
-        this.secondBuildId = response.body[0].id;
+Then(
+    /^the "publish" build succeeds with the same eventId as the "main" build$/,
+    { timeout: TEST_TIMEOUT_WITH_BUILD },
+    function step() {
+        return request({
+            url: `${this.instance}/${this.namespace}/jobs/${this.secondJobId}/builds`,
+            method: 'GET',
+            context: {
+                token: this.jwt
+            }
+        }).then(response => {
+            this.secondBuildId = response.body[0].id;
 
-        return this.waitForBuild(this.secondBuildId).then(resp => {
-            Assert.equal(resp.body.status, 'SUCCESS');
-            Assert.equal(resp.statusCode, 200);
-            Assert.equal(resp.body.eventId, this.eventId);
+            return this.waitForBuild(this.secondBuildId).then(resp => {
+                Assert.equal(resp.body.status, 'SUCCESS');
+                Assert.equal(resp.statusCode, 200);
+                Assert.equal(resp.body.eventId, this.eventId);
+            });
         });
-    });
-});
+    }
+);

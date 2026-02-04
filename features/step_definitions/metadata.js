@@ -127,46 +127,50 @@ Then(/^a record of the metadata is stored$/, { timeout: TEST_TIMEOUT_DEFAULT }, 
     });
 });
 
-When(/^the (detached )?"(BAM|BOOZ)" job is started$/, { timeout: TEST_TIMEOUT_DEFAULT }, function step(detached, jobName) {
-    let startFrom = jobName;
+When(
+    /^the (detached )?"(BAM|BOOZ)" job is started$/,
+    { timeout: TEST_TIMEOUT_DEFAULT },
+    function step(detached, jobName) {
+        let startFrom = jobName;
 
-    if (detached) {
-        startFrom = 'detached';
-    } else {
-        startFrom = 'fourth';
-    }
-
-    return request({
-        url: `${this.instance}/${this.namespace}/events`,
-        method: 'POST',
-        json: {
-            pipelineId: this.pipelineId,
-            startFrom,
-            parentEventId: this.previousEventId,
-            groupEventId: this.previousEventId
-        },
-        context: {
-            token: this.jwt
+        if (detached) {
+            startFrom = 'detached';
+        } else {
+            startFrom = 'fourth';
         }
-    })
-        .then(resp => {
-            Assert.equal(resp.statusCode, 201);
-            this.eventId = resp.body.id;
+
+        return request({
+            url: `${this.instance}/${this.namespace}/events`,
+            method: 'POST',
+            json: {
+                pipelineId: this.pipelineId,
+                startFrom,
+                parentEventId: this.previousEventId,
+                groupEventId: this.previousEventId
+            },
+            context: {
+                token: this.jwt
+            }
         })
-        .then(() =>
-            request({
-                url: `${this.instance}/${this.namespace}/events/${this.eventId}/builds`,
-                method: 'GET',
-                context: {
-                    token: this.jwt
-                }
+            .then(resp => {
+                Assert.equal(resp.statusCode, 201);
+                this.eventId = resp.body.id;
             })
-        )
-        .then(resp => {
-            Assert.equal(resp.statusCode, 200);
-            this.buildId = resp.body[0].id;
-        });
-});
+            .then(() =>
+                request({
+                    url: `${this.instance}/${this.namespace}/events/${this.eventId}/builds`,
+                    method: 'GET',
+                    context: {
+                        token: this.jwt
+                    }
+                })
+            )
+            .then(resp => {
+                Assert.equal(resp.statusCode, 200);
+                this.buildId = resp.body[0].id;
+            });
+    }
+);
 
 Given(
     /^an existing pipeline on branch "([^"]*)"$/,
@@ -223,22 +227,26 @@ Then(
     }
 );
 
-Then(/^the "([^"]*)" job is started for virtual job test$/, { timeout: TEST_TIMEOUT_WITH_BUILD }, function step(jobName) {
-    this.jobName = jobName;
+Then(
+    /^the "([^"]*)" job is started for virtual job test$/,
+    { timeout: TEST_TIMEOUT_WITH_BUILD },
+    function step(jobName) {
+        this.jobName = jobName;
 
-    return sdapi
-        .searchForBuild({
-            instance: this.instance,
-            pipelineId: this.pipelineId,
-            desiredSha: this.sha,
-            desiredStatus: ['QUEUED', 'RUNNING', 'SUCCESS', 'FAILURE'],
-            jobName: this.jobName,
-            jwt: this.jwt
-        })
-        .then(build => {
-            this.buildId = build.id;
-        });
-});
+        return sdapi
+            .searchForBuild({
+                instance: this.instance,
+                pipelineId: this.pipelineId,
+                desiredSha: this.sha,
+                desiredStatus: ['QUEUED', 'RUNNING', 'SUCCESS', 'FAILURE'],
+                jobName: this.jobName,
+                jwt: this.jwt
+            })
+            .then(build => {
+                this.buildId = build.id;
+            });
+    }
+);
 
 Then(/^{ "(.*)": "(.*)" } metadata in build/, function step(key, value) {
     Assert.equal(this.buildMeta[key], value);

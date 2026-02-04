@@ -24,36 +24,40 @@ Before(
     }
 );
 
-Given(/^an existing pipeline with (.*) image and (.*) package$/, { timeout: TEST_TIMEOUT_DEFAULT }, function step(image, pkg) {
-    return this.getJwt(this.apiToken)
-        .then(response => {
-            this.jwt = response.body.token;
-            this.expectedImage = image;
+Given(
+    /^an existing pipeline with (.*) image and (.*) package$/,
+    { timeout: TEST_TIMEOUT_DEFAULT },
+    function step(image, pkg) {
+        return this.getJwt(this.apiToken)
+            .then(response => {
+                this.jwt = response.body.token;
+                this.expectedImage = image;
 
-            return request({
-                url: `${this.instance}/${this.namespace}/pipelines`,
-                method: 'POST',
-                context: {
-                    token: this.jwt
-                },
-                json: {
-                    checkoutUrl: `git@${this.scmHostname}:${this.repoOrg}/${this.repoName}.git#master`
-                }
+                return request({
+                    url: `${this.instance}/${this.namespace}/pipelines`,
+                    method: 'POST',
+                    context: {
+                        token: this.jwt
+                    },
+                    json: {
+                        checkoutUrl: `git@${this.scmHostname}:${this.repoOrg}/${this.repoName}.git#master`
+                    }
+                });
+            })
+            .then(response => {
+                Assert.strictEqual(response.statusCode, 201);
+
+                this.pipelineId = response.body.id;
+            })
+            .catch(err => {
+                Assert.strictEqual(err.statusCode, 409);
+
+                const [, str] = err.message.split(': ');
+
+                [this.pipelineId] = str.match(ID);
             });
-        })
-        .then(response => {
-            Assert.strictEqual(response.statusCode, 201);
-
-            this.pipelineId = response.body.id;
-        })
-        .catch(err => {
-            Assert.strictEqual(err.statusCode, 409);
-
-            const [, str] = err.message.split(': ');
-
-            [this.pipelineId] = str.match(ID);
-        });
-});
+    }
+);
 
 When(/^the (main|tilde|hat|specify) job is started$/, { timeout: TEST_TIMEOUT_DEFAULT }, function step(jobName) {
     return request({

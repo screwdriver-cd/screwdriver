@@ -15,28 +15,28 @@ const parallel = {
 };
 
 module.exports = {
-    "default": common,
-    "banner": {
+    default: common,
+    banner: {
         ...common,
         tags: '(not @ignore) and (not @prod) and @banner'
     },
-    "prod": {
+    prod: {
         ...common,
         tags: '(not @ignore) and @prod'
     },
-    "beta": {
+    beta: {
         ...common,
         tags: '(not @ignore) and (not @prod) and (not @x1) and (not @parallel)'
     },
-    "beta-parallel": {
+    'beta-parallel': {
         ...parallel,
         tags: '(not @ignore) and (not @prod) and (not @x1) and @parallel'
     },
-    "beta-x1-parallel": {
+    'beta-x1-parallel': {
         ...parallel,
         tags: '(not @ignore) and (not @prod) and @x1 and @parallel'
     },
-    "dev": {
+    dev: {
         ...common,
         tags: '(not @ignore) and (not @prod)'
     }
