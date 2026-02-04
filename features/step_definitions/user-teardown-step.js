@@ -4,8 +4,7 @@ const Assert = require('chai').assert;
 const { Before, Given, Then } = require('@cucumber/cucumber');
 const request = require('screwdriver-request');
 const { disableRunScenarioInParallel } = require('../support/parallel');
-
-const TIMEOUT = 240 * 1000;
+const { TEST_TIMEOUT_DEFAULT, TEST_TIMEOUT_WITH_BUILD } = require('../support/constants');
 
 disableRunScenarioInParallel();
 
@@ -20,7 +19,7 @@ Before('@user-teardown-step', function hook() {
 Given(
     /^an existing pipeline for user-teardown-step with the workflow:$/,
     {
-        timeout: TIMEOUT
+        timeout: TEST_TIMEOUT_DEFAULT
     },
     function step(table) {
         return this.ensurePipelineExists({
@@ -34,7 +33,7 @@ Given(
 Then(
     /^the job succeeded$/,
     {
-        timeout: TIMEOUT
+        timeout: TEST_TIMEOUT_WITH_BUILD
     },
     function step() {
         return this.waitForBuild(this.buildId).then(response => {
@@ -47,7 +46,7 @@ Then(
 Then(
     /^the job failed$/,
     {
-        timeout: TIMEOUT
+        timeout: TEST_TIMEOUT_WITH_BUILD
     },
     function step() {
         return this.waitForBuild(this.buildId).then(response => {
@@ -60,7 +59,7 @@ Then(
 Then(
     /^the "([^"]*)" step succeeded$/,
     {
-        timeout: TIMEOUT
+        timeout: TEST_TIMEOUT_DEFAULT
     },
     function step(stepName) {
         return request({
@@ -79,7 +78,7 @@ Then(
 Then(
     /^the "([^"]*)" step failed$/,
     {
-        timeout: TIMEOUT
+        timeout: TEST_TIMEOUT_DEFAULT
     },
     function step(stepName) {
         return request({
@@ -98,7 +97,7 @@ Then(
 Then(
     /^the "([^"]*)" step skipped$/,
     {
-        timeout: TIMEOUT
+        timeout: TEST_TIMEOUT_DEFAULT
     },
     function step(stepName) {
         return request({

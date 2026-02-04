@@ -5,7 +5,7 @@ const jwt = require('jsonwebtoken');
 const { Before, Given, Then } = require('@cucumber/cucumber');
 const request = require('screwdriver-request');
 const { ID } = require('../support/constants');
-const TIMEOUT = 240 * 1000;
+const { TEST_TIMEOUT_DEFAULT } = require('../support/constants');
 
 Before('@auth', function hook() {
     this.repoOrg = this.testOrg;
@@ -17,7 +17,7 @@ Given(/^an existing repository with these users and permissions:$/, table => tab
 
 Given(/^an existing pipeline with that repository$/, () => null);
 
-Given(/^"([^"]*)" is logged in$/, { timeout: TIMEOUT }, function step(user) {
+Given(/^"([^"]*)" is logged in$/, { timeout: TEST_TIMEOUT_DEFAULT }, function step(user) {
     if (!this.apiToken) {
         throw new Error('insufficient set up, missing access key');
     }
@@ -46,7 +46,7 @@ Given(/^"([^"]*)" is logged in$/, { timeout: TIMEOUT }, function step(user) {
     });
 });
 
-Then(/^they can see the pipeline$/, { timeout: TIMEOUT }, function step() {
+Then(/^they can see the pipeline$/, { timeout: TEST_TIMEOUT_DEFAULT }, function step() {
     return request({
         // make sure pipeline exists (TODO: move to Given an existing pipeline with that repository scenario)
         url: `${this.instance}/${this.namespace}/pipelines`,
@@ -84,7 +84,7 @@ Then(/^they can see the pipeline$/, { timeout: TIMEOUT }, function step() {
         });
 });
 
-Then(/^they can start the "main" job$/, { timeout: TIMEOUT }, function step() {
+Then(/^they can start the "main" job$/, { timeout: TEST_TIMEOUT_DEFAULT }, function step() {
     return request({
         url: `${this.instance}/${this.namespace}/events`,
         method: 'POST',
@@ -115,7 +115,7 @@ Then(/^they can start the "main" job$/, { timeout: TIMEOUT }, function step() {
         });
 });
 
-Then(/^they can delete the pipeline$/, { timeout: TIMEOUT }, async function step() {
+Then(/^they can delete the pipeline$/, { timeout: TEST_TIMEOUT_DEFAULT }, async function step() {
     const resp = await this.deletePipeline(this.pipelineId);
 
     Assert.strictEqual(resp.statusCode, 204);

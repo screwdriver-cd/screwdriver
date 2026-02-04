@@ -4,8 +4,8 @@ const { Before, Given, When, Then } = require('@cucumber/cucumber');
 const Assert = require('chai').assert;
 const github = require('../support/github');
 const sdapi = require('../support/sdapi');
+const { TEST_TIMEOUT_DEFAULT, TEST_TIMEOUT_WITH_BUILD, TEST_TIMEOUT_WITH_SCM } = require('../support/constants');
 
-const TIMEOUT = 240 * 1000;
 const RETRY = 5;
 
 Before(
@@ -26,7 +26,7 @@ Before(
 Given(
     /^an existing pipeline "([^"]*)" on branch "([^"]*)" with the following config$/,
     {
-        timeout: TIMEOUT
+        timeout: TEST_TIMEOUT_DEFAULT
     },
     async function step(repoName, branchName, table) {
         await this.ensurePipelineExists({
@@ -49,7 +49,7 @@ Given(
 Given(
     /^pipeline "([^"]*)" subscribes to "([^"]*)" trigger of "([^"]*)" against the main branch$/,
     {
-        timeout: TIMEOUT
+        timeout: TEST_TIMEOUT_DEFAULT
     },
     async function step(subscribingRepoName, trigger, subscribedRepoName) {
         const subscribingPipeline = this.pipelines[subscribingRepoName];
@@ -90,7 +90,7 @@ Given(
 When(
     /^a new commit is pushed to "([^"]*)" branch of repo "([^"]*)"$/,
     {
-        timeout: TIMEOUT
+        timeout: TEST_TIMEOUT_WITH_SCM
     },
     function step(branchName, repoName) {
         this.prEvent = false;
@@ -117,7 +117,7 @@ When(
 
 Then(
     /^the "([^"]*)" job is triggered on branch "([^"]*)" of repo "([^"]*)"$/,
-    { timeout: TIMEOUT },
+    { timeout: TEST_TIMEOUT_DEFAULT },
     async function step(jobName, _, repoName) {
         const { pipelineId } = this.pipelines[repoName];
 
@@ -152,7 +152,7 @@ Then(
 
 Then(
     /^the "([^"]*)" job is not triggered on branch "([^"]*)" of repo "([^"]*)"$/,
-    { timeout: TIMEOUT },
+    { timeout: TEST_TIMEOUT_DEFAULT },
     async function step(jobName, _, repoName) {
         const { pipelineId } = this.pipelines[repoName];
 
@@ -184,7 +184,7 @@ Then(
 When(
     /^a pull request is opened from "(.*)" branch of repo "([^"]*)"$/,
     {
-        timeout: TIMEOUT
+        timeout: TEST_TIMEOUT_WITH_SCM
     },
     async function step(branch, repoName) {
         const sourceBranch = `${branch}-PR`;

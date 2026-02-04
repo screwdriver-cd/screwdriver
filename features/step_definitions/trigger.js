@@ -6,8 +6,8 @@ const request = require('screwdriver-request');
 const { disableRunScenarioInParallel } = require('../support/parallel');
 const github = require('../support/github');
 const sdapi = require('../support/sdapi');
+const { TEST_TIMEOUT_DEFAULT, TEST_TIMEOUT_WITH_BUILD, TEST_TIMEOUT_WITH_SCM } = require('../support/constants');
 
-const TIMEOUT = 240 * 1000;
 
 disableRunScenarioInParallel();
 
@@ -69,7 +69,7 @@ Before(
 Given(
     /^an existing pipeline on branch "([^"]*)" with the workflow jobs:$/,
     {
-        timeout: TIMEOUT
+        timeout: TEST_TIMEOUT_DEFAULT
     },
     async function step(branchName, table) {
         await this.ensurePipelineExists({
@@ -89,7 +89,7 @@ Given(
 Given(
     /^an existing pipeline on branch "([^"]*)" setting source directory "([^"]*)" with the workflow jobs:$/,
     {
-        timeout: TIMEOUT
+        timeout: TEST_TIMEOUT_DEFAULT
     },
     async function step(branchName, rootDir, table) {
         await this.ensurePipelineExists({
@@ -110,7 +110,7 @@ Given(
 Given(
     /^an existing pipeline on branch "([^"]*)" with job "([^"]*)"$/,
     {
-        timeout: TIMEOUT
+        timeout: TEST_TIMEOUT_DEFAULT
     },
     async function step(branchName, jobName) {
         await this.ensurePipelineExists({
@@ -130,7 +130,7 @@ Given(
 When(
     /^a new commit is pushed to "([^"]*)" branch with the trigger jobs$/,
     {
-        timeout: TIMEOUT
+        timeout: TEST_TIMEOUT_WITH_SCM
     },
     function step(branchName) {
         return github
@@ -145,7 +145,7 @@ When(
 When(
     /^the "(fail_A|success_A|parallel_A|hub)" job on branch "([^"]*)" is started$/,
     {
-        timeout: TIMEOUT
+        timeout: TEST_TIMEOUT_DEFAULT
     },
     function step(jobName, branchName) {
         const jobId = jobName ? this[`${jobName}JobId`] : this.jobId;
@@ -174,14 +174,14 @@ When(
 // no-op since the next test handles this case
 Then(
     /^the "(?:success_B_.*|or_multiple_B_.*|parallel_B1|parallel_B2)" job on branch "(?:.*)" is started$/,
-    { timeout: TIMEOUT },
+    { timeout: TEST_TIMEOUT_DEFAULT },
     () => null
 );
 
 Then(
     /^the "([^"]*)" build's parentBuildId on branch "([^"]*)" is that "([^"]*)" build's buildId$/,
     {
-        timeout: TIMEOUT
+        timeout: TEST_TIMEOUT_DEFAULT
     },
     async function step(jobName1, branchName, jobName2) {
         const { pipelineId } = this.pipelines[branchName];
@@ -210,7 +210,7 @@ Then(
 When(
     /^the "([^"]*)" job is triggered on branch "([^"]*)"$/,
     {
-        timeout: TIMEOUT
+        timeout: TEST_TIMEOUT_DEFAULT
     },
     async function step(jobName, branchName) {
         const { pipelineId, jobs, sha } = this.pipelines[branchName];
@@ -236,7 +236,7 @@ When(
 When(
     /^a new file is added to the "([^"]*)" directory of the "([^"]*)" branch$/,
     {
-        timeout: TIMEOUT
+        timeout: TEST_TIMEOUT_WITH_SCM
     },
     async function step(directoryName, branchName) {
         github.createFile(branchName, this.repoOrg, this.repoName, directoryName).then(response => {
@@ -248,7 +248,7 @@ When(
 When(
     /^start "([^"]*)" job$/,
     {
-        timeout: TIMEOUT
+        timeout: TEST_TIMEOUT_DEFAULT
     },
     function step(job) {
         return request({
@@ -285,7 +285,7 @@ When(
 Then(
     /^the "([^"]*)" job on branch "([^"]*)" is not triggered$/,
     {
-        timeout: TIMEOUT
+        timeout: TEST_TIMEOUT_DEFAULT
     },
     async function step(jobName, branchName) {
         const { pipelineId } = this.pipelines[branchName];
@@ -308,7 +308,7 @@ Then(
 Then(
     /^the "([^"]*)" job is triggered from "([^"]*)" on branch "([^"]*)" and "([^"]*)" on branch "([^"]*)"$/,
     {
-        timeout: TIMEOUT
+        timeout: TEST_TIMEOUT_WITH_BUILD
     },
     async function step(joinJobName, parentJobName, parentBranchName, externalJobName, externalBranchName) {
         const parentPipeline = this.pipelines[parentBranchName];
@@ -355,7 +355,7 @@ Then(
 Then(
     /^builds for "([^"]*)" and "([^"]*)" jobs are part of a single event$/,
     {
-        timeout: TIMEOUT
+        timeout: TEST_TIMEOUT_WITH_BUILD
     },
     function step(jobName1, jobName2) {
         const buildVarName1 = `${jobName1}BuildId`;
@@ -375,7 +375,7 @@ Then(
 Then(
     /^that "([^"]*)" build uses the same SHA as the "([^"]*)" build on branch "([^"]*)"$/,
     {
-        timeout: TIMEOUT
+        timeout: TEST_TIMEOUT_DEFAULT
     },
     function step(jobName1, jobName2, branchName) {
         const { pipelineId, sha } = this.pipelines[branchName];
@@ -404,7 +404,7 @@ Then(
 Then(
     /^the "([^"]*)" job is triggered from "([^"]*)" and "([^"]*)" on branch "([^"]*)"$/,
     {
-        timeout: TIMEOUT
+        timeout: TEST_TIMEOUT_DEFAULT
     },
     async function step(joinJobName, parentJobName1, parentJobName2, branchName) {
         const { eventId, jobs } = this.pipelines[branchName];

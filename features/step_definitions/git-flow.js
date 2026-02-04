@@ -7,15 +7,14 @@ const sdapi = require('../support/sdapi');
 const github = require('../support/github');
 const { ID } = require('../support/constants');
 const { disableRunScenarioInParallel } = require('../support/parallel');
-
-const TIMEOUT = 500 * 1000;
+const { TEST_TIMEOUT_DEFAULT, TEST_TIMEOUT_WITH_BUILD, TEST_TIMEOUT_WITH_SCM } = require('../support/constants');
 
 disableRunScenarioInParallel();
 
 Before(
     {
         tags: '@gitflow',
-        timeout: TIMEOUT
+        timeout: TEST_TIMEOUT_WITH_SCM
     },
     function hook() {
         this.branch = 'darrenBranch';
@@ -43,7 +42,7 @@ Before(
 After(
     {
         tags: '@gitflow',
-        timeout: TIMEOUT
+        timeout: TEST_TIMEOUT_WITH_SCM
     },
     async function hook() {
         const PR_CLOSED_HOOK_WAIT = 10;
@@ -58,7 +57,7 @@ After(
 Given(
     /^an existing pipeline$/,
     {
-        timeout: TIMEOUT
+        timeout: TEST_TIMEOUT_DEFAULT
     },
     function step() {
         return request({
@@ -89,7 +88,7 @@ Given(
 Given(
     /^an existing pull request targeting the pipeline's branch$/,
     {
-        timeout: TIMEOUT
+        timeout: TEST_TIMEOUT_WITH_SCM
     },
     function step() {
         const { branch } = this;
@@ -112,7 +111,7 @@ Given(
 Given(
     /^a pipeline with all stopped builds$/,
     {
-        timeout: TIMEOUT
+        timeout: TEST_TIMEOUT_WITH_BUILD
     },
     function step() {
         const jobs = ['main', 'tag-triggered', 'release-triggered'];
@@ -133,7 +132,7 @@ Given(
     }
 );
 
-When(/^a pull request is opened$/, { timeout: TIMEOUT }, function step() {
+When(/^a pull request is opened$/, { timeout: TEST_TIMEOUT_WITH_SCM }, function step() {
     const { branch } = this;
 
     return github
@@ -148,14 +147,14 @@ When(/^a pull request is opened$/, { timeout: TIMEOUT }, function step() {
 
 When(/^it is targeting the pipeline's branch$/, () => null);
 
-When(/^the pull request is merged$/, { timeout: TIMEOUT }, function step() {
+When(/^the pull request is merged$/, { timeout: TEST_TIMEOUT_WITH_SCM }, function step() {
     return github.mergePullRequest(this.repoOrg, this.repoName, this.pullRequestNumber);
 });
 
 When(
     /^the pull request is closed$/,
     {
-        timeout: TIMEOUT
+        timeout: TEST_TIMEOUT_WITH_SCM
     },
     function step() {
         return sdapi
@@ -177,7 +176,7 @@ When(
 When(
     /^new changes are pushed to that pull request$/,
     {
-        timeout: TIMEOUT
+        timeout: TEST_TIMEOUT_WITH_SCM
     },
     function step() {
         return sdapi
@@ -199,7 +198,7 @@ When(
     }
 );
 
-When(/^a new commit is pushed against the pipeline's branch$/, { timeout: TIMEOUT }, function step() {
+When(/^a new commit is pushed against the pipeline's branch$/, { timeout: TEST_TIMEOUT_WITH_SCM }, function step() {
     this.testBranch = 'master';
 
     return github.createFile(this.testBranch, this.repoOrg, this.repoName).then(({ data }) => {
@@ -207,7 +206,7 @@ When(/^a new commit is pushed against the pipeline's branch$/, { timeout: TIMEOU
     });
 });
 
-When(/^a new Skip CI commit is pushed against the pipeline's branch$/, { timeout: TIMEOUT }, function step() {
+When(/^a new Skip CI commit is pushed against the pipeline's branch$/, { timeout: TEST_TIMEOUT_WITH_SCM }, function step() {
     this.testBranch = 'master';
     const commitMessage = `[skip ci] ${new Date().toString()}`;
 
@@ -222,7 +221,7 @@ When(/^a new Skip CI commit is pushed against the pipeline's branch$/, { timeout
 When(
     /^a tag "([^"]+)" is created$/,
     {
-        timeout: TIMEOUT
+        timeout: TEST_TIMEOUT_WITH_SCM
     },
     function step(tag) {
         const { branch } = this;
@@ -241,7 +240,7 @@ When(
 When(
     /^an annotated tag is created$/,
     {
-        timeout: TIMEOUT
+        timeout: TEST_TIMEOUT_WITH_SCM
     },
     function step() {
         const { branch } = this;
@@ -261,7 +260,7 @@ When(
 When(
     /^a release "([^"]+)" is created$/,
     {
-        timeout: TIMEOUT
+        timeout: TEST_TIMEOUT_WITH_SCM
     },
     function step(release) {
         const { branch } = this;
@@ -281,7 +280,7 @@ When(
 When(
     /^a release with annotated tag is created$/,
     {
-        timeout: TIMEOUT
+        timeout: TEST_TIMEOUT_WITH_SCM
     },
     function step() {
         const { branch } = this;
@@ -302,7 +301,7 @@ When(
 Then(
     /^a new build from "([^"]+)" should be created to test that change$/,
     {
-        timeout: TIMEOUT
+        timeout: TEST_TIMEOUT_DEFAULT
     },
     function step(job) {
         return sdapi
@@ -329,7 +328,7 @@ Then(
 Then(
     /^a new build from "([^"]+)" should not be created to test that change$/,
     {
-        timeout: TIMEOUT
+        timeout: TEST_TIMEOUT_DEFAULT
     },
     function step(specificJobName) {
         const WAIT_TIME = 10; // Wait 10s.
@@ -355,7 +354,7 @@ Then(
 Then(
     /^a new build from "([^"]+)" should be created on the latest sha$/,
     {
-        timeout: TIMEOUT
+        timeout: TEST_TIMEOUT_DEFAULT
     },
     function step(job) {
         return sdapi
@@ -381,7 +380,7 @@ Then(
 Then(
     /^a new build from "([^"]+)" should not be created on the latest sha$/,
     {
-        timeout: TIMEOUT
+        timeout: TEST_TIMEOUT_DEFAULT
     },
     function step(job) {
         const WAIT_TIME = 10; // Wait 10s.
@@ -421,7 +420,7 @@ Then(/^the build should know they are in a pull request/, function step() {
 Then(
     /^any existing builds should be stopped$/,
     {
-        timeout: TIMEOUT
+        timeout: TEST_TIMEOUT_WITH_BUILD
     },
     function step() {
         return this.waitForBuild(this.previousBuildId).then(resp => {
@@ -430,26 +429,36 @@ Then(
     }
 );
 
-Then(/^the GitHub status should be updated to reflect the build's status$/, function step() {
-    return github.getStatus(this.repoOrg, this.repoName, this.sha).then(({ data }) => {
-        data.statuses.forEach(status => Assert.oneOf(status.state, ['success', 'pending']));
-    });
-});
+Then(/^the GitHub status should be updated to reflect the build's status$/,
+    {
+        timeout: TEST_TIMEOUT_WITH_SCM
+    },
+    function step() {
+        return github.getStatus(this.repoOrg, this.repoName, this.sha).then(({ data }) => {
+            data.statuses.forEach(status => Assert.oneOf(status.state, ['success', 'pending']));
+        });
+    }
+);
 
-Then(/^the build should have a metadata for a (closed|merged) pr/, function step(state) {
-    return request({
-        method: 'GET',
-        url: `${this.instance}/${this.namespace}/events/${this.eventId}`,
-        context: {
-            token: this.jwt
-        }
-    }).then(response => {
-        Assert.strictEqual(response.statusCode, 200);
+Then(/^the build should have a metadata for a (closed|merged) pr/,
+    {
+        timeout: TEST_TIMEOUT_DEFAULT
+    },
+    function step(state) {
+        return request({
+            method: 'GET',
+            url: `${this.instance}/${this.namespace}/events/${this.eventId}`,
+            context: {
+                token: this.jwt
+            }
+        }).then(response => {
+            Assert.strictEqual(response.statusCode, 200);
 
-        const { meta } = response.body;
+            const { meta } = response.body;
 
-        Assert.exists(meta.sd.pr.name);
-        Assert.equal(meta.sd.pr.merged, state === 'merged');
-        Assert.equal(meta.sd.pr.number, this.pullRequestNumber);
-    });
-});
+            Assert.exists(meta.sd.pr.name);
+            Assert.equal(meta.sd.pr.merged, state === 'merged');
+            Assert.equal(meta.sd.pr.number, this.pullRequestNumber);
+        });
+    }
+);

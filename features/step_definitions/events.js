@@ -5,8 +5,7 @@ const { Before, Given, When, Then } = require('@cucumber/cucumber');
 const request = require('screwdriver-request');
 const { disableRunScenarioInParallel } = require('../support/parallel');
 const sdapi = require('../support/sdapi');
-
-const TIMEOUT = 240 * 1000;
+const { TEST_TIMEOUT_DEFAULT, TEST_TIMEOUT_WITH_BUILD } = require('../support/constants');
 
 disableRunScenarioInParallel();
 
@@ -20,13 +19,13 @@ Before('@events', function hook() {
     this.jwt = null;
 });
 
-Given(/^an existing pipeline with the workflow:$/, { timeout: TIMEOUT }, function step(table) {
+Given(/^an existing pipeline with the workflow:$/, { timeout: TEST_TIMEOUT_DEFAULT }, function step(table) {
     return this.ensurePipelineExists({ repoName: this.repoName }).then(() => table);
 });
 
 Given(/^"calvin" has admin permission to the pipeline$/, () => null);
 
-Given(/^the "main" job has a previous event$/, { timeout: TIMEOUT }, function step() {
+Given(/^the "main" job has a previous event$/, { timeout: TEST_TIMEOUT_WITH_BUILD }, function step() {
     const jobName = 'main';
 
     return request({
@@ -54,7 +53,7 @@ Given(/^the "main" job has a previous event$/, { timeout: TIMEOUT }, function st
         );
 });
 
-When(/^the "main" job is restarted$/, { timeout: TIMEOUT }, function step() {
+When(/^the "main" job is restarted$/, { timeout: TEST_TIMEOUT_DEFAULT }, function step() {
     return request({
         url: `${this.instance}/${this.namespace}/events`,
         method: 'POST',
@@ -87,7 +86,7 @@ When(/^the "main" job is restarted$/, { timeout: TIMEOUT }, function step() {
         });
 });
 
-Then(/^an event is created$/, { timeout: TIMEOUT }, function step() {
+Then(/^an event is created$/, { timeout: TEST_TIMEOUT_DEFAULT }, function step() {
     return request({
         url: `${this.instance}/${this.namespace}/pipelines/${this.pipelineId}/events`,
         method: 'GET',
@@ -99,7 +98,7 @@ Then(/^an event is created$/, { timeout: TIMEOUT }, function step() {
 
 Then(
     /^an event is created with the parent event which is same as the previous event$/,
-    { timeout: TIMEOUT },
+    { timeout: TEST_TIMEOUT_DEFAULT },
     function step() {
         return request({
             url: `${this.instance}/${this.namespace}/pipelines/${this.pipelineId}/events`,
@@ -114,14 +113,14 @@ Then(
     }
 );
 
-Then(/^the "main" build succeeds$/, { timeout: TIMEOUT }, function step() {
+Then(/^the "main" build succeeds$/, { timeout: TEST_TIMEOUT_WITH_BUILD }, function step() {
     return this.waitForBuild(this.buildId).then(resp => {
         Assert.equal(resp.body.status, 'SUCCESS');
         Assert.equal(resp.statusCode, 200);
     });
 });
 
-Then(/^the "publish" build succeeds with the same eventId as the "main" build$/, { timeout: TIMEOUT }, function step() {
+Then(/^the "publish" build succeeds with the same eventId as the "main" build$/, { timeout: TEST_TIMEOUT_WITH_BUILD }, function step() {
     return request({
         url: `${this.instance}/${this.namespace}/jobs/${this.secondJobId}/builds`,
         method: 'GET',

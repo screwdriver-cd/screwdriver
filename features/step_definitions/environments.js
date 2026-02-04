@@ -4,8 +4,7 @@ const Assert = require('chai').assert;
 const { Before, Given, When, Then } = require('@cucumber/cucumber');
 const request = require('screwdriver-request');
 const { disableRunScenarioInParallel } = require('../support/parallel');
-
-const TIMEOUT = 240 * 1000;
+const { TEST_TIMEOUT_DEFAULT, TEST_TIMEOUT_WITH_BUILD } = require('../support/constants');
 
 disableRunScenarioInParallel();
 
@@ -21,7 +20,7 @@ Before(
 Given(
     /^an existing pipeline with setting environment variables$/,
     {
-        timeout: TIMEOUT
+        timeout: TEST_TIMEOUT_DEFAULT
     },
     function step() {
         return this.ensurePipelineExists({ repoName: this.repoName });
@@ -31,7 +30,7 @@ Given(
 When(
     /^the "([^"]*)" job that uses "FOO" environment variable is started$/,
     {
-        timeout: TIMEOUT
+        timeout: TEST_TIMEOUT_DEFAULT
     },
     function step(job) {
         return request({
@@ -68,7 +67,7 @@ When(
 Then(
     /^the job was able to use the "FOO" environment variable$/,
     {
-        timeout: TIMEOUT
+        timeout: TEST_TIMEOUT_WITH_BUILD
     },
     function step() {
         return this.waitForBuild(this.buildId).then(resp => {

@@ -3,12 +3,12 @@
 const Assert = require('chai').assert;
 const { Before, Given, When, Then, After } = require('@cucumber/cucumber');
 const request = require('screwdriver-request');
-
-const TIMEOUT = 240 * 1000;
+const { TEST_TIMEOUT_DEFAULT, TEST_TIMEOUT_WITH_BUILD } = require('../support/constants');
 
 Before(
     {
-        tags: '@sd-cmd'
+        tags: '@sd-cmd',
+        timeout: TEST_TIMEOUT_WITH_BUILD
     },
     function hook() {
         this.repoOrg = this.testOrg;
@@ -76,7 +76,7 @@ Before(
     }
 );
 
-Given(/^(.*) command in (.*) format$/, { timeout: TIMEOUT }, function step(command, format) {
+Given(/^(.*) command in (.*) format$/, { timeout: TEST_TIMEOUT_DEFAULT }, function step(command, format) {
     return request({
         url: `${this.instance}/${this.namespace}/commands/${this.commandNamespace}/${this.command}/latest`,
         method: 'GET',
@@ -92,7 +92,7 @@ Given(/^(.*) command in (.*) format$/, { timeout: TIMEOUT }, function step(comma
     });
 });
 
-Given(/^(.+) command does not exist yet$/, { timeout: TIMEOUT }, function step(command) {
+Given(/^(.+) command does not exist yet$/, { timeout: TEST_TIMEOUT_DEFAULT }, function step(command) {
     this.command = command;
 
     return request({
@@ -123,7 +123,7 @@ Given(/^(.+) command does not exist yet$/, { timeout: TIMEOUT }, function step(c
 Given(
     /^"([^"]+)" version of the command is uploaded with "([^"]+)" tag$/,
     {
-        timeout: TIMEOUT
+        timeout: TEST_TIMEOUT_WITH_BUILD
     },
     function step(version, tag) {
         const jobName = `publish-${tag}`;
@@ -168,7 +168,7 @@ Given(
 Given(
     /^a "([^"]+)" command$/,
     {
-        timeout: TIMEOUT
+        timeout: TEST_TIMEOUT_DEFAULT
     },
     function step(command) {
         this.command = command;
@@ -194,7 +194,7 @@ Given(
 Given(
     /^the command exists$/,
     {
-        timeout: TIMEOUT
+        timeout: TEST_TIMEOUT_WITH_BUILD
     },
     function step() {
         if (this.numOfCommand === 0) {
@@ -211,7 +211,7 @@ Given(
 When(
     /^execute (.+) job$/,
     {
-        timeout: TIMEOUT
+        timeout: TEST_TIMEOUT_DEFAULT
     },
     function step(jobName) {
         return request({
@@ -249,7 +249,7 @@ When(
 When(
     /^"([^"]+)" step executes the command with arguments: "([^"]+)"$/,
     {
-        timeout: TIMEOUT
+        timeout: TEST_TIMEOUT_DEFAULT
     },
     function step(stepName, args) {
         return request({
@@ -268,7 +268,7 @@ When(
 When(
     /^a pipeline with the "(right|wrong)" permission "(succeeds|fails)" to publish the command in "([^"]+)"$/,
     {
-        timeout: TIMEOUT
+        timeout: TEST_TIMEOUT_WITH_BUILD
     },
     function step(permission, status, jobName) {
         if (permission === 'wrong') {
@@ -284,7 +284,7 @@ When(
 When(
     /^a pipeline "(succeeds|fails)" to validate the command in "([^"]+)"$/,
     {
-        timeout: TIMEOUT
+        timeout: TEST_TIMEOUT_WITH_BUILD
     },
     function step(status, jobName) {
         return this.startJob(jobName).then(result => {
@@ -293,7 +293,7 @@ When(
     }
 );
 
-Then(/^the job is completed successfully$/, { timeout: 700 * 1000 }, function step() {
+Then(/^the job is completed successfully$/, { timeout: TEST_TIMEOUT_WITH_BUILD }, function step() {
     return this.waitForBuild(this.buildId).then(response => {
         Assert.equal(response.statusCode, 200);
         Assert.equal(response.body.status, 'SUCCESS');
@@ -303,7 +303,7 @@ Then(/^the job is completed successfully$/, { timeout: 700 * 1000 }, function st
 Then(
     /^the command is published with (.+) format$/,
     {
-        timeout: TIMEOUT
+        timeout: TEST_TIMEOUT_DEFAULT
     },
     function step(format) {
         return request({
@@ -323,7 +323,7 @@ Then(
 Then(
     /^"([^"]+)" is tagged with "([^"]+)"$/,
     {
-        timeout: TIMEOUT
+        timeout: TEST_TIMEOUT_DEFAULT
     },
     function step(version, tag) {
         return request({
@@ -341,7 +341,7 @@ Then(
 Then(
     /^"([^"]+)" tag is removed from "([^"]+)"$/,
     {
-        timeout: TIMEOUT
+        timeout: TEST_TIMEOUT_DEFAULT
     },
     function step(tag, version) {
         return request({
@@ -359,7 +359,7 @@ Then(
 Then(
     /^the command is deleted$/,
     {
-        timeout: TIMEOUT
+        timeout: TEST_TIMEOUT_DEFAULT
     },
     function step() {
         /* eslint-disable-next-line consistent-return */
@@ -378,7 +378,7 @@ Then(
 Then(
     /^the command "(is|is not)" stored$/,
     {
-        timeout: TIMEOUT
+        timeout: TEST_TIMEOUT_DEFAULT
     },
     function step(stored) {
         return request({
@@ -409,7 +409,7 @@ Then(
 Then(
     /^the command is "(trusted|distrusted)"$/,
     {
-        timeout: TIMEOUT
+        timeout: TEST_TIMEOUT_DEFAULT
     },
     function step(trust) {
         return request({
@@ -424,10 +424,10 @@ Then(
         });
     }
 );
-
 After(
     {
-        tags: '@sd-cmd'
+        tags: '@sd-cmd',
+        timeout: TEST_TIMEOUT_WITH_BUILD
     },
     function hook() {
         return this.stopBuild(this.buildId).catch(() => {});

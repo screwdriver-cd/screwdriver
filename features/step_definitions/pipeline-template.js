@@ -5,13 +5,12 @@ const fs = require('mz/fs');
 const Assert = require('chai').assert;
 const request = require('screwdriver-request');
 const { Before, Given, Then, When } = require('@cucumber/cucumber');
-
-const TIMEOUT = 240 * 1000;
+const { TEST_TIMEOUT_DEFAULT, TEST_TIMEOUT_WITH_BUILD } = require('../support/constants');
 
 Before(
     {
         tags: '@pipelinetemplate',
-        timeout: TIMEOUT
+        timeout: TEST_TIMEOUT_WITH_BUILD
     },
     function hook() {
         this.repoOrg = this.testOrg;
@@ -97,7 +96,7 @@ Given(/^a (valid|invalid)\b pipeline-level template$/, function step(templateTyp
 Given(
     /^a "([^"]+)" pipeline template$/,
     {
-        timeout: TIMEOUT
+        timeout: TEST_TIMEOUT_DEFAULT
     },
     function step(template) {
         this.template = template;
@@ -123,7 +122,7 @@ Given(
 Given(
     /^the pipeline template exists$/,
     {
-        timeout: TIMEOUT
+        timeout: TEST_TIMEOUT_WITH_BUILD
     },
     function step() {
         if (this.numOfTemplate === 0) {
@@ -140,7 +139,7 @@ Given(
 Given(
     /^a "([^"]+)" pipeline using a "([^"]+)" @ "([^"]+)" pipeline template$/,
     {
-        timeout: TIMEOUT
+        timeout: TEST_TIMEOUT_DEFAULT
     },
     function step(branchName, template, version) {
         this.template = template;
@@ -265,7 +264,7 @@ Given(/^the pipeline template has additional jobs settings$/, function step() {
 When(
     /^they submit pipeline template to the validator$/,
     {
-        timeout: TIMEOUT
+        timeout: TEST_TIMEOUT_DEFAULT
     },
     function step() {
         return request({
@@ -288,7 +287,7 @@ When(
 When(
     /^a pipeline with the "(right|wrong)" permission "(succeeds|fails)" to publish the pipeline template in "([^"]+)"$/,
     {
-        timeout: TIMEOUT
+        timeout: TEST_TIMEOUT_WITH_BUILD
     },
     function step(permission, status, jobName) {
         if (permission === 'wrong') {
@@ -304,7 +303,7 @@ When(
 When(
     /^a pipeline "(succeeds|fails)" to validate the pipeline template in "([^"]+)"$/,
     {
-        timeout: TIMEOUT
+        timeout: TEST_TIMEOUT_WITH_BUILD
     },
     function step(status, jobName) {
         return this.startJob(jobName).then(result => {
@@ -316,7 +315,7 @@ When(
 When(
     /^user starts the job that uses pipeline template$/,
     {
-        timeout: TIMEOUT
+        timeout: TEST_TIMEOUT_WITH_BUILD
     },
     function step() {
         return this.startJob(this.jobName).then(result => {
@@ -328,7 +327,7 @@ When(
 When(
     /^user starts the additional job that uses pipeline template$/,
     {
-        timeout: TIMEOUT
+        timeout: TEST_TIMEOUT_WITH_BUILD
     },
     function step() {
         return this.startJob(this.additionalJobName).then(result => {
@@ -340,7 +339,7 @@ When(
 Then(
     /^job settings are the template command$/,
     {
-        timeout: TIMEOUT
+        timeout: TEST_TIMEOUT_DEFAULT
     },
     function step() {
         return request({
@@ -382,7 +381,7 @@ Then(
 Then(
     /^job settings are the user command$/,
     {
-        timeout: TIMEOUT
+        timeout: TEST_TIMEOUT_DEFAULT
     },
     function step() {
         return request({
@@ -424,7 +423,7 @@ Then(
 Then(
     /^additional job settings are the user command$/,
     {
-        timeout: TIMEOUT
+        timeout: TEST_TIMEOUT_DEFAULT
     },
     function step() {
         return request({
@@ -484,7 +483,7 @@ Then(/^they are notified pipeline template has (no|some) errors$/, function step
 Then(
     /^the pipeline template "(is|is not)" stored$/,
     {
-        timeout: TIMEOUT
+        timeout: TEST_TIMEOUT_DEFAULT
     },
     function step(stored) {
         return request({
@@ -515,7 +514,7 @@ Then(
 Then(
     /^the pipeline template is "(trusted|distrusted)"$/,
     {
-        timeout: TIMEOUT
+        timeout: TEST_TIMEOUT_DEFAULT
     },
     function step(trust) {
         return request({
@@ -538,7 +537,7 @@ Then(
 Then(
     /^the pipeline executes what is specified in the pipeline template$/,
     {
-        timeout: TIMEOUT
+        timeout: TEST_TIMEOUT_DEFAULT
     },
     function step() {
         return request({
@@ -576,7 +575,7 @@ Then(
 Then(
     /^pipeline settings are the user settings$/,
     {
-        timeout: TIMEOUT
+        timeout: TEST_TIMEOUT_DEFAULT
     },
     function step() {
         return request({

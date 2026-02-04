@@ -4,8 +4,7 @@ const Assert = require('chai').assert;
 const { Before, Given, Then, When } = require('@cucumber/cucumber');
 const request = require('screwdriver-request');
 const sdapi = require('../support/sdapi');
-
-const TIMEOUT = 240 * 1000;
+const { TEST_TIMEOUT_DEFAULT, TEST_TIMEOUT_WITH_BUILD } = require('../support/constants');
 
 Before(
     {
@@ -23,9 +22,9 @@ Before(
     }
 );
 
-Given(/^a metadata starts with an empty object$/, { timeout: TIMEOUT }, () => null);
+Given(/^a metadata starts with an empty object$/, { timeout: TEST_TIMEOUT_DEFAULT }, () => null);
 
-When(/^the BOOZ job is "(disabled|enabled)"$/, { timeout: TIMEOUT }, function step(jobState) {
+When(/^the BOOZ job is "(disabled|enabled)"$/, { timeout: TEST_TIMEOUT_DEFAULT }, function step(jobState) {
     const jobName = 'fourth';
 
     return request({
@@ -60,7 +59,7 @@ When(/^the BOOZ job is "(disabled|enabled)"$/, { timeout: TIMEOUT }, function st
         });
 });
 
-Then(/^the "(BAR|BAZ)" job is started$/, { timeout: TIMEOUT }, function step(jobName) {
+Then(/^the "(BAR|BAZ)" job is started$/, { timeout: TEST_TIMEOUT_DEFAULT }, function step(jobName) {
     switch (jobName) {
         case 'BAR':
             this.jobName = 'second';
@@ -93,7 +92,7 @@ Then(/^add the { "(.*)": "(.*)" } to metadata/, function step(key, value) {
     this.expectedMeta[key] = value;
 });
 
-Then(/^the build succeeded$/, { timeout: TIMEOUT }, function step() {
+Then(/^the build succeeded$/, { timeout: TEST_TIMEOUT_WITH_BUILD }, function step() {
     return this.waitForBuild(this.buildId).then(resp => {
         this.buildMeta = resp.body.meta;
         Assert.equal(resp.body.status, 'SUCCESS');
@@ -105,7 +104,7 @@ Then(/^in the build, the { "(.*)": "(.*)" } is available from metadata$/, functi
     Assert.equal(this.buildMeta[key], value);
 });
 
-Then(/^the event is done$/, { timeout: TIMEOUT }, function step() {
+Then(/^the event is done$/, { timeout: TEST_TIMEOUT_WITH_BUILD }, function step() {
     return request({
         url: `${this.instance}/${this.namespace}/jobs/${this.thirdJobId}/builds`,
         method: 'GET',
@@ -122,13 +121,13 @@ Then(/^the event is done$/, { timeout: TIMEOUT }, function step() {
     });
 });
 
-Then(/^a record of the metadata is stored$/, { timeout: TIMEOUT }, function step() {
+Then(/^a record of the metadata is stored$/, { timeout: TEST_TIMEOUT_DEFAULT }, function step() {
     Object.keys(this.expectedMeta).forEach(key => {
         Assert.equal(this.meta[key], this.expectedMeta[key]);
     });
 });
 
-When(/^the (detached )?"(BAM|BOOZ)" job is started$/, { timeout: TIMEOUT }, function step(detached, jobName) {
+When(/^the (detached )?"(BAM|BOOZ)" job is started$/, { timeout: TEST_TIMEOUT_DEFAULT }, function step(detached, jobName) {
     let startFrom = jobName;
 
     if (detached) {
@@ -172,7 +171,7 @@ When(/^the (detached )?"(BAM|BOOZ)" job is started$/, { timeout: TIMEOUT }, func
 Given(
     /^an existing pipeline on branch "([^"]*)"$/,
     {
-        timeout: TIMEOUT
+        timeout: TEST_TIMEOUT_DEFAULT
     },
     async function step(branchName) {
         await this.ensurePipelineExists({
@@ -186,7 +185,7 @@ Given(
 Then(
     /^start the "([^"]*)" job$/,
     {
-        timeout: TIMEOUT
+        timeout: TEST_TIMEOUT_DEFAULT
     },
     function step(jobName) {
         const jobId = this.jobs.find(job => job.name === jobName).id;
@@ -224,7 +223,7 @@ Then(
     }
 );
 
-Then(/^the "([^"]*)" job is started for virtual job test$/, { timeout: TIMEOUT }, function step(jobName) {
+Then(/^the "([^"]*)" job is started for virtual job test$/, { timeout: TEST_TIMEOUT_WITH_BUILD }, function step(jobName) {
     this.jobName = jobName;
 
     return sdapi

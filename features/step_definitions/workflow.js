@@ -6,8 +6,8 @@ const github = require('../support/github');
 const sdapi = require('../support/sdapi');
 const { ID } = require('../support/constants');
 const { disableRunScenarioInParallel } = require('../support/parallel');
+const { TEST_TIMEOUT_DEFAULT, TEST_TIMEOUT_WITH_BUILD, TEST_TIMEOUT_WITH_SCM } = require('../support/constants');
 
-const TIMEOUT = 240 * 1000;
 const WAIT_TIME = 3;
 
 disableRunScenarioInParallel();
@@ -39,7 +39,7 @@ Before(
 Given(
     /^an existing pipeline on "(.*)" branch with the workflow jobs:$/,
     {
-        timeout: TIMEOUT
+        timeout: TEST_TIMEOUT_WITH_SCM
     },
     function step(branch, table) {
         return (
@@ -90,7 +90,7 @@ Given(
 When(
     /^a new commit is pushed to "(.*)" branch$/,
     {
-        timeout: TIMEOUT
+        timeout: TEST_TIMEOUT_WITH_SCM
     },
     function step(branch) {
         return github
@@ -105,7 +105,7 @@ When(
 When(
     /^a pull request is opened from "(.*)" branch$/,
     {
-        timeout: TIMEOUT
+        timeout: TEST_TIMEOUT_WITH_SCM
     },
     async function step(branch) {
         const sourceBranch = `${branch}-PR`;
@@ -133,7 +133,7 @@ When(
 When(
     /^a pull request is opened to "(.*)" branch$/,
     {
-        timeout: TIMEOUT
+        timeout: TEST_TIMEOUT_WITH_SCM
     },
     async function step(branch) {
         const sourceBranch = `${branch}-PR`;
@@ -160,7 +160,7 @@ When(
 Then(
     /^the "(.*)" job is triggered$/,
     {
-        timeout: TIMEOUT
+        timeout: TEST_TIMEOUT_DEFAULT
     },
     function step(jobName) {
         const config = {
@@ -195,7 +195,7 @@ Then(
 Then(
     /^the "(.*)" job is triggered once$/,
     {
-        timeout: TIMEOUT
+        timeout: TEST_TIMEOUT_DEFAULT
     },
     function step(jobName) {
         return sdapi
@@ -227,7 +227,7 @@ Then(
 Then(
     /^the "(.*)" PR job is triggered$/,
     {
-        timeout: TIMEOUT
+        timeout: TEST_TIMEOUT_DEFAULT
     },
     function step(jobName) {
         return sdapi
@@ -269,7 +269,7 @@ Then(
 Then(
     /^the "(.*)" job is triggered from "([^"]*)"$/,
     {
-        timeout: TIMEOUT
+        timeout: TEST_TIMEOUT_DEFAULT
     },
     function step(triggeredJobName, parentJobName) {
         return sdapi
@@ -297,7 +297,7 @@ Then(
 Then(
     /^the PR job of "(.*)" is triggered from PR job of "([^"]*)"$/,
     {
-        timeout: TIMEOUT
+        timeout: TEST_TIMEOUT_DEFAULT
     },
     function step(triggeredJobName, parentJobName) {
         const prTriggeredJobName = `PR-${this.pullRequestNumber}:${triggeredJobName}`;
@@ -328,7 +328,7 @@ Then(
 Then(
     /^the "(.*)" job is triggered from "([^"]*)" and "([^"]*)"$/,
     {
-        timeout: TIMEOUT
+        timeout: TEST_TIMEOUT_DEFAULT
     },
     function step(joinJobName, parentJobName1, parentJobName2) {
         return sdapi
@@ -360,7 +360,7 @@ Then(
 Then(
     /^the "(.*)" job is not triggered$/,
     {
-        timeout: TIMEOUT
+        timeout: TEST_TIMEOUT_DEFAULT
     },
     function step(jobName) {
         return sdapi
@@ -383,7 +383,7 @@ Then(
 Then(
     /^the "(.*)" PR job is not triggered$/,
     {
-        timeout: TIMEOUT
+        timeout: TEST_TIMEOUT_DEFAULT
     },
     function step(jobName) {
         return sdapi
@@ -407,7 +407,7 @@ Then(
 Then(
     /^that "(.*)" build uses the same SHA as the "(.*)" build$/,
     {
-        timeout: TIMEOUT
+        timeout: TEST_TIMEOUT_DEFAULT
     },
     function step(jobName1, jobName2) {
         return Promise.all([
@@ -434,7 +434,7 @@ Then(
 Then(
     /^that "(.*)" PR build uses the same SHA as the "(.*)" PR build$/,
     {
-        timeout: TIMEOUT
+        timeout: TEST_TIMEOUT_DEFAULT
     },
     function step(jobName1, jobName2) {
         const prJobName1 = `PR-${this.pullRequestNumber}:${jobName1}`;
@@ -464,7 +464,7 @@ Then(
 Then(
     /^the "(.*)" build succeeded$/,
     {
-        timeout: TIMEOUT
+        timeout: TEST_TIMEOUT_WITH_BUILD
     },
     function step(jobName) {
         return this.waitForBuild(this.buildId).then(resp => {
@@ -477,7 +477,7 @@ Then(
 Then(
     /^the "(.*)" build failed$/,
     {
-        timeout: TIMEOUT
+        timeout: TEST_TIMEOUT_WITH_BUILD
     },
     function step(jobName) {
         return this.waitForBuild(this.buildId).then(resp => {
@@ -490,7 +490,7 @@ Then(
 Then(
     /^the "(.*)" PR build succeeded$/,
     {
-        timeout: TIMEOUT
+        timeout: TEST_TIMEOUT_WITH_BUILD
     },
     function step(jobName) {
         const prJobName = `PR-${this.pullRequestNumber}:${jobName}`;
@@ -505,7 +505,7 @@ Then(
 After(
     {
         tags: '@workflow',
-        timeout: TIMEOUT
+        timeout: TEST_TIMEOUT_DEFAULT
     },
     function hook() {
         if (this.pipelineId) {
