@@ -4,9 +4,7 @@ const Assert = require('chai').assert;
 const { Before, Given, Then, When, After } = require('@cucumber/cucumber');
 const request = require('screwdriver-request');
 const { ID } = require('../support/constants');
-
-// Timeout of 15 seconds
-const TIMEOUT = 15 * 1000;
+const { TEST_TIMEOUT_DEFAULT } = require('../support/constants');
 
 /**
  * Helper function to create a collection
@@ -63,14 +61,14 @@ Before('@collections', function hook() {
 Given(
     /^an existing pipeline for collections$/,
     {
-        timeout: TIMEOUT
+        timeout: TEST_TIMEOUT_DEFAULT
     },
     function step() {
         return this.ensurePipelineExists({ repoName: this.repoName });
     }
 );
 
-When(/^they check the default collection$/, { timeout: TIMEOUT }, function step() {
+When(/^they check the default collection$/, { timeout: TEST_TIMEOUT_DEFAULT }, function step() {
     return request({
         url: `${this.instance}/${this.namespace}/collections`,
         method: 'GET',
@@ -84,43 +82,51 @@ When(/^they check the default collection$/, { timeout: TIMEOUT }, function step(
     });
 });
 
-Then(/^they can see the default collection contains that pipeline$/, { timeout: TIMEOUT }, function step() {
-    const pipelineId = parseInt(this.pipelineId, 10);
+Then(
+    /^they can see the default collection contains that pipeline$/,
+    { timeout: TEST_TIMEOUT_DEFAULT },
+    function step() {
+        const pipelineId = parseInt(this.pipelineId, 10);
 
-    return request({
-        url: `${this.instance}/${this.namespace}/collections/${this.defaultCollectionId}`,
-        method: 'GET',
-        context: {
-            token: this.jwt
-        }
-    }).then(response => {
-        Assert.strictEqual(response.statusCode, 200);
-        // TODO: May need to change back
-        // Assert.deepEqual(response.body.pipelineIds, [pipelineId]);
-        const { pipelineIds } = response.body;
+        return request({
+            url: `${this.instance}/${this.namespace}/collections/${this.defaultCollectionId}`,
+            method: 'GET',
+            context: {
+                token: this.jwt
+            }
+        }).then(response => {
+            Assert.strictEqual(response.statusCode, 200);
+            // TODO: May need to change back
+            // Assert.deepEqual(response.body.pipelineIds, [pipelineId]);
+            const { pipelineIds } = response.body;
 
-        Assert.include(
-            pipelineIds,
-            pipelineId,
-            `AssertionError: expected ${JSON.stringify(pipelineIds)} to include ${pipelineId}`
-        );
-    });
-});
+            Assert.include(
+                pipelineIds,
+                pipelineId,
+                `AssertionError: expected ${JSON.stringify(pipelineIds)} to include ${pipelineId}`
+            );
+        });
+    }
+);
 
-When(/^they create a new collection "CreateTestCollection" with that pipeline$/, { timeout: TIMEOUT }, function step() {
-    const requestBody = {
-        name: 'CreateTestCollection',
-        pipelineIds: [this.pipelineId]
-    };
+When(
+    /^they create a new collection "CreateTestCollection" with that pipeline$/,
+    { timeout: TEST_TIMEOUT_DEFAULT },
+    function step() {
+        const requestBody = {
+            name: 'CreateTestCollection',
+            pipelineIds: [this.pipelineId]
+        };
 
-    return createCollection.call(this, requestBody).then(response => {
-        Assert.strictEqual(response.statusCode, 201);
-        this.collectionId = response.body.id;
-        this.collectionName = 'CreateTestCollection';
-    });
-});
+        return createCollection.call(this, requestBody).then(response => {
+            Assert.strictEqual(response.statusCode, 201);
+            this.collectionId = response.body.id;
+            this.collectionName = 'CreateTestCollection';
+        });
+    }
+);
 
-Then(/^they can see that collection$/, { timeout: TIMEOUT }, function step() {
+Then(/^they can see that collection$/, { timeout: TEST_TIMEOUT_DEFAULT }, function step() {
     return request({
         url: `${this.instance}/${this.namespace}/collections/${this.collectionId}`,
         method: 'GET',
@@ -133,7 +139,7 @@ Then(/^they can see that collection$/, { timeout: TIMEOUT }, function step() {
     });
 });
 
-Then(/^the collection contains that pipeline$/, { timeout: TIMEOUT }, function step() {
+Then(/^the collection contains that pipeline$/, { timeout: TEST_TIMEOUT_DEFAULT }, function step() {
     const pipelineId = parseInt(this.pipelineId, 10);
 
     return request({
@@ -148,7 +154,7 @@ Then(/^the collection contains that pipeline$/, { timeout: TIMEOUT }, function s
     });
 });
 
-When(/^they create a new collection "UpdateTestCollection"$/, { timeout: TIMEOUT }, function step() {
+When(/^they create a new collection "UpdateTestCollection"$/, { timeout: TEST_TIMEOUT_DEFAULT }, function step() {
     return createCollection.call(this, { name: 'UpdateTestCollection' }).then(response => {
         Assert.strictEqual(response.statusCode, 201);
         this.collectionId = response.body.id;
@@ -156,7 +162,7 @@ When(/^they create a new collection "UpdateTestCollection"$/, { timeout: TIMEOUT
     });
 });
 
-Then(/^the collection is empty$/, { timeout: TIMEOUT }, function step() {
+Then(/^the collection is empty$/, { timeout: TEST_TIMEOUT_DEFAULT }, function step() {
     return request({
         url: `${this.instance}/${this.namespace}/collections/${this.collectionId}`,
         method: 'GET',
@@ -169,24 +175,28 @@ Then(/^the collection is empty$/, { timeout: TIMEOUT }, function step() {
     });
 });
 
-When(/^they update the collection "UpdateTestCollection" with that pipeline$/, { timeout: TIMEOUT }, function step() {
-    const pipelineId = parseInt(this.pipelineId, 10);
+When(
+    /^they update the collection "UpdateTestCollection" with that pipeline$/,
+    { timeout: TEST_TIMEOUT_DEFAULT },
+    function step() {
+        const pipelineId = parseInt(this.pipelineId, 10);
 
-    return request({
-        url: `${this.instance}/${this.namespace}/collections/${this.collectionId}`,
-        method: 'PUT',
-        context: {
-            token: this.jwt
-        },
-        json: {
-            pipelineIds: [pipelineId]
-        }
-    }).then(response => {
-        Assert.strictEqual(response.statusCode, 200);
-    });
-});
+        return request({
+            url: `${this.instance}/${this.namespace}/collections/${this.collectionId}`,
+            method: 'PUT',
+            context: {
+                token: this.jwt
+            },
+            json: {
+                pipelineIds: [pipelineId]
+            }
+        }).then(response => {
+            Assert.strictEqual(response.statusCode, 200);
+        });
+    }
+);
 
-Given(/^they have a collection "TestCollection"$/, { timeout: TIMEOUT }, function step() {
+Given(/^they have a collection "TestCollection"$/, { timeout: TEST_TIMEOUT_DEFAULT }, function step() {
     return createCollection
         .call(this, { name: 'TestCollection' })
         .then(response => {
@@ -204,7 +214,7 @@ Given(/^they have a collection "TestCollection"$/, { timeout: TIMEOUT }, functio
         });
 });
 
-Given(/^they have a collection "AnotherTestCollection"$/, { timeout: TIMEOUT }, function step() {
+Given(/^they have a collection "AnotherTestCollection"$/, { timeout: TEST_TIMEOUT_DEFAULT }, function step() {
     return createCollection
         .call(this, { name: 'AnotherTestCollection' })
         .then(response => {
@@ -221,7 +231,7 @@ Given(/^they have a collection "AnotherTestCollection"$/, { timeout: TIMEOUT }, 
         });
 });
 
-When(/^they fetch all their collections$/, { timeout: TIMEOUT }, function step() {
+When(/^they fetch all their collections$/, { timeout: TEST_TIMEOUT_DEFAULT }, function step() {
     return request({
         url: `${this.instance}/${this.namespace}/collections`,
         method: 'GET',
@@ -243,7 +253,7 @@ Then(/^they can see those collections and the default collection$/, function ste
     Assert.ok(normalCollectionNames.includes('AnotherTestCollection'));
 });
 
-Given(/^they have a collection "DeleteTestCollection"$/, { timeout: TIMEOUT }, function step() {
+Given(/^they have a collection "DeleteTestCollection"$/, { timeout: TEST_TIMEOUT_DEFAULT }, function step() {
     return createCollection
         .call(this, { name: 'DeleteTestCollection' })
         .then(response => {
@@ -261,7 +271,7 @@ Given(/^they have a collection "DeleteTestCollection"$/, { timeout: TIMEOUT }, f
         });
 });
 
-When(/^they delete that collection$/, { timeout: TIMEOUT }, function step() {
+When(/^they delete that collection$/, { timeout: TEST_TIMEOUT_DEFAULT }, function step() {
     return request({
         url: `${this.instance}/${this.namespace}/collections/${this.collectionId}`,
         method: 'DELETE',
@@ -273,7 +283,7 @@ When(/^they delete that collection$/, { timeout: TIMEOUT }, function step() {
     });
 });
 
-Then(/^that collection no longer exists$/, { timeout: TIMEOUT }, function step() {
+Then(/^that collection no longer exists$/, { timeout: TEST_TIMEOUT_DEFAULT }, function step() {
     return request({
         url: `${this.instance}/${this.namespace}/collections/${this.collectionId}`,
         method: 'GET',
@@ -286,12 +296,16 @@ Then(/^that collection no longer exists$/, { timeout: TIMEOUT }, function step()
     });
 });
 
-When(/^they create another collection with the same name "TestCollection"$/, { timeout: TIMEOUT }, function step() {
-    return createCollection.call(this, { name: 'TestCollection' }).catch(err => {
-        Assert.isOk(err, 'Error should be returned');
-        this.lastResponse = err;
-    });
-});
+When(
+    /^they create another collection with the same name "TestCollection"$/,
+    { timeout: TEST_TIMEOUT_DEFAULT },
+    function step() {
+        return createCollection.call(this, { name: 'TestCollection' }).catch(err => {
+            Assert.isOk(err, 'Error should be returned');
+            this.lastResponse = err;
+        });
+    }
+);
 
 Then(/^they receive an error regarding unique collections$/, function step() {
     Assert.strictEqual(this.lastResponse.statusCode, 409);

@@ -4,8 +4,7 @@ const Assert = require('chai').assert;
 const { Before, Given, When, Then, After } = require('@cucumber/cucumber');
 const request = require('screwdriver-request');
 const { disableRunScenarioInParallel } = require('../support/parallel');
-
-const TIMEOUT = 240 * 1000;
+const { TEST_TIMEOUT_DEFAULT, TEST_TIMEOUT_WITH_BUILD } = require('../support/constants');
 
 disableRunScenarioInParallel();
 
@@ -22,7 +21,7 @@ Before(
 
 Given(
     /^an existing repository for secret with these users and permissions:$/,
-    { timeout: TIMEOUT },
+    { timeout: TEST_TIMEOUT_DEFAULT },
     function step(table) {
         return this.ensurePipelineExists({ repoName: this.repoName }).then(() => table);
     }
@@ -50,7 +49,7 @@ When(/^a secret "foo" is added globally$/, function step() {
     });
 });
 
-When(/^the "main" job is started$/, { timeout: TIMEOUT }, function step() {
+When(/^the "main" job is started$/, { timeout: TEST_TIMEOUT_DEFAULT }, function step() {
     return request({
         url: `${this.instance}/${this.namespace}/events`,
         method: 'POST',
@@ -81,14 +80,14 @@ When(/^the "main" job is started$/, { timeout: TIMEOUT }, function step() {
         });
 });
 
-Then(/^the "foo" secret should be available in the build$/, { timeout: TIMEOUT }, function step() {
+Then(/^the "foo" secret should be available in the build$/, { timeout: TEST_TIMEOUT_WITH_BUILD }, function step() {
     return this.waitForBuild(this.buildId).then(response => {
         Assert.equal(response.body.status, 'SUCCESS');
         Assert.equal(response.statusCode, 200);
     });
 });
 
-When(/^the "second" job is started$/, { timeout: TIMEOUT }, function step() {
+When(/^the "second" job is started$/, { timeout: TEST_TIMEOUT_WITH_BUILD }, function step() {
     return request({
         url: `${this.instance}/${this.namespace}/jobs/${this.secondJobId}/builds`,
         method: 'GET',
@@ -145,7 +144,8 @@ Then(/^the user can not view the value$/, function step() {
 
 After(
     {
-        tags: '@secrets'
+        tags: '@secrets',
+        timeout: TEST_TIMEOUT_DEFAULT
     },
     function hook() {
         if (this.secretId) {

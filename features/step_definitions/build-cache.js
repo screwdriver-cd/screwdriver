@@ -4,8 +4,7 @@ const Assert = require('chai').assert;
 const { Before, Given, Then } = require('@cucumber/cucumber');
 const request = require('screwdriver-request');
 const sdapi = require('../support/sdapi');
-
-const TIMEOUT = 240 * 1000;
+const { TEST_TIMEOUT_DEFAULT, TEST_TIMEOUT_WITH_BUILD } = require('../support/constants');
 
 Before(
     {
@@ -23,7 +22,7 @@ Before(
 Given(
     /^an existing pipeline for build-cache$/,
     {
-        timeout: TIMEOUT
+        timeout: TEST_TIMEOUT_DEFAULT
     },
     function step() {
         return this.ensurePipelineExists({ repoName: this.repoName });
@@ -32,7 +31,7 @@ Given(
 Then(
     /^start "(.*)" job again and cache exists for job-level$/,
     {
-        timeout: TIMEOUT
+        timeout: TEST_TIMEOUT_WITH_BUILD
     },
     function step(job) {
         return request({

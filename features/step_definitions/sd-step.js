@@ -7,8 +7,7 @@ const { Before, Given, When, Then } = require('@cucumber/cucumber');
 const request = require('screwdriver-request');
 const sdapi = require('../support/sdapi');
 const { ID } = require('../support/constants');
-
-const TIMEOUT = 240 * 1000;
+const { TEST_TIMEOUT_DEFAULT, TEST_TIMEOUT_WITH_BUILD } = require('../support/constants');
 
 Before(
     {
@@ -25,38 +24,42 @@ Before(
     }
 );
 
-Given(/^an existing pipeline with (.*) image and (.*) package$/, { timeout: TIMEOUT }, function step(image, pkg) {
-    return this.getJwt(this.apiToken)
-        .then(response => {
-            this.jwt = response.body.token;
-            this.expectedImage = image;
+Given(
+    /^an existing pipeline with (.*) image and (.*) package$/,
+    { timeout: TEST_TIMEOUT_DEFAULT },
+    function step(image, pkg) {
+        return this.getJwt(this.apiToken)
+            .then(response => {
+                this.jwt = response.body.token;
+                this.expectedImage = image;
 
-            return request({
-                url: `${this.instance}/${this.namespace}/pipelines`,
-                method: 'POST',
-                context: {
-                    token: this.jwt
-                },
-                json: {
-                    checkoutUrl: `git@${this.scmHostname}:${this.repoOrg}/${this.repoName}.git#master`
-                }
+                return request({
+                    url: `${this.instance}/${this.namespace}/pipelines`,
+                    method: 'POST',
+                    context: {
+                        token: this.jwt
+                    },
+                    json: {
+                        checkoutUrl: `git@${this.scmHostname}:${this.repoOrg}/${this.repoName}.git#master`
+                    }
+                });
+            })
+            .then(response => {
+                Assert.strictEqual(response.statusCode, 201);
+
+                this.pipelineId = response.body.id;
+            })
+            .catch(err => {
+                Assert.strictEqual(err.statusCode, 409);
+
+                const [, str] = err.message.split(': ');
+
+                [this.pipelineId] = str.match(ID);
             });
-        })
-        .then(response => {
-            Assert.strictEqual(response.statusCode, 201);
+    }
+);
 
-            this.pipelineId = response.body.id;
-        })
-        .catch(err => {
-            Assert.strictEqual(err.statusCode, 409);
-
-            const [, str] = err.message.split(': ');
-
-            [this.pipelineId] = str.match(ID);
-        });
-});
-
-When(/^the (main|tilde|hat|specify) job is started$/, { timeout: TIMEOUT }, function step(jobName) {
+When(/^the (main|tilde|hat|specify) job is started$/, { timeout: TEST_TIMEOUT_DEFAULT }, function step(jobName) {
     return request({
         url: `${this.instance}/${this.namespace}/pipelines/${this.pipelineId}/jobs`,
         method: 'GET',
@@ -95,7 +98,7 @@ When(/^the (main|tilde|hat|specify) job is started$/, { timeout: TIMEOUT }, func
         );
 });
 
-When(/^sd-step command is executed to use (.*) package$/, { timeout: TIMEOUT }, function step(pkg) {
+When(/^sd-step command is executed to use (.*) package$/, { timeout: TEST_TIMEOUT_DEFAULT }, function step(pkg) {
     this.commands.forEach(c => {
         if (c.name === 'sd_step') {
             Assert.include(c.command, pkg);
@@ -108,7 +111,7 @@ When(/^sd-step command is executed to use (.*) package$/, { timeout: TIMEOUT }, 
 When(
     /^sd-step command is executed to use (.*) package with specified version (.*)$/,
     {
-        timeout: TIMEOUT
+        timeout: TEST_TIMEOUT_DEFAULT
     },
     function step(pkg, version) {
         this.commands.forEach(c => {
@@ -119,7 +122,7 @@ When(
     }
 );
 
-Then(/^(.*) package is available via sd-step$/, { timeout: 700 * 1000 }, function step(pkg) {
+Then(/^(.*) package is available via sd-step$/, { timeout: TEST_TIMEOUT_WITH_BUILD }, function step(pkg) {
     return this.waitForBuild(this.buildId).then(response => {
         Assert.equal(response.statusCode, 200);
         Assert.oneOf(response.body.status, ['SUCCESS', 'RUNNING']);
@@ -129,7 +132,7 @@ Then(/^(.*) package is available via sd-step$/, { timeout: 700 * 1000 }, functio
 Then(
     /^(.*) package is available via sd-step with specified version (.*)$/,
     {
-        timeout: TIMEOUT
+        timeout: TEST_TIMEOUT_WITH_BUILD
     },
     function step(pkg, version) {
         return this.waitForBuild(this.buildId).then(response => {

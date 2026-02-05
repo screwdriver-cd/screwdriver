@@ -4,14 +4,14 @@ const Assert = require('chai').assert;
 const { Before, Given, When, After } = require('@cucumber/cucumber');
 const { disableRunScenarioInParallel } = require('../support/parallel');
 const github = require('../support/github');
-
-const TIMEOUT = 240 * 1000;
+const { TEST_TIMEOUT_DEFAULT, TEST_TIMEOUT_WITH_BUILD, TEST_TIMEOUT_WITH_SCM } = require('../support/constants');
 
 disableRunScenarioInParallel();
 
 Before(
     {
-        tags: '@sd-setup-scm'
+        tags: '@sd-setup-scm',
+        timeout: TEST_TIMEOUT_WITH_SCM
     },
     function hook() {
         this.repoOrg = this.testOrg;
@@ -27,7 +27,7 @@ Before(
 Given(
     /^an existing pipeline for sd-setup-scm$/,
     {
-        timeout: TIMEOUT
+        timeout: TEST_TIMEOUT_DEFAULT
     },
     function step() {
         return this.ensurePipelineExists({ repoName: this.repoName, shouldNotDeletePipeline: true });
@@ -37,7 +37,7 @@ Given(
 Given(
     /^an existing pipeline for sd-setup-scm:parent$/,
     {
-        timeout: TIMEOUT
+        timeout: TEST_TIMEOUT_DEFAULT
     },
     function step() {
         return this.ensurePipelineExists({ repoName: this.repoName, rootDir: 'parent', shouldNotDeletePipeline: true });
@@ -47,7 +47,7 @@ Given(
 Given(
     /^an existing pipeline for sd-setup-scm:child$/,
     {
-        timeout: TIMEOUT
+        timeout: TEST_TIMEOUT_DEFAULT
     },
     function step() {
         return this.ensurePipelineExists({ repoName: this.repoName, rootDir: 'child', shouldNotDeletePipeline: true });
@@ -57,7 +57,7 @@ Given(
 Given(
     /^having two commit before an hour$/,
     {
-        timeout: TIMEOUT
+        timeout: TEST_TIMEOUT_WITH_SCM
     },
     async function step() {
         this.testBranch = 'master';
@@ -79,7 +79,7 @@ Given(
 Given(
     /^having two commit to child before an hour$/,
     {
-        timeout: TIMEOUT
+        timeout: TEST_TIMEOUT_WITH_SCM
     },
     async function step() {
         this.testBranch = 'master';
@@ -101,7 +101,7 @@ Given(
 When(
     /^a pull request is opened to "(.*)" branch and commit twice$/,
     {
-        timeout: TIMEOUT
+        timeout: TEST_TIMEOUT_WITH_SCM
     },
     async function step(branch) {
         const sourceBranch = `${branch}-PR`;
@@ -128,7 +128,8 @@ When(
 
 After(
     {
-        tags: '@sd-setup-scm'
+        tags: '@sd-setup-scm',
+        timeout: TEST_TIMEOUT_WITH_BUILD
     },
     function hook() {
         return this.stopBuild(this.buildId).catch(() => {});

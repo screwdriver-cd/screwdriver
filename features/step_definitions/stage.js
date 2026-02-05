@@ -2,8 +2,7 @@
 
 const Assert = require('chai').assert;
 const { Before, Given, Then } = require('@cucumber/cucumber');
-
-const TIMEOUT = 240 * 1000;
+const { TEST_TIMEOUT_DEFAULT, TEST_TIMEOUT_WITH_BUILD } = require('../support/constants');
 
 Before(
     {
@@ -25,7 +24,7 @@ Before(
 Given(
     /^the pipeline has the following stages:$/,
     {
-        timeout: TIMEOUT
+        timeout: TEST_TIMEOUT_DEFAULT
     },
     async function step(table) {
         await this.ensureStageExists({
@@ -36,7 +35,7 @@ Given(
 
 Then(
     /^the "(?:stage@([\w-]+))" stageBuild status is "(SUCCESS|FAILURE)"$/,
-    { timeout: TIMEOUT },
+    { timeout: TEST_TIMEOUT_WITH_BUILD },
     async function step(_, stageBuildStatus) {
         const config = {
             eventId: this.eventId,
@@ -55,7 +54,7 @@ Then(
 Given(
     /^the pipeline has the following PR stages:$/,
     {
-        timeout: TIMEOUT
+        timeout: TEST_TIMEOUT_DEFAULT
     },
     async function step(table) {
         await this.ensureStageExists({

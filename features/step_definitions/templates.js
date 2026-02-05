@@ -5,13 +5,12 @@ const fs = require('mz/fs');
 const Assert = require('chai').assert;
 const request = require('screwdriver-request');
 const { Before, Given, Then, When, After } = require('@cucumber/cucumber');
-
-const TIMEOUT = 240 * 1000;
+const { TEST_TIMEOUT_DEFAULT, TEST_TIMEOUT_WITH_BUILD } = require('../support/constants');
 
 Before(
     {
         tags: '@templates',
-        timeout: TIMEOUT
+        timeout: TEST_TIMEOUT_WITH_BUILD
     },
     function hook() {
         this.repoOrg = this.testOrg;
@@ -96,7 +95,7 @@ Given(/^a (valid|invalid)\b job-level template$/, function step(templateType) {
 Given(
     /^a "([^"]+)" template$/,
     {
-        timeout: TIMEOUT
+        timeout: TEST_TIMEOUT_DEFAULT
     },
     function step(template) {
         this.template = template;
@@ -122,7 +121,7 @@ Given(
 Given(
     /^the template exists$/,
     {
-        timeout: TIMEOUT
+        timeout: TEST_TIMEOUT_WITH_BUILD
     },
     function step() {
         if (this.numOfTemplate === 0) {
@@ -139,7 +138,7 @@ Given(
 Given(
     /^a pipeline using a "([^"]+)" @ "([^"]+)" template in job "([^"]+)"$/,
     {
-        timeout: TIMEOUT
+        timeout: TEST_TIMEOUT_DEFAULT
     },
     function step(template, version, jobName) {
         this.template = template;
@@ -199,7 +198,7 @@ Given(/^the template has the same settings with different values$/, function ste
 When(
     /^they submit it to the validator$/,
     {
-        timeout: TIMEOUT
+        timeout: TEST_TIMEOUT_DEFAULT
     },
     function step() {
         return request({
@@ -222,7 +221,7 @@ When(
 When(
     /^a pipeline with the "(right|wrong)" permission "(succeeds|fails)" to publish the template in "([^"]+)"$/,
     {
-        timeout: TIMEOUT
+        timeout: TEST_TIMEOUT_WITH_BUILD
     },
     function step(permission, status, jobName) {
         if (permission === 'wrong') {
@@ -238,7 +237,7 @@ When(
 When(
     /^a pipeline "(succeeds|fails)" to validate the template in "([^"]+)"$/,
     {
-        timeout: TIMEOUT
+        timeout: TEST_TIMEOUT_WITH_BUILD
     },
     function step(status, jobName) {
         return this.startJob(jobName).then(result => {
@@ -250,7 +249,7 @@ When(
 When(
     /^user starts the pipeline$/,
     {
-        timeout: TIMEOUT
+        timeout: TEST_TIMEOUT_WITH_BUILD
     },
     function step() {
         return this.startJob(this.jobName).then(result => {
@@ -280,7 +279,7 @@ Then(/^they are notified it has (no|some) errors$/, function step(quantity) {
 Then(
     /^the template "(is|is not)" stored$/,
     {
-        timeout: TIMEOUT
+        timeout: TEST_TIMEOUT_DEFAULT
     },
     function step(stored) {
         return request({
@@ -305,7 +304,7 @@ Then(
 Then(
     /^the template is "(trusted|distrusted)"$/,
     {
-        timeout: TIMEOUT
+        timeout: TEST_TIMEOUT_DEFAULT
     },
     function step(trust) {
         return request({
@@ -324,7 +323,7 @@ Then(
 Then(
     /^the job executes what is specified in the template$/,
     {
-        timeout: TIMEOUT
+        timeout: TEST_TIMEOUT_DEFAULT
     },
     function step() {
         return request({
@@ -362,7 +361,7 @@ Then(
 Then(
     /^settings is the job settings$/,
     {
-        timeout: TIMEOUT
+        timeout: TEST_TIMEOUT_DEFAULT
     },
     function step() {
         return request({
@@ -412,10 +411,10 @@ Then(
         });
     }
 );
-
 After(
     {
-        tags: '@templates'
+        tags: '@templates',
+        timeout: TEST_TIMEOUT_WITH_BUILD
     },
     function hook() {
         return this.stopBuild(this.buildId).catch(() => {});

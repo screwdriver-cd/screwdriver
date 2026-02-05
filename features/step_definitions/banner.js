@@ -4,8 +4,7 @@ const Assert = require('chai').assert;
 const { Before, Then, When } = require('@cucumber/cucumber');
 const request = require('screwdriver-request');
 const { disableRunScenarioInParallel } = require('../support/parallel');
-
-const TIMEOUT = 240 * 1000;
+const { TEST_TIMEOUT_DEFAULT } = require('../support/constants');
 
 disableRunScenarioInParallel();
 
@@ -20,7 +19,7 @@ Before('@banner', function hook() {
 
 When(
     /^they create new banner with message "([^"]*)" and "(GLOBAL|PIPELINE)" scope$/,
-    { timeout: TIMEOUT },
+    { timeout: TEST_TIMEOUT_DEFAULT },
     function step(message, scope) {
         const payload = {
             message,
@@ -53,7 +52,7 @@ When(
 
 Then(
     /^they "(can|cannot)" see that the banner is created with "(GLOBAL|PIPELINE)" scope$/,
-    { timeout: TIMEOUT },
+    { timeout: TEST_TIMEOUT_DEFAULT },
     function step(ok, scope) {
         return request({
             url: `${this.instance}/${this.namespace}/banners/${this.bannerId}`,
@@ -88,7 +87,7 @@ Then(
 
 Then(
     /^banner is "(updated|not updated)" when they update the banner with "(message|scopeId|isActive|scope)" "([^"]*)"$/,
-    { timeout: TIMEOUT },
+    { timeout: TEST_TIMEOUT_DEFAULT },
     function step(status, payloadType, payloadValue) {
         const payload = {};
 
@@ -121,7 +120,7 @@ Then(
     }
 );
 
-Then(/^banner is deleted$/, { timeout: TIMEOUT }, function step() {
+Then(/^banner is deleted$/, { timeout: TEST_TIMEOUT_DEFAULT }, function step() {
     return request({
         url: `${this.instance}/${this.namespace}/banners/${this.bannerId}`,
         method: 'DELETE',
@@ -134,7 +133,7 @@ Then(/^banner is deleted$/, { timeout: TIMEOUT }, function step() {
     });
 });
 
-Then(/^there is no banner associated to that pipeline$/, { timeout: TIMEOUT }, function step() {
+Then(/^there is no banner associated to that pipeline$/, { timeout: TEST_TIMEOUT_DEFAULT }, function step() {
     return request({
         url: `${this.instance}/${this.namespace}/banners?scopeId=${this.pipelineId}`,
         method: 'GET',
@@ -147,7 +146,7 @@ Then(/^there is no banner associated to that pipeline$/, { timeout: TIMEOUT }, f
     });
 });
 
-Then(/^they can get the banner associated to that pipeline$/, { timeout: TIMEOUT }, function step() {
+Then(/^they can get the banner associated to that pipeline$/, { timeout: TEST_TIMEOUT_DEFAULT }, function step() {
     return request({
         url: `${this.instance}/${this.namespace}/banners?scopeId=${this.pipelineId}&scope=PIPELINE`,
         method: 'GET',
@@ -161,11 +160,11 @@ Then(/^they can get the banner associated to that pipeline$/, { timeout: TIMEOUT
     });
 });
 
-Then(/^calvin has expired token$/, { timeout: TIMEOUT }, function step() {
+Then(/^calvin has expired token$/, { timeout: TEST_TIMEOUT_DEFAULT }, function step() {
     this.jwt = null;
 });
 
-Then(/^they cannot see any banner$/, { timeout: TIMEOUT }, function step() {
+Then(/^they cannot see any banner$/, { timeout: TEST_TIMEOUT_DEFAULT }, function step() {
     return request({
         url: `${this.instance}/${this.namespace}/banners`,
         method: 'GET',

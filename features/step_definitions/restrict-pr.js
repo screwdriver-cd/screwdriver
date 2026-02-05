@@ -5,8 +5,7 @@ const { Before, Given, When, Then } = require('@cucumber/cucumber');
 const { disableRunScenarioInParallel } = require('../support/parallel');
 const github = require('../support/github');
 const sdapi = require('../support/sdapi');
-
-const TIMEOUT = 240 * 1000;
+const { TEST_TIMEOUT_DEFAULT, TEST_TIMEOUT_WITH_SCM } = require('../support/constants');
 
 disableRunScenarioInParallel();
 
@@ -51,7 +50,7 @@ Before(
 Given(
     /^an existing pipeline with the source directory "([^"]*)" and with the workflow jobs:$/,
     {
-        timeout: TIMEOUT
+        timeout: TEST_TIMEOUT_DEFAULT
     },
     async function step(rootDir, table) {
         await this.ensurePipelineExists({
@@ -71,7 +70,7 @@ Given(
 When(
     /^a branch is created for test_branch on "([^"]*)" organization$/,
     {
-        timeout: TIMEOUT
+        timeout: TEST_TIMEOUT_WITH_SCM
     },
     async function step(orgNamePlaceholder) {
         const sourceBranch = 'test-branch-PR';
@@ -92,7 +91,7 @@ When(
 When(
     /^a new file is added to the "([^"]*)" directory$/,
     {
-        timeout: TIMEOUT
+        timeout: TEST_TIMEOUT_WITH_SCM
     },
     async function step(rootDir) {
         await github
@@ -104,7 +103,7 @@ When(
 When(
     /^a pull request is opened from the "([^"]*)" organization$/,
     {
-        timeout: TIMEOUT
+        timeout: TEST_TIMEOUT_WITH_SCM
     },
     async function step(orgNamePlaceholder) {
         this.sourceOrg = resolveOrg(orgNamePlaceholder, this);
@@ -121,7 +120,7 @@ When(
 Then(
     /^the PR job of "([^"]*)" is triggered because it is not restricted$/,
     {
-        timeout: TIMEOUT
+        timeout: TEST_TIMEOUT_DEFAULT
     },
     async function step(rootDir) {
         const build = await sdapi.searchForBuild({
@@ -149,7 +148,7 @@ Then(
 Then(
     /^the PR job of "([^"]*)" is not triggered because it is restricted$/,
     {
-        timeout: TIMEOUT
+        timeout: TEST_TIMEOUT_DEFAULT
     },
     async function step(rootDir) {
         // Wait 3 seconds for build trigger

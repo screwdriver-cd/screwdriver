@@ -4,8 +4,7 @@ const Assert = require('chai').assert;
 const { Before, Then, When } = require('@cucumber/cucumber');
 const request = require('screwdriver-request');
 const { disableRunScenarioInParallel } = require('../support/parallel');
-
-const TIMEOUT = 240 * 1000;
+const { TEST_TIMEOUT_DEFAULT, TEST_TIMEOUT_WITH_BUILD } = require('../support/constants');
 
 disableRunScenarioInParallel();
 
@@ -19,7 +18,7 @@ Before('@artifacts', function hook() {
     this.jwt = null;
 });
 
-When(/^the "zipped" job is started$/, { timeout: TIMEOUT }, function step() {
+When(/^the "zipped" job is started$/, { timeout: TEST_TIMEOUT_DEFAULT }, function step() {
     return request({
         url: `${this.instance}/${this.namespace}/events`,
         method: 'POST',
@@ -50,14 +49,14 @@ When(/^the "zipped" job is started$/, { timeout: TIMEOUT }, function step() {
         });
 });
 
-Then(/^the "zipped" build succeeds$/, { timeout: TIMEOUT }, function step() {
+Then(/^the "zipped" build succeeds$/, { timeout: TEST_TIMEOUT_WITH_BUILD }, function step() {
     return this.waitForBuild(this.buildId).then(resp => {
         Assert.equal(resp.body.status, 'SUCCESS');
         Assert.equal(resp.statusCode, 200);
     });
 });
 
-Then(/^artifacts were found in the build$/, { timeout: TIMEOUT }, function step() {
+Then(/^artifacts were found in the build$/, { timeout: TEST_TIMEOUT_DEFAULT }, function step() {
     const artifactName1 = 'sample1.txt';
     const artifactName2 = 'sample2.txt';
     const maxRetryInterval = 30000;
