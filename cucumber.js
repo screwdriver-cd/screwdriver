@@ -5,8 +5,7 @@ const common = {
     retry: 2,
     failFast: true,
     forceExit: true,
-    format: ['progress'],
-    dryRun: true
+    format: ['progress']
 };
 
 const parallel = {
