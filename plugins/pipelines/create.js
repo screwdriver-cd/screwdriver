@@ -63,6 +63,7 @@ module.exports = () => ({
                 admins: {
                     [username]: true
                 },
+                adminUserIds: [user.id],
                 scmContext,
                 scmUri
             };

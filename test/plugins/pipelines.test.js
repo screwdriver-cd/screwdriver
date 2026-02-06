@@ -2502,6 +2502,7 @@ describe('pipeline plugin test', () => {
                     admins: {
                         [username]: true
                     },
+                    adminUserIds: [userId],
                     scmUri,
                     scmContext
                 });
@@ -2556,6 +2557,7 @@ describe('pipeline plugin test', () => {
                     admins: {
                         [username]: true
                     },
+                    adminUserIds: [userId],
                     scmUri,
                     scmContext
                 });
