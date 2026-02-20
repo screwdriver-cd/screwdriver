@@ -246,29 +246,31 @@ async function* generateLog({
                 sort: 'ascending',
                 linesFrom: page * maxLines
             });
+            let output = '';
 
             for (const line of lines) {
                 if (timestamp) {
                     switch (timestampFormat) {
                         case 'full-time':
-                            yield `${unixToFullTime(line.t, timezone)}\t${line.m}\n`;
+                            output += `${unixToFullTime(line.t, timezone)}\t${line.m}\n`;
                             break;
                         case 'simple-time':
-                            yield `${unixToSimpleTime(line.t, timezone)}\t${line.m}\n`;
+                            output += `${unixToSimpleTime(line.t, timezone)}\t${line.m}\n`;
                             break;
                         case 'elapsed-build':
-                            yield `${durationTime(buildTime, line.t)}\t${line.m}\n`;
+                            output += `${durationTime(buildTime, line.t)}\t${line.m}\n`;
                             break;
                         case 'elapsed-step':
-                            yield `${durationTime(stepTime, line.t)}\t${line.m}\n`;
+                            output += `${durationTime(stepTime, line.t)}\t${line.m}\n`;
                             break;
                         default:
                             throw boom.badRequest('Unexpected timestampFormat parameter');
                     }
                 } else {
-                    yield `${line.m}\n`;
+                    output += `${line.m}\n`;
                 }
             }
+            yield output;
         }
     } catch (err) {
         logger.error(`Failed to stream logs for build ${buildModel.id}: ${err.message}`);
