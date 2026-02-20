@@ -7187,6 +7187,7 @@ describe('build plugin test', () => {
             testStep = {
                 name: 'install',
                 code: 1,
+                lines: 3,
                 startTime: '2016-08-26T18:30:45.456Z',
                 endTime: '2016-08-26T18:30:49.789Z'
             };

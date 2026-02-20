@@ -7,6 +7,7 @@ const ndjson = require('ndjson');
 const request = require('screwdriver-request');
 const schema = require('screwdriver-data-schema');
 const { v4: uuidv4 } = require('uuid');
+const { Readable } = require('stream');
 
 const MAX_LINES_SMALL = 100;
 const MAX_LINES_BIG = 1000;
@@ -208,6 +209,73 @@ function durationTime(sourceTimestamp, targetTimestamp) {
     return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
 }
 
+/**
+ * Generates a stream of log lines for a build's step.
+ * @param   {Object}  config
+ * @param   {string}  config.baseUrl         URL to load from (without the .$PAGE)
+ * @param   {string}  config.authToken       Bearer Token to be passed to the Store
+ * @param   {number}  config.maxLines        Maximum number of lines per page
+ * @param   {number}  config.totalPages      Total number of pages to fetch
+ * @param   {number}  config.timestamp       TimeStamp in unix milliseconds format
+ * @param   {string}  config.timestampFormat Format of the timestamp
+ * @param   {string}  config.timezone        Timezone of timestamp
+ * @param   {Object}  config.buildModel      Build data
+ * @param   {Object}  config.stepModel       Step data
+ * @returns {AsyncGenerator<string>}         An async generator yielding log lines
+ */
+async function* generateLog({
+    baseUrl,
+    authToken,
+    maxLines,
+    totalPages,
+    timestamp,
+    timestampFormat,
+    timezone,
+    buildModel,
+    stepModel
+}) {
+    try {
+        const buildTime = timestamp ? new Date(buildModel.startTime).getTime() : 0;
+        const stepTime = timestamp ? new Date(stepModel.startTime).getTime() : 0;
+
+        for (let page = 0; page < totalPages; page += 1) {
+            const lines = await fetchLog({
+                baseUrl,
+                authToken,
+                page,
+                sort: 'ascending',
+                linesFrom: page * maxLines
+            });
+
+            for (const line of lines) {
+                if (timestamp) {
+                    switch (timestampFormat) {
+                        case 'full-time':
+                            yield `${unixToFullTime(line.t, timezone)}\t${line.m}\n`;
+                            break;
+                        case 'simple-time':
+                            yield `${unixToSimpleTime(line.t, timezone)}\t${line.m}\n`;
+                            break;
+                        case 'elapsed-build':
+                            yield `${durationTime(buildTime, line.t)}\t${line.m}\n`;
+                            break;
+                        case 'elapsed-step':
+                            yield `${durationTime(stepTime, line.t)}\t${line.m}\n`;
+                            break;
+                        default:
+                            throw boom.badRequest('Unexpected timestampFormat parameter');
+                    }
+                } else {
+                    yield `${line.m}\n`;
+                }
+            }
+        }
+    } catch (err) {
+        logger.error(`Failed to stream logs for build ${buildModel.id}: ${err.message}`);
+        throw err;
+    }
+}
+
 module.exports = config => ({
     method: 'GET',
     path: '/builds/{id}/steps/{name}/logs',
@@ -276,83 +344,53 @@ module.exports = config => ({
 
                     const { sort, type, timestamp, timezone, timestampFormat } = req.query;
 
-                    let pagesToLoad = req.query.pages;
-                    let linesFrom = req.query.from;
+                    const pagesToLoad = req.query.pages;
+                    const linesFrom = req.query.from;
 
-                    if (type === 'download' && isDone) {
-                        // 100 lines per page
-                        pagesToLoad = Math.ceil(stepModel.lines / 100);
-                        linesFrom = 0;
-                    }
-
-                    return getMaxLines({ baseUrl, authToken })
-                        .then(maxLines =>
-                            loadLines({
+                    return getMaxLines({ baseUrl, authToken }).then(maxLines => {
+                        if (type !== 'download') {
+                            return loadLines({
                                 baseUrl,
                                 linesFrom,
                                 authToken,
                                 pagesToLoad,
                                 sort,
                                 maxLines
-                            })
-                        )
-                        .then(([lines, morePages]) => {
-                            if (type !== 'download') {
+                            }).then(([lines, morePages]) => {
+                                const { error } = schema.api.loglines.output.validate(lines);
+
+                                if (error) {
+                                    throw error;
+                                }
+
                                 return h.response(lines).header('X-More-Data', (morePages || !isDone).toString());
-                            }
+                            });
+                        }
+                        const totalPages = Math.ceil(stepModel.lines / maxLines);
 
-                            let res = '';
-
-                            if (timestamp) {
-                                const buildTime = new Date(buildModel.startTime).getTime();
-                                const stepTime = new Date(stepModel.startTime).getTime();
-
-                                switch (timestampFormat) {
-                                    case 'full-time':
-                                        for (const line of lines) {
-                                            res += `${unixToFullTime(line.t, timezone)}\t${line.m}\n`;
-                                        }
-                                        break;
-                                    case 'simple-time':
-                                        for (const line of lines) {
-                                            res += `${unixToSimpleTime(line.t, timezone)}\t${line.m}\n`;
-                                        }
-                                        break;
-                                    case 'elapsed-build':
-                                        for (const line of lines) {
-                                            const duration = durationTime(buildTime, line.t);
-
-                                            res += `${duration}\t${line.m}\n`;
-                                        }
-                                        break;
-                                    case 'elapsed-step':
-                                        for (const line of lines) {
-                                            const duration = durationTime(stepTime, line.t);
-
-                                            res += `${duration}\t${line.m}\n`;
-                                        }
-                                        break;
-                                    default:
-                                        throw boom.badRequest('Unexpected timestampFormat parameter');
-                                }
-                            } else {
-                                for (const line of lines) {
-                                    res += `${line.m}\n`;
-                                }
-                            }
-
-                            return h
-                                .response(res)
-                                .type('text/plain')
-                                .header('content-disposition', `attachment; filename="${stepName}-log.txt"`);
+                        const logStream = generateLog({
+                            baseUrl,
+                            authToken,
+                            maxLines,
+                            totalPages,
+                            timestamp,
+                            timestampFormat,
+                            timezone,
+                            buildModel,
+                            stepModel
                         });
+
+                        const responseStream = Readable.from(logStream, { objectMode: false });
+
+                        return h
+                            .response(responseStream)
+                            .type('text/plain')
+                            .header('content-disposition', `attachment; filename="${stepName}-log.txt"`);
+                    });
                 })
                 .catch(err => {
                     throw err;
                 });
-        },
-        response: {
-            schema: schema.api.loglines.output
         },
         validate: {
             params: schema.api.loglines.params,
