@@ -7809,6 +7809,29 @@ describe('build plugin test', () => {
             });
         });
 
+        it('returns 500 when an error occurs while downloading the build logs', () => {
+            nock('https://store.screwdriver.cd')
+                .get(`/v1/builds/${id}/${step}/log.0`)
+                .replyWithError({ message: 'something awful happened', code: 404 });
+
+            options.url = `/builds/${id}/steps/${step}/logs?type=download`;
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 500);
+            });
+        });
+
+        it('returns 500 when build logs returned with invalid format', () => {
+            nock('https://store.screwdriver.cd')
+                .get(`/v1/builds/${id}/${step}/log.0`)
+                .twice()
+                .reply(200, '{"t":1472236246000,"m":"Building stuff","n":0,"invalid":"invalid"}');
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 500);
+            });
+        });
+
         it('returns 200 when user have permissions', () => {
             const userMock = {
                 username: 'foo',
