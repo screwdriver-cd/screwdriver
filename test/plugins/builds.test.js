@@ -7753,6 +7753,18 @@ describe('build plugin test', () => {
             });
         });
 
+        it('returns 400 when the timestampFormat is unknown', () => {
+            nock('https://store.screwdriver.cd')
+                .get(`/v1/builds/${id}/${step}/log.0`)
+                .replyWithFile(200, `${__dirname}/data/step.log.ndjson`);
+
+            options.url = `/builds/${id}/steps/${step}/logs?type=download&timestamp=true&timestampFormat=unknown-format`;
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 400);
+            });
+        });
+
         it('returns 404 when build does not exist', () => {
             buildFactoryMock.get.resolves(null);
 
