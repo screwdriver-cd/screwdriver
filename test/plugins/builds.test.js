@@ -7187,6 +7187,7 @@ describe('build plugin test', () => {
             testStep = {
                 name: 'install',
                 code: 1,
+                lines: 3,
                 startTime: '2016-08-26T18:30:45.456Z',
                 endTime: '2016-08-26T18:30:49.789Z'
             };
@@ -7752,6 +7753,18 @@ describe('build plugin test', () => {
             });
         });
 
+        it('returns 400 when the timestampFormat is unknown', () => {
+            nock('https://store.screwdriver.cd')
+                .get(`/v1/builds/${id}/${step}/log.0`)
+                .replyWithFile(200, `${__dirname}/data/step.log.ndjson`);
+
+            options.url = `/builds/${id}/steps/${step}/logs?type=download&timestamp=true&timestampFormat=unknown-format`;
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 400);
+            });
+        });
+
         it('returns 404 when build does not exist', () => {
             buildFactoryMock.get.resolves(null);
 
@@ -7802,6 +7815,29 @@ describe('build plugin test', () => {
             nock('https://store.screwdriver.cd')
                 .get(`/v1/builds/${id}/${step}/log.1`)
                 .replyWithError({ message: 'something awful happened', code: 404 });
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 500);
+            });
+        });
+
+        it('returns 500 when an error occurs while downloading the build logs', () => {
+            nock('https://store.screwdriver.cd')
+                .get(`/v1/builds/${id}/${step}/log.0`)
+                .replyWithError({ message: 'something awful happened', code: 404 });
+
+            options.url = `/builds/${id}/steps/${step}/logs?type=download`;
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 500);
+            });
+        });
+
+        it('returns 500 when build logs returned with invalid format', () => {
+            nock('https://store.screwdriver.cd')
+                .get(`/v1/builds/${id}/${step}/log.0`)
+                .twice()
+                .reply(200, '{"t":1472236246000,"m":"Building stuff","n":0,"invalid":"invalid"}');
 
             return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 500);
