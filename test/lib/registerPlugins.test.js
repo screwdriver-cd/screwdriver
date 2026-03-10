@@ -243,6 +243,7 @@ describe('Register Unit Test Case', () => {
 
     it('bubbles failures up', () => {
         sinon.stub(hoek, 'reach').throws(new Error('failure loading'));
+        rewiremock.enable();
 
         return main(serverMock, config)
             .then(() => {
@@ -251,6 +252,9 @@ describe('Register Unit Test Case', () => {
             .catch(err => {
                 Assert.equal(err.message, 'failure loading');
             })
+            .finally(() => {
+                rewiremock.disable();
+            });
     });
 
     it('registers data for plugin when specified in the config object', async () => {
