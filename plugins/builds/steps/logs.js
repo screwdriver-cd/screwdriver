@@ -166,8 +166,8 @@ function unixToFullTime(timestamp, timeZone) {
     );
 
     const offsetMatch = timeZoneName.match(/GMT(.*)/)[1];
-
-    const timezoneOffset = offsetMatch === '' ? 'Z' : offsetMatch;
+    const isUtcOffset = offsetMatch === '' || offsetMatch === '+00:00' || offsetMatch === '-00:00';
+    const timezoneOffset = isUtcOffset ? 'Z' : offsetMatch;
 
     return `${year}-${month}-${day}T${hour}:${minute}:${second}.${fractionalSecond}${timezoneOffset}`;
 }
