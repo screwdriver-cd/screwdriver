@@ -108,6 +108,7 @@ describe('event plugin test', () => {
             getFullDisplayName: sinon.stub().returns('Memys Elfandi')
         };
         buildFactoryMock = {
+            uiUri: 'http://foo.bar',
             get: sinon.stub(),
             create: sinon.stub()
         };
@@ -1569,7 +1570,8 @@ describe('event plugin test', () => {
                 unsealToken: sinon.stub().resolves('token')
             }),
             scmUri,
-            prChain: false
+            prChain: false,
+            toJson: sinon.stub().returns({ id: pipelineId })
         };
         const id = 123;
         const username = 'myself';
@@ -1612,7 +1614,9 @@ describe('event plugin test', () => {
             event.getStageBuilds.resolves(stageBuilds);
             screwdriverAdminDetailsMock.returns({ isAdmin: false });
 
-            builds[2].update.resolves({ status: 'ABORTED' });
+            server.events = {
+                emit: sinon.stub().resolves(null)
+            };
         });
 
         it('returns 200 and stops all event builds', () =>
@@ -1754,6 +1758,118 @@ describe('event plugin test', () => {
             });
         });
 
+        it('returns 200 and stops all event builds and notify', () => {
+            builds[2].job = {
+                id: builds[2].jobId,
+                pipelineId,
+                name: 'build2',
+                pipeline: pipelineMock,
+                permutations: [
+                    {
+                        settings: {
+                            email: 'foo@bar.com'
+                        }
+                    }
+                ]
+            };
+            builds[3].job = {
+                id: builds[3].jobId,
+                pipelineId,
+                name: 'build3',
+                pipeline: pipelineMock,
+                permutations: [
+                    {
+                        settings: {
+                            slack: {
+                                channels: ['foo'],
+                                statuses: ['SUCCESS']
+                            }
+                        }
+                    }
+                ]
+            };
+            builds[4].job = {
+                id: builds[4].jobId,
+                pipelineId,
+                name: 'build4',
+                pipeline: pipelineMock,
+                permutations: [
+                    {
+                        settings: {
+                            email: 'bar@baz.com',
+                            slack: {
+                                channels: ['bar'],
+                                statuses: ['FAILURE']
+                            }
+                        }
+                    }
+                ]
+            };
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 200);
+                assert.strictEqual(builds[2].status, 'ABORTED');
+                assert.strictEqual(builds[3].status, 'ABORTED');
+                assert.strictEqual(builds[4].status, 'ABORTED');
+                assert.strictEqual(builds[2].statusMessage, 'Aborted event by myself');
+                assert.strictEqual(builds[3].statusMessage, 'Aborted event by myself');
+                assert.strictEqual(builds[4].statusMessage, 'Aborted event by myself');
+                assert.calledOnce(event.getBuilds);
+                assert.notCalled(builds[0].update);
+                assert.notCalled(builds[1].update);
+                assert.calledOnce(builds[2].update);
+                assert.calledOnce(builds[3].update);
+                assert.calledOnce(builds[4].update);
+                assert.callCount(server.events.emit, 3);
+                assert.calledWithMatch(server.events.emit.getCall(0), 'build_status', {
+                    settings: { email: 'foo@bar.com' },
+                    status: 'ABORTED',
+                    pipeline: { id: 123 },
+                    jobName: 'build2',
+                    build: {
+                        id: 223344,
+                        jobId: 3456
+                    },
+                    buildLink: 'http://foo.bar/pipelines/123/builds/223344',
+                    isFixed: false
+                });
+                assert.calledWithMatch(server.events.emit.getCall(1), 'build_status', {
+                    settings: {
+                        slack: {
+                            channels: ['foo'],
+                            statuses: ['SUCCESS']
+                        }
+                    },
+                    status: 'ABORTED',
+                    pipeline: { id: 123 },
+                    jobName: 'build3',
+                    build: {
+                        id: 334455,
+                        jobId: 4567
+                    },
+                    buildLink: 'http://foo.bar/pipelines/123/builds/334455',
+                    isFixed: false
+                });
+                assert.calledWithMatch(server.events.emit.getCall(2), 'build_status', {
+                    settings: {
+                        email: 'bar@baz.com',
+                        slack: {
+                            channels: ['bar'],
+                            statuses: ['FAILURE']
+                        }
+                    },
+                    status: 'ABORTED',
+                    pipeline: { id: 123 },
+                    jobName: 'build4',
+                    build: {
+                        id: 776677,
+                        jobId: 5678
+                    },
+                    buildLink: 'http://foo.bar/pipelines/123/builds/776677',
+                    isFixed: false
+                });
+            });
+        });
         it(
             'returns 403 forbidden error when user does not have push permission' +
                 ' and is not Screwdriver admin and is not PR owner',

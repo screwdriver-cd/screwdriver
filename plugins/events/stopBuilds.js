@@ -8,6 +8,7 @@ const schema = require('screwdriver-data-schema');
 const getSchema = schema.models.event.get;
 const idSchema = schema.models.event.base.extract('id');
 const { deriveEventStatusFromBuildStatuses, stopBuilds } = require('../builds/helper/updateBuild');
+const { emitBuildStatusEvent } = require('../builds/triggers/helpers');
 const nonTerminatedStatus = ['CREATED', 'RUNNING', 'QUEUED', 'BLOCKED', 'FROZEN'];
 
 module.exports = () => ({
@@ -97,6 +98,14 @@ module.exports = () => ({
                 event.status = newEventStatus;
                 await event.update();
             }
+
+            const abortedBuilds = updatedBuilds.filter(build => build.status === 'ABORTED');
+
+            abortedBuilds.map(async build => {
+                const job = await build.job;
+
+                return emitBuildStatusEvent({ server: request.server, build, pipeline, event, job });
+            });
 
             // Update stageBuild status to ABORTED
             const stageBuilds = await event.getStageBuilds();
