@@ -3,7 +3,7 @@ namespace: template_namespace
 name: nodejs_main
 version: "1.1.2"
 maintainer: me@nowhere.com
-config:
+config: hi
   shared:
     image: 1
     environment:
