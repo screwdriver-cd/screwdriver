@@ -39,6 +39,30 @@ function getPermissionsForOldPipeline({ scmContexts, pipeline, user }) {
     return user.getPermissions(pipeline.scmUri);
 }
 
+/**
+ * Apply state change fields to a pipeline
+ * @method applyStateChange
+ * @param  {Object}  pipeline          Pipeline object to mutate
+ * @param  {String}  newState          New state ('ACTIVE' or 'DISABLED')
+ * @param  {String}  username          Username making the change
+ * @param  {String}  stateChangeMessage  Optional message for state change
+ */
+function applyStateChange(pipeline, newState, username, stateChangeMessage) {
+    const currentState = pipeline.state;
+
+    if (
+        (currentState === 'ACTIVE' && newState === 'DISABLED') ||
+        (currentState === 'DISABLED' && newState === 'ACTIVE')
+    ) {
+        pipeline.state = newState;
+        pipeline.stateChanger = username;
+        pipeline.stateChangeTime = new Date().toISOString();
+        pipeline.stateChangeMessage = stateChangeMessage || null;
+    } else {
+        throw boom.conflict(`Pipeline state cannot be transitioned from ${currentState} to ${newState}`);
+    }
+}
+
 module.exports = () => ({
     method: 'PUT',
     path: '/pipelines/{id}',
@@ -52,10 +76,16 @@ module.exports = () => ({
         },
 
         handler: async (request, h) => {
-            const { checkoutUrl, rootDir, settings, badges } = request.payload;
+            const { checkoutUrl, rootDir, settings, badges, state, stateChangeMessage } = request.payload;
+            const hasNonStateFields = !!(
+                checkoutUrl ||
+                rootDir ||
+                (settings && Object.keys(settings).length > 0) ||
+                badges
+            );
             const { id } = request.params;
-            const { pipelineFactory, userFactory, secretFactory } = request.server.app;
-            const { scmContext, username } = request.auth.credentials;
+            const { pipelineFactory, userFactory, secretFactory, bannerFactory } = request.server.app;
+            const { scmContext, username, scmUserId } = request.auth.credentials;
             const scmContexts = pipelineFactory.scm.getScmContexts();
             const { isValidToken } = request.server.plugins.pipelines;
             const deployKeySecret = 'SD_SCM_DEPLOY_KEY';
@@ -82,10 +112,53 @@ module.exports = () => ({
                 oldPipeline.adminUserIds = [];
             }
 
+            // Detect if user is a screwdriver cluster admin
+            const scmDisplayName = bannerFactory.scm.getDisplayName({ scmContext });
+            const adminDetails = request.server.plugins.banners.screwdriverAdminDetails(
+                username,
+                scmDisplayName,
+                scmUserId
+            );
+            const isScrewdriverAdmin = adminDetails.isAdmin;
+
+            // If the pipeline is a child pipeline, only allow state/stateChangeMessage updates
             if (oldPipeline.configPipelineId) {
-                throw boom.forbidden(
-                    `Child pipeline can only be modified by config pipeline ${oldPipeline.configPipelineId}`
-                );
+                // get pipeline admin permissions for child pipeline check
+                let childPermissions;
+
+                try {
+                    childPermissions = await getPermissionsForOldPipeline({
+                        scmContexts,
+                        pipeline: oldPipeline,
+                        user
+                    });
+                } catch (err) {
+                    childPermissions = { admin: false };
+                }
+
+                const isPipelineAdmin = childPermissions.admin;
+
+                if (!isPipelineAdmin && !isScrewdriverAdmin) {
+                    throw boom.forbidden(
+                        `Child pipeline can only be modified by config pipeline ${oldPipeline.configPipelineId}`
+                    );
+                }
+
+                if (hasNonStateFields) {
+                    throw boom.forbidden('Only state fields can be updated for a child pipeline');
+                }
+
+                if (!state) {
+                    throw boom.forbidden(
+                        `Child pipeline can only be modified by config pipeline ${oldPipeline.configPipelineId}`
+                    );
+                }
+
+                // Apply state change and return early
+                applyStateChange(oldPipeline, state, username, stateChangeMessage);
+                const updatedPipeline = await oldPipeline.update();
+
+                return h.response(updatedPipeline.toJson()).code(200);
             }
 
             // get the user permissions for the repo
@@ -98,7 +171,31 @@ module.exports = () => ({
                     user
                 });
             } catch (err) {
-                throw boom.forbidden(`User ${user.getFullDisplayName()} does not have admin permission for this repo`);
+                if (isScrewdriverAdmin) {
+                    oldPermissions = { admin: false };
+                } else {
+                    throw boom.forbidden(
+                        `User ${user.getFullDisplayName()} does not have admin permission for this repo`
+                    );
+                }
+            }
+
+            const isPipelineAdmin = oldPermissions.admin;
+
+            // Screwdriver admin without pipeline admin access: only allow state updates
+            if (!isPipelineAdmin && isScrewdriverAdmin) {
+                if (hasNonStateFields) {
+                    throw boom.forbidden(`User ${username} is only allowed to update the state of this pipeline`);
+                }
+
+                if (!state) {
+                    throw boom.forbidden(`User ${username} is not an admin of these repos`);
+                }
+
+                applyStateChange(oldPipeline, state, username, stateChangeMessage);
+                const updatedPipeline = await oldPipeline.update();
+
+                return h.response(updatedPipeline.toJson()).code(200);
             }
 
             let token;
@@ -143,7 +240,7 @@ module.exports = () => ({
                 oldPipeline.name = scmRepo.name;
             }
 
-            if (!oldPermissions.admin) {
+            if (!isPipelineAdmin) {
                 throw boom.forbidden(`User ${username} is not an admin of these repos`);
             }
 
@@ -157,6 +254,10 @@ module.exports = () => ({
 
             if (settings) {
                 oldPipeline.settings = { ...oldPipeline.settings, ...settings };
+            }
+
+            if (state) {
+                applyStateChange(oldPipeline, state, username, stateChangeMessage);
             }
 
             if (checkoutUrl || rootDir) {
