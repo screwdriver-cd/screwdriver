@@ -101,11 +101,11 @@ module.exports = () => ({
 
             const abortedBuilds = updatedBuilds.filter(build => build.status === 'ABORTED');
 
-            abortedBuilds.map(async build => {
+            await Promise.all(abortedBuilds.map(async build => {
                 const job = await build.job;
 
                 return emitBuildStatusEvent({ server: request.server, build, pipeline, event, job });
-            });
+            }));
 
             // Update stageBuild status to ABORTED
             const stageBuilds = await event.getStageBuilds();
