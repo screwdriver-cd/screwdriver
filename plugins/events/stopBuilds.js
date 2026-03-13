@@ -107,7 +107,7 @@ module.exports = () => ({
                 return emitBuildStatusEvent({ server: request.server, build, pipeline, event, job });
             });
 
-            await Promise.all(buildNotifies)
+            await Promise.all(buildNotifies);
 
             // Update stageBuild status to ABORTED
             const stageBuilds = await event.getStageBuilds();
