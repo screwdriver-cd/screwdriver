@@ -1609,6 +1609,53 @@ describe('event plugin test', () => {
             builds = getBuildMocks(testBuilds);
             stageBuilds = getStageBuildMocks(testStageBuilds);
 
+            builds[2].job = {
+                id: builds[2].jobId,
+                pipelineId,
+                name: 'build2',
+                pipeline: pipelineMock,
+                permutations: [
+                    {
+                        settings: {
+                            email: 'foo@bar.com'
+                        }
+                    }
+                ]
+            };
+            builds[3].job = {
+                id: builds[3].jobId,
+                pipelineId,
+                name: 'build3',
+                pipeline: pipelineMock,
+                permutations: [
+                    {
+                        settings: {
+                            slack: {
+                                channels: ['foo'],
+                                statuses: ['SUCCESS']
+                            }
+                        }
+                    }
+                ]
+            };
+            builds[4].job = {
+                id: builds[4].jobId,
+                pipelineId,
+                name: 'build4',
+                pipeline: pipelineMock,
+                permutations: [
+                    {
+                        settings: {
+                            email: 'bar@baz.com',
+                            slack: {
+                                channels: ['bar'],
+                                statuses: ['FAILURE']
+                            }
+                        }
+                    }
+                ]
+            };
+
             eventFactoryMock.get.withArgs(id).resolves(event);
             event.getBuilds.resolves(builds);
             event.getStageBuilds.resolves(stageBuilds);
@@ -1759,53 +1806,6 @@ describe('event plugin test', () => {
         });
 
         it('returns 200 and stops all event builds and notify', () => {
-            builds[2].job = {
-                id: builds[2].jobId,
-                pipelineId,
-                name: 'build2',
-                pipeline: pipelineMock,
-                permutations: [
-                    {
-                        settings: {
-                            email: 'foo@bar.com'
-                        }
-                    }
-                ]
-            };
-            builds[3].job = {
-                id: builds[3].jobId,
-                pipelineId,
-                name: 'build3',
-                pipeline: pipelineMock,
-                permutations: [
-                    {
-                        settings: {
-                            slack: {
-                                channels: ['foo'],
-                                statuses: ['SUCCESS']
-                            }
-                        }
-                    }
-                ]
-            };
-            builds[4].job = {
-                id: builds[4].jobId,
-                pipelineId,
-                name: 'build4',
-                pipeline: pipelineMock,
-                permutations: [
-                    {
-                        settings: {
-                            email: 'bar@baz.com',
-                            slack: {
-                                channels: ['bar'],
-                                statuses: ['FAILURE']
-                            }
-                        }
-                    }
-                ]
-            };
-
             return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 200);
                 assert.strictEqual(builds[2].status, 'ABORTED');
@@ -1870,6 +1870,64 @@ describe('event plugin test', () => {
                 });
             });
         });
+
+        it('returns 200 and stops all event builds and notify without including already aborted builds', () => {
+            builds[2].status = 'ABORTED';
+            builds[2].statusMessage = 'Aborted build by myself';
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 200);
+                assert.strictEqual(builds[2].status, 'ABORTED');
+                assert.strictEqual(builds[3].status, 'ABORTED');
+                assert.strictEqual(builds[4].status, 'ABORTED');
+                assert.strictEqual(builds[2].statusMessage, 'Aborted build by myself');
+                assert.strictEqual(builds[3].statusMessage, 'Aborted event by myself');
+                assert.strictEqual(builds[4].statusMessage, 'Aborted event by myself');
+                assert.calledOnce(event.getBuilds);
+                assert.notCalled(builds[0].update);
+                assert.notCalled(builds[1].update);
+                assert.notCalled(builds[2].update);
+                assert.calledOnce(builds[3].update);
+                assert.calledOnce(builds[4].update);
+                assert.callCount(server.events.emit, 2);
+                assert.calledWithMatch(server.events.emit.getCall(0), 'build_status', {
+                    settings: {
+                        slack: {
+                            channels: ['foo'],
+                            statuses: ['SUCCESS']
+                        }
+                    },
+                    status: 'ABORTED',
+                    pipeline: { id: 123 },
+                    jobName: 'build3',
+                    build: {
+                        id: 334455,
+                        jobId: 4567
+                    },
+                    buildLink: 'http://foo.bar/pipelines/123/builds/334455',
+                    isFixed: false
+                });
+                assert.calledWithMatch(server.events.emit.getCall(1), 'build_status', {
+                    settings: {
+                        email: 'bar@baz.com',
+                        slack: {
+                            channels: ['bar'],
+                            statuses: ['FAILURE']
+                        }
+                    },
+                    status: 'ABORTED',
+                    pipeline: { id: 123 },
+                    jobName: 'build4',
+                    build: {
+                        id: 776677,
+                        jobId: 5678
+                    },
+                    buildLink: 'http://foo.bar/pipelines/123/builds/776677',
+                    isFixed: false
+                });
+            });
+        });
+
         it(
             'returns 403 forbidden error when user does not have push permission' +
                 ' and is not Screwdriver admin and is not PR owner',

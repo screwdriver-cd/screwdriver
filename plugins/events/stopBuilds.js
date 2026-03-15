@@ -90,9 +90,10 @@ module.exports = () => ({
             const statusMessage = `Aborted event by ${username}`;
 
             const { unchangedBuilds, changedBuilds } = stopBuilds(builds, statusMessage);
-            const updatedBuilds = [...unchangedBuilds, ...(await Promise.all(changedBuilds.map(b => b.update())))];
+            const updatedBuilds = await Promise.all(changedBuilds.map(b => b.update()));
+            const updatedAllBuilds = [...unchangedBuilds, ...updatedBuilds];
 
-            const newEventStatus = deriveEventStatusFromBuildStatuses(updatedBuilds);
+            const newEventStatus = deriveEventStatusFromBuildStatuses(updatedAllBuilds);
 
             if (newEventStatus && event.status !== newEventStatus) {
                 event.status = newEventStatus;
