@@ -2854,6 +2854,7 @@ describe('pipeline plugin test', () => {
             pipelineFactoryMock.scm.decorateUrl.resolves(scmRepo);
             pipelineFactoryMock.scm.getScmContexts.returns(['github:github.com', 'gitlab:mygitlab']);
             pipelineFactoryMock.scm.addDeployKey.resolves(privateKey);
+            screwdriverAdminDetailsMock.returns({ isAdmin: false });
         });
 
         it('returns 200 and correct pipeline data', () =>
@@ -3214,12 +3215,196 @@ describe('pipeline plugin test', () => {
             });
         });
 
-        it('returns 403 when the pipeline is child pipeline', () => {
+        it('returns 403 when the pipeline is child pipeline and non-state fields are provided', () => {
             pipelineMock.configPipelineId = 123;
 
             return server.inject(options).then(reply => {
                 assert.notCalled(updatedPipelineMock.addWebhooks);
                 assert.equal(reply.statusCode, 403);
+                assert.equal(reply.result.message, 'Only state fields can be updated for a child pipeline');
+            });
+        });
+
+        it('returns 403 when the pipeline is child pipeline and no state is provided', () => {
+            pipelineMock.configPipelineId = 123;
+            options.payload = {};
+
+            return server.inject(options).then(reply => {
+                assert.notCalled(updatedPipelineMock.addWebhooks);
+                assert.equal(reply.statusCode, 403);
+                assert.equal(
+                    reply.result.message,
+                    `Child pipeline can only be modified by config pipeline ${pipelineMock.configPipelineId}`
+                );
+            });
+        });
+
+        it('returns 403 when the pipeline is child pipeline and user is not pipeline admin or screwdriver admin', () => {
+            pipelineMock.configPipelineId = 123;
+            options.payload = { state: 'DISABLED' };
+            userMock.getPermissions.withArgs(oldScmUri).resolves({ admin: false });
+
+            return server.inject(options).then(reply => {
+                assert.notCalled(updatedPipelineMock.addWebhooks);
+                assert.equal(reply.statusCode, 403);
+                assert.equal(
+                    reply.result.message,
+                    `Child pipeline can only be modified by config pipeline ${pipelineMock.configPipelineId}`
+                );
+            });
+        });
+
+        it('returns 200 when child pipeline state is updated by a pipeline admin', () => {
+            pipelineMock.configPipelineId = 123;
+            pipelineMock.state = 'ACTIVE';
+            options.payload = { state: 'DISABLED' };
+            updatedPipelineMock.toJson = sinon.stub().returns({ ...testPipeline, state: 'DISABLED' });
+            pipelineMock.update.resolves(updatedPipelineMock);
+
+            return server.inject(options).then(reply => {
+                assert.calledOnce(pipelineMock.update);
+                assert.notCalled(updatedPipelineMock.addWebhooks);
+                assert.equal(pipelineMock.state, 'DISABLED');
+                assert.equal(pipelineMock.stateChanger, username);
+                assert.ok(pipelineMock.stateChangeTime);
+                assert.equal(reply.statusCode, 200);
+            });
+        });
+
+        it('returns 200 when child pipeline state is updated by a screwdriver admin', () => {
+            pipelineMock.configPipelineId = 123;
+            pipelineMock.state = 'ACTIVE';
+            options.payload = { state: 'DISABLED' };
+            options.auth.credentials = { username, scmContext, scmUserId: 999, scope: ['user'] };
+            userMock.getPermissions.withArgs(oldScmUri).resolves({ admin: false });
+            screwdriverAdminDetailsMock.returns({ isAdmin: true });
+            updatedPipelineMock.toJson = sinon.stub().returns({ ...testPipeline, state: 'DISABLED' });
+            pipelineMock.update.resolves(updatedPipelineMock);
+
+            return server.inject(options).then(reply => {
+                assert.calledOnce(pipelineMock.update);
+                assert.notCalled(updatedPipelineMock.addWebhooks);
+                assert.equal(pipelineMock.state, 'DISABLED');
+                assert.equal(reply.statusCode, 200);
+            });
+        });
+
+        it('returns 200 and updates pipeline state from ACTIVE to DISABLED', () => {
+            pipelineMock.state = 'ACTIVE';
+            options.payload = { state: 'DISABLED' };
+
+            return server.inject(options).then(reply => {
+                assert.calledOnce(pipelineMock.update);
+                assert.equal(pipelineMock.state, 'DISABLED');
+                assert.equal(pipelineMock.stateChanger, username);
+                assert.ok(pipelineMock.stateChangeTime);
+                assert.equal(reply.statusCode, 200);
+            });
+        });
+
+        it('returns 200 and updates pipeline state from DISABLED to ACTIVE', () => {
+            pipelineMock.state = 'DISABLED';
+            options.payload = { state: 'ACTIVE' };
+
+            return server.inject(options).then(reply => {
+                assert.calledOnce(pipelineMock.update);
+                assert.equal(pipelineMock.state, 'ACTIVE');
+                assert.equal(pipelineMock.stateChanger, username);
+                assert.ok(pipelineMock.stateChangeTime);
+                assert.equal(reply.statusCode, 200);
+            });
+        });
+
+        it('returns 200 and sets stateChangeMessage when provided', () => {
+            pipelineMock.state = 'ACTIVE';
+            options.payload = { state: 'DISABLED', stateChangeMessage: 'Disabling for maintenance' };
+
+            return server.inject(options).then(reply => {
+                assert.calledOnce(pipelineMock.update);
+                assert.equal(pipelineMock.state, 'DISABLED');
+                assert.equal(pipelineMock.stateChangeMessage, 'Disabling for maintenance');
+                assert.equal(reply.statusCode, 200);
+            });
+        });
+
+        it('returns 409 when transitioning to an invalid state', () => {
+            pipelineMock.state = 'DISABLED';
+            options.payload = { state: 'DISABLED' };
+
+            return server.inject(options).then(reply => {
+                assert.notCalled(updatedPipelineMock.addWebhooks);
+                assert.equal(reply.statusCode, 409);
+            });
+        });
+
+        it('returns 200 when screwdriver admin without pipeline access updates state', () => {
+            pipelineMock.state = 'ACTIVE';
+            options.payload = { state: 'DISABLED' };
+            options.auth.credentials = { username, scmContext, scmUserId: 999, scope: ['user'] };
+            userMock.getPermissions.withArgs(oldScmUri).resolves({ admin: false });
+            screwdriverAdminDetailsMock.returns({ isAdmin: true });
+            updatedPipelineMock.toJson = sinon.stub().returns({ ...testPipeline, state: 'DISABLED' });
+            pipelineMock.update.resolves(updatedPipelineMock);
+
+            return server.inject(options).then(reply => {
+                assert.calledOnce(pipelineMock.update);
+                assert.notCalled(updatedPipelineMock.addWebhooks);
+                assert.equal(pipelineMock.state, 'DISABLED');
+                assert.equal(pipelineMock.stateChanger, username);
+                assert.ok(pipelineMock.stateChangeTime);
+                assert.equal(reply.statusCode, 200);
+            });
+        });
+
+        it('returns 403 when screwdriver admin without pipeline access includes non-state fields', () => {
+            options.payload = { state: 'DISABLED', checkoutUrl: unformattedCheckoutUrl };
+            options.auth.credentials = { username, scmContext, scmUserId: 999, scope: ['user'] };
+            userMock.getPermissions.withArgs(oldScmUri).resolves({ admin: false });
+            screwdriverAdminDetailsMock.returns({ isAdmin: true });
+
+            return server.inject(options).then(reply => {
+                assert.notCalled(updatedPipelineMock.addWebhooks);
+                assert.equal(reply.statusCode, 403);
+                assert.equal(
+                    reply.result.message,
+                    `User ${username} is only allowed to update the state of this pipeline`
+                );
+            });
+        });
+
+        it('returns 200 when screwdriver admin with pipeline access does full update', () => {
+            options.auth.credentials = { username, scmContext, scmUserId: 999, scope: ['user'] };
+            screwdriverAdminDetailsMock.returns({ isAdmin: true });
+
+            return server.inject(options).then(reply => {
+                assert.calledOnce(pipelineMock.update);
+                assert.calledOnce(updatedPipelineMock.addWebhooks);
+                assert.equal(reply.statusCode, 200);
+            });
+        });
+
+        it('returns 403 when get permission throws error and user is not screwdriver admin', () => {
+            userMock.getPermissions.withArgs(oldScmUri).rejects(new Error('Failed'));
+
+            return server.inject(options).then(reply => {
+                assert.notCalled(updatedPipelineMock.addWebhooks);
+                assert.equal(reply.statusCode, 403);
+            });
+        });
+
+        it('returns 200 when get permission throws error but user is screwdriver admin', () => {
+            options.payload = { state: 'DISABLED' };
+            options.auth.credentials = { username, scmContext, scmUserId: 999, scope: ['user'] };
+            pipelineMock.state = 'ACTIVE';
+            userMock.getPermissions.withArgs(oldScmUri).rejects(new Error('Failed'));
+            screwdriverAdminDetailsMock.returns({ isAdmin: true });
+            updatedPipelineMock.toJson = sinon.stub().returns({ ...testPipeline, state: 'DISABLED' });
+            pipelineMock.update.resolves(updatedPipelineMock);
+
+            return server.inject(options).then(reply => {
+                assert.calledOnce(pipelineMock.update);
+                assert.notCalled(updatedPipelineMock.addWebhooks);
+                assert.equal(reply.statusCode, 200);
             });
         });
 
@@ -3234,15 +3419,6 @@ describe('pipeline plugin test', () => {
 
         it('returns 403 when the user does not have admin permissions on the old repo', () => {
             userMock.getPermissions.withArgs(oldScmUri).resolves({ admin: false });
-
-            return server.inject(options).then(reply => {
-                assert.notCalled(updatedPipelineMock.addWebhooks);
-                assert.equal(reply.statusCode, 403);
-            });
-        });
-
-        it('returns 403 when get permission throws error', () => {
-            userMock.getPermissions.withArgs(oldScmUri).rejects(new Error('Failed'));
 
             return server.inject(options).then(reply => {
                 assert.notCalled(updatedPipelineMock.addWebhooks);
