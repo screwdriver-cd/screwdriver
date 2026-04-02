@@ -129,7 +129,7 @@ module.exports = () => ({
             if (!pipeline) {
                 throw boom.notFound();
             } else if (pipeline.state !== 'ACTIVE') {
-                // INACTIVE or DELETING pipeline
+                // INACTIVE, DELETING, or DISABLED pipeline
                 throw boom.badRequest(`Cannot create an event for a(n) ${pipeline.state} pipeline`);
             }
 
