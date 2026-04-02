@@ -8,6 +8,7 @@ const schema = require('screwdriver-data-schema');
 const getSchema = schema.models.event.get;
 const idSchema = schema.models.event.base.extract('id');
 const { deriveEventStatusFromBuildStatuses, stopBuilds } = require('../builds/helper/updateBuild');
+const { emitBuildStatusEvent } = require('../builds/triggers/helpers');
 const nonTerminatedStatus = ['CREATED', 'RUNNING', 'QUEUED', 'BLOCKED', 'FROZEN'];
 
 module.exports = () => ({
@@ -89,14 +90,25 @@ module.exports = () => ({
             const statusMessage = `Aborted event by ${username}`;
 
             const { unchangedBuilds, changedBuilds } = stopBuilds(builds, statusMessage);
-            const updatedBuilds = [...unchangedBuilds, ...(await Promise.all(changedBuilds.map(b => b.update())))];
+            const updatedBuilds = await Promise.all(changedBuilds.map(b => b.update()));
+            const updatedAllBuilds = [...unchangedBuilds, ...updatedBuilds];
 
-            const newEventStatus = deriveEventStatusFromBuildStatuses(updatedBuilds);
+            const newEventStatus = deriveEventStatusFromBuildStatuses(updatedAllBuilds);
 
             if (newEventStatus && event.status !== newEventStatus) {
                 event.status = newEventStatus;
                 await event.update();
             }
+
+            const abortedBuilds = updatedBuilds.filter(build => build.status === 'ABORTED');
+
+            const buildNotifies = abortedBuilds.map(async build => {
+                const job = await build.job;
+
+                return emitBuildStatusEvent({ server: request.server, build, pipeline, event, job });
+            });
+
+            await Promise.all(buildNotifies);
 
             // Update stageBuild status to ABORTED
             const stageBuilds = await event.getStageBuilds();
