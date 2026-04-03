@@ -8,7 +8,7 @@ RUN mkdir -p /usr/src/app
 WORKDIR /usr/src/app
 
 # update npm
-RUN npm install -g npm
+RUN npm install -g npm@~11.10.0
 RUN npm cache clean -f
 
 # Install Screwdriver API
