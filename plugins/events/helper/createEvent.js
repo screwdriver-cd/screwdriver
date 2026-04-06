@@ -76,20 +76,20 @@ async function createEvent(config, server) {
     const event = await eventFactory.create(config);
 
     if (event.builds) {
-        const jobIds = event.builds.map(b => b.jobId);
-
+        // Virtual builds are just CREATED. Not started(QUEUED, RUNNNING, ...).
+        const createdBuilds = event.builds.filter(b => b.status === 'CREATED');
+        const jobIds = createdBuilds.map(b => b.jobId);
         const virtualNodeNames = getVirtualJobNames(event.workflowGraph);
 
-        if (virtualNodeNames.length > 0) {
-            const prJobs = await jobFactory.list({
+        if (createdBuilds.length > 0 && virtualNodeNames.length > 0) {
+            const jobs = await jobFactory.list({
                 params: {
                     id: jobIds
                 }
             });
 
-            const virtualJobIds = getVirtualJobIds(virtualNodeNames, prJobs);
-
-            const virtualJobBuilds = event.builds.filter(b => virtualJobIds.includes(b.jobId));
+            const virtualJobIds = getVirtualJobIds(virtualNodeNames, jobs);
+            const virtualJobBuilds = createdBuilds.filter(b => virtualJobIds.includes(b.jobId));
 
             for (const build of virtualJobBuilds) {
                 await updateBuildAndTriggerDownstreamJobs(
