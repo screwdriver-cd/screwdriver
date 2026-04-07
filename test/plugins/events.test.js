@@ -416,6 +416,7 @@ describe('event plugin test', () => {
                 sha: commitSha,
                 type: 'pipeline',
                 username,
+                webhooks: true,
                 meta
             };
 
@@ -676,8 +677,8 @@ describe('event plugin test', () => {
             const virtualBuildMock = eventMock.builds[0];
             const nonVirtualBuildMock = eventMock.builds[1];
 
-            virtualBuildMock.status = 'CREATED';
-            nonVirtualBuildMock.status = 'CREATED';
+            virtualBuildMock.status = 'QUEUED';
+            nonVirtualBuildMock.status = 'QUEUED';
             nonVirtualBuildMock.jobId = 1235;
 
             const virtualJobMock = {
@@ -747,7 +748,7 @@ describe('event plugin test', () => {
                 assert.notCalled(eventFactoryMock.scm.getPrInfo);
 
                 // virtual job should not be auto-skipped when blockedBy is present
-                assert.equal(virtualBuildMock.status, 'CREATED');
+                assert.equal(virtualBuildMock.status, 'QUEUED');
                 assert.notCalled(virtualBuildMock.update);
                 assert.notCalled(buildFactoryMock.create);
             });
