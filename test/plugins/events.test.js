@@ -416,7 +416,6 @@ describe('event plugin test', () => {
                 sha: commitSha,
                 type: 'pipeline',
                 username,
-                webhooks: true,
                 meta
             };
 
