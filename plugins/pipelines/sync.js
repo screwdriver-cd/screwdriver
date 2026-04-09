@@ -73,9 +73,9 @@ module.exports = () => ({
                 pipeline.admins = newAdmins;
                 pipeline.adminUserIds = newAdminUserIds;
 
-                await pipeline.update();
-
                 if (!scope.includes('admin')) {
+                    await pipeline.update();
+
                     throw boom.forbidden(
                         `User ${user.getFullDisplayName()} does not have push permission for this repo`
                     );
@@ -97,8 +97,6 @@ module.exports = () => ({
                 // This is needed to make admins dirty and update db
                 pipeline.admins = newAdmins;
                 pipeline.adminUserIds = newAdminUserIds;
-
-                await pipeline.update();
             }
 
             try {

@@ -2098,7 +2098,6 @@ describe('pipeline plugin test', () => {
         it('returns 204 for updating a pipeline that exists', () =>
             server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 204);
-                assert.calledOnce(pipelineMock.update);
                 assert.calledOnce(pipelineMock.sync);
             }));
 
@@ -2112,7 +2111,6 @@ describe('pipeline plugin test', () => {
 
             return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 204);
-                assert.calledOnce(pipelineMock.update);
                 assert.calledOnce(pipelineMock.sync);
             });
         });
@@ -2123,7 +2121,6 @@ describe('pipeline plugin test', () => {
 
             return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 204);
-                assert.calledOnce(pipelineMock.update);
                 assert.calledOnce(pipelineMock.sync);
             });
         });
@@ -2224,7 +2221,6 @@ describe('pipeline plugin test', () => {
 
             return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 500);
-                assert.calledOnce(pipelineMock.update);
                 assert.calledOnce(pipelineMock.sync);
             });
         });
