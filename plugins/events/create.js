@@ -60,7 +60,6 @@ module.exports = () => ({
                 startFrom,
                 type: 'pipeline',
                 username,
-                webhooks: true,
                 meta: request.payload.meta // always exists because default is {}
             };
 
