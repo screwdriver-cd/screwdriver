@@ -115,7 +115,7 @@
     "screwdriver-coverage-bookend": "^3.0.0",
     "screwdriver-coverage-sonar": "^5.0.0",
     "screwdriver-data-schema": "^26.1.0",
-    "screwdriver-datastore-sequelize": "^10.0.0",
+    "screwdriver-datastore-sequelize": "^10.1.0",
     "screwdriver-executor-base": "^11.0.0",
     "screwdriver-executor-docker": "^8.0.1",
     "screwdriver-executor-k8s": "^17.1.0",
