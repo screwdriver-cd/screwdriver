@@ -1232,7 +1232,8 @@ function buildsToRestartFilter(joinPipeline, groupEventBuilds, currentEvent, cur
 
             // Exist build is triggered from current build
             // Prevent double triggering same build object
-            if (existBuild.parentBuildId.includes(currentBuild.id)) return null;
+            // parentBuildId can be null for top-of-event builds; nothing to dedupe
+            if (existBuild.parentBuildId && existBuild.parentBuildId.includes(currentBuild.id)) return null;
 
             // Circle back trigger (Remote Join case)
             if (existBuild.eventId === currentEvent.parentEventId) return null;
