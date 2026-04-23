@@ -1529,6 +1529,23 @@ describe('buildsToRestartFilter function', () => {
 
         assert.deepEqual(result, []);
     });
+
+   it('should not throw when an existing build has parentBuildId null', () => {
+        const joinPipeline = {
+            jobs: {
+                jobA: { id: 1 }
+            }
+        };
+        const groupEventBuilds = [
+            { jobId: 1, status: Status.SUCCESS, parentBuildId: null, eventId: 100 }
+        ];
+        const currentEvent = { parentEventId: 99 };
+        const currentBuild = { id: 3 };
+        const result = buildsToRestartFilter(joinPipeline, groupEventBuilds, currentEvent, currentBuild);
+        assert.deepEqual(result, [
+            { jobId: 1, status: Status.SUCCESS, parentBuildId: null, eventId: 100 }
+        ]);
+    });
 });
 
 describe('createEvent function', () => {
