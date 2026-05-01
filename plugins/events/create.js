@@ -21,7 +21,7 @@ module.exports = () => ({
 
         handler: async (request, h) => {
             const { buildFactory, jobFactory, eventFactory, pipelineFactory, userFactory } = request.server.app;
-            const { buildId, causeMessage, creator, sha } = request.payload;
+            const { buildId, causeMessage, creator, sha, startAction } = request.payload;
             const { scmContext, username, scope } = request.auth.credentials;
             const { scm } = eventFactory;
             const { isValidToken } = request.server.plugins.pipelines;
@@ -67,7 +67,8 @@ module.exports = () => ({
                 payload.sha = sha;
             }
 
-            if (parentEventId) {
+            console.info({startAction})
+            if (parentEventId && startAction === 'restart') {
                 payload.parentEventId = parentEventId;
             }
 
@@ -240,26 +241,10 @@ module.exports = () => ({
 
             // If there is parentEvent, pass workflowGraph, meta and sha to payload
             // Skip PR, for PR builds, we should always start from latest commit
-            if (payload.parentEventId) {
+            if (parentEventId) {
                 const parentEvent = await eventFactory.get(parentEventId);
-                let mergedParameters = payload.meta.parameters || {};
 
                 payload.baseBranch = parentEvent.baseBranch || null;
-
-                // Merge parameters if they exist in the parent event and not in the payload
-                if (!payload.meta.parameters && parentEvent.meta && parentEvent.meta.parameters) {
-                    mergedParameters = parentEvent.meta.parameters;
-                }
-                delete payload.meta.parameters;
-
-                // Copy meta from parent event if payload.meta is empty except for the parameters
-                if (Object.keys(payload.meta).length === 0) {
-                    payload.meta = { ...parentEvent.meta };
-                }
-
-                if (Object.keys(mergedParameters).length > 0) {
-                    payload.meta.parameters = mergedParameters;
-                }
 
                 if (!prNum) {
                     payload.workflowGraph = parentEvent.workflowGraph;
@@ -269,8 +254,26 @@ module.exports = () => ({
                         payload.configPipelineSha = parentEvent.configPipelineSha;
                     }
                 }
-            }
 
+                if (startAction === 'restart') {
+                    let mergedParameters = payload.meta.parameters || {};
+
+                    // Merge parameters if they exist in the parent event and not in the payload
+                    if (!payload.meta.parameters && parentEvent.meta && parentEvent.meta.parameters) {
+                        mergedParameters = parentEvent.meta.parameters;
+                    }
+                    delete payload.meta.parameters;
+
+                    // Copy meta from parent event if payload.meta is empty except for the parameters
+                    if (Object.keys(payload.meta).length === 0) {
+                        payload.meta = { ...parentEvent.meta };
+                    }
+
+                    if (Object.keys(mergedParameters).length > 0) {
+                        payload.meta.parameters = mergedParameters;
+                    }
+                }
+            }
             const event = await createEvent(payload, request.server);
 
             if (event.builds === null) {
