@@ -1095,7 +1095,7 @@ describe('event plugin test', () => {
             });
         });
 
-        it('returns 201 when it successfully creates restarted event with parent event and the startFrom is a stage teardown', () => {
+        it('returns 201 when it successfully creates an event with parent event and the startFrom is a stage teardown', () => {
             eventConfig.parentEventId = parentEventId;
             eventConfig.workflowGraph = getEventMock(testEvent).workflowGraph;
             eventConfig.sha = getEventMock(testEvent).sha;

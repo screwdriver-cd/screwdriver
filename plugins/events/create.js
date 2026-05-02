@@ -286,6 +286,7 @@ module.exports = () => ({
                     }
                 }
             }
+
             const event = await createEvent(payload, request.server);
 
             if (event.builds === null) {
