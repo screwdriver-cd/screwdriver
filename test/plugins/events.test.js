@@ -9,7 +9,6 @@ const hoek = require('@hapi/hoek');
 const testBuild = require('./data/build.json');
 const testBuilds = require('./data/builds.json');
 const testStageBuilds = require('./data/stageBuilds.json');
-const { options: request } = require('../../plugins/commands/create');
 const testEventBase = require('./data/events.json')[0];
 const testEventPr = require('./data/eventsPr.json')[0];
 
