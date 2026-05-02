@@ -1049,7 +1049,7 @@ describe('event plugin test', () => {
                 meta,
                 parentBuilds,
                 groupEventId: 2,
-                startAction: 'RESTART_FROM_BUILD',
+                startAction: 'RESTART_FROM_BUILD'
             };
             buildFactoryMock.get.resolves({
                 id: 1234,
