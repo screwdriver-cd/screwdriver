@@ -397,7 +397,8 @@ describe('event plugin test', () => {
                     parentBuildId,
                     pipelineId,
                     startFrom: '~commit',
-                    meta
+                    meta,
+                    startAction: 'START_FROM_LATEST_COMMIT'
                 },
                 auth: {
                     credentials: {
@@ -449,48 +450,6 @@ describe('event plugin test', () => {
             eventConfig.workflowGraph = getEventMock(testEvent).workflowGraph;
             eventConfig.sha = getEventMock(testEvent).sha;
             eventConfig.parentEventId = 888;
-            eventConfig.groupEventId = 888;
-            eventConfig.baseBranch = 'master';
-            eventConfig.parentBuilds = parentBuilds;
-            eventFactoryMock.get.resolves(getEventMock(testEvent));
-
-            return server.inject(options).then(reply => {
-                expectedLocation = {
-                    host: reply.request.headers.host,
-                    port: reply.request.headers.port,
-                    protocol: reply.request.server.info.protocol,
-                    pathname: `${options.url}/12345`
-                };
-                assert.calledWith(buildFactoryMock.get, 1234);
-                assert.calledWith(jobFactoryMock.get, 222);
-                assert.calledWith(userMock.getPermissions, scmUri, scmContext, scmRepo);
-                assert.calledWith(eventFactoryMock.create, eventConfig);
-                assert.strictEqual(reply.headers.location, urlLib.format(expectedLocation));
-                assert.notCalled(eventFactoryMock.scm.getPrInfo);
-                assert.equal(reply.statusCode, 201);
-            });
-        });
-
-        it('returns 201 when it successfully creates a new event with buildId passed in', () => {
-            options.payload = {
-                buildId: 1234,
-                meta,
-                startAction: 'START_FROM_BUILD'
-            };
-            buildFactoryMock.get.resolves({
-                id: 1234,
-                jobId: 222,
-                parentBuildId,
-                eventId: 888,
-                parentBuilds
-            });
-            jobFactoryMock.get.resolves({
-                pipelineId,
-                name: 'main'
-            });
-            eventConfig.startFrom = 'main';
-            eventConfig.workflowGraph = getEventMock(testEvent).workflowGraph;
-            eventConfig.sha = getEventMock(testEvent).sha;
             eventConfig.groupEventId = 888;
             eventConfig.baseBranch = 'master';
             eventConfig.parentBuilds = parentBuilds;
@@ -595,7 +554,8 @@ describe('event plugin test', () => {
                 creator: {
                     name: 'Screwdriver scheduler',
                     username: 'sd:scheduler'
-                }
+                },
+                startAction: 'START_FROM_LATEST_COMMIT'
             };
 
             return server.inject(options).then(reply => {
@@ -627,7 +587,8 @@ describe('event plugin test', () => {
                 creator: {
                     name: 'foo bar',
                     username: 'foobar'
-                }
+                },
+                startAction: 'START_FROM_LATEST_COMMIT'
             };
 
             return server.inject(options).then(reply => {
