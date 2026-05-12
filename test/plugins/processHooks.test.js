@@ -3,7 +3,7 @@
 const chai = require('chai');
 const sinon = require('sinon');
 const hapi = require('@hapi/hapi');
-const rewire = require('rewire');
+const rewiremock = require('rewiremock/node');
 const { assert } = chai;
 
 chai.use(require('chai-as-promised'));
@@ -34,9 +34,11 @@ describe('processHooks plugin test', () => {
 
         startHookEventMock = sinon.stub();
 
-        plugin = rewire('../../plugins/processHooks');
-
-        plugin.__set__('startHookEvent', startHookEventMock);
+        plugin = rewiremock.proxy('../../plugins/processHooks', {
+            '../../plugins/webhooks/helper': {
+                startHookEvent: startHookEventMock
+            }
+        });
 
         server = new hapi.Server({
             host: 'localhost',

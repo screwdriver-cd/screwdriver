@@ -5,6 +5,7 @@ const { assert } = require('chai');
 const sinon = require('sinon');
 const hapi = require('@hapi/hapi');
 const hoek = require('@hapi/hoek');
+const rewiremock = require('rewiremock/node');
 const testPipeline = require('./data/pipeline.json');
 const testSecret = require('./data/secret.json');
 
@@ -45,7 +46,9 @@ describe('secret plugin test', () => {
     let userFactoryMock;
     let pipelineFactoryMock;
     let plugin;
+    let pipelinesPlugin;
     let server;
+    let lockMock;
     const password = 'this_is_a_password_that_needs_to_be_atleast_32_characters';
 
     beforeEach(async () => {
@@ -63,9 +66,17 @@ describe('secret plugin test', () => {
         userFactoryMock = {
             get: sinon.stub()
         };
+        lockMock = {
+            lock: sinon.stub().resolves(null),
+            unlock: sinon.stub().resolves(null)
+        };
+        lockMock.locker = lockMock;
 
         /* eslint-disable global-require */
         plugin = require('../../plugins/secrets');
+        pipelinesPlugin = rewiremock.proxy('../../plugins/pipelines', {
+            '../../plugins/lock': lockMock
+        });
         /* eslint-enable global-require */
         server = new hapi.Server({
             port: 1234
@@ -94,9 +105,7 @@ describe('secret plugin test', () => {
                 }
             },
             {
-                /* eslint-disable global-require */
-                plugin: require('../../plugins/pipelines')
-                /* eslint-enable global-require */
+                plugin: pipelinesPlugin
             }
         ]);
     });

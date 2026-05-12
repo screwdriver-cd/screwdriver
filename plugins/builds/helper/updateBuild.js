@@ -6,6 +6,7 @@ const merge = require('lodash.mergewith');
 const isEmpty = require('lodash.isempty');
 const { PR_JOB_NAME, PR_STAGE_NAME, STAGE_TEARDOWN_PATTERN } = require('screwdriver-data-schema').config.regex;
 const { getFullStageJobName } = require('../../helper');
+const { locker } = require('../../lock');
 const { updateVirtualBuildSuccess, emitBuildStatusEvent, isFixedBuild } = require('../triggers/helpers');
 const TERMINAL_STATUSES = ['FAILURE', 'ABORTED', 'UNSTABLE', 'COLLAPSED'];
 const FINISHED_STATUSES = ['SUCCESS', ...TERMINAL_STATUSES];
@@ -358,6 +359,7 @@ async function updateBuildAndTriggerDownstreamJobs(config, build, server, userna
     const { triggerNextJobs, removeJoinBuilds, createOrUpdateStageTeardownBuild } = server.plugins.builds;
 
     const currentStatus = build.status;
+    const isEndBuildStatus = ['SUCCESS', 'FAILURE', 'ABORTED'].includes(desiredStatus);
 
     const event = await eventFactory.get(build.eventId);
 
@@ -370,9 +372,8 @@ async function updateBuildAndTriggerDownstreamJobs(config, build, server, userna
     if (!desiredStatus) {
         build.statusMessage = statusMessage || build.statusMessage;
         build.statusMessageType = statusMessageType || build.statusMessageType;
-    } else if (['SUCCESS', 'FAILURE', 'ABORTED'].includes(desiredStatus)) {
+    } else if (isEndBuildStatus) {
         build.meta = isEmpty(meta) ? build.meta || {} : meta;
-        event.meta = merge({}, event.meta, build.meta);
         build.endTime = new Date().toISOString();
     } else if (desiredStatus === 'RUNNING') {
         build.startTime = new Date().toISOString();
@@ -416,7 +417,30 @@ async function updateBuildAndTriggerDownstreamJobs(config, build, server, userna
     const pipeline = await job.pipeline;
     const isFixed = await isFixedBuild({ build, job });
 
+    let eventLock;
+    const eventResource = `event:${event.id}`;
+
+    if (isEndBuildStatus) {
+        try {
+            eventLock = await locker.lock(eventResource);
+        } catch (err) {
+            eventLock = null;
+        }
+
+        const latestEvent = await eventFactory.get(build.eventId);
+
+        event.meta = merge({}, latestEvent ? latestEvent.meta : event.meta, build.meta);
+    }
+
     const [newBuild, newEvent] = await Promise.all([build.update(), event.update(), stopFrozen]);
+
+    if (isEndBuildStatus) {
+        try {
+            await locker.unlock(eventLock, eventResource);
+        } catch (err) {
+            // ignore unlock errors for parity with lock helper behavior
+        }
+    }
 
     if (desiredStatus) {
         await emitBuildStatusEvent({ server, build: newBuild, pipeline, event: newEvent, job, isFixed });

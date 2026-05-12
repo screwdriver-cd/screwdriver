@@ -1316,6 +1316,53 @@ describe('build plugin test', () => {
                 });
             });
 
+            it('merges build meta with the latest event meta for terminal status updates', () => {
+                const options = {
+                    method: 'PUT',
+                    url: `/builds/${id}`,
+                    auth: {
+                        credentials: {
+                            username: id,
+                            scope: ['build']
+                        },
+                        strategy: ['token']
+                    },
+                    payload: {
+                        meta: {
+                            keyFromBuild: 'buildValue',
+                            sharedKey: 'newValue'
+                        },
+                        status: 'SUCCESS'
+                    }
+                };
+                const staleEvent = {
+                    ...eventMock,
+                    meta: {
+                        staleOnlyKey: 'staleValue',
+                        sharedKey: 'staleValue'
+                    }
+                };
+                const latestEvent = {
+                    ...eventMock,
+                    meta: {
+                        latestOnlyKey: 'latestValue',
+                        sharedKey: 'oldValue'
+                    }
+                };
+
+                eventFactoryMock.get.onFirstCall().resolves(staleEvent);
+                eventFactoryMock.get.onSecondCall().resolves(latestEvent);
+
+                return server.inject(options).then(reply => {
+                    assert.equal(reply.statusCode, 200);
+                    assert.deepEqual(staleEvent.meta, {
+                        latestOnlyKey: 'latestValue',
+                        keyFromBuild: 'buildValue',
+                        sharedKey: 'newValue'
+                    });
+                });
+            });
+
             it('defaults meta to {}', () => {
                 const status = 'SUCCESS';
                 const options = {
@@ -4776,7 +4823,7 @@ describe('build plugin test', () => {
                     return newServer.inject(options).then(() => {
                         assert.notCalled(eventFactoryMock.create);
                         assert.calledOnce(buildFactoryMock.create);
-                        assert.calledTwice(eventFactoryMock.get);
+                        assert.calledThrice(eventFactoryMock.get);
                     });
                 });
 
