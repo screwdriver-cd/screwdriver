@@ -6,6 +6,7 @@ const badgeMaker = require('badge-maker');
 const sinon = require('sinon');
 const hapi = require('@hapi/hapi');
 const hoek = require('@hapi/hoek');
+const rewiremock = require('rewiremock/node');
 const testPipeline = require('./data/pipeline.json');
 const testPipelines = require('./data/pipelines.json');
 const testPrivatePipelines = require('./data/privatePipelines.json');
@@ -226,6 +227,7 @@ describe('pipeline plugin test', () => {
     let pipelineTemplateFactoryMock;
     let pipelineTemplateVersionFactoryMock;
     let buildClusterFactoryMock;
+    let lockMock;
     let plugin;
     let server;
     const password = 'this_is_a_password_that_needs_to_be_atleast_32_characters';
@@ -314,9 +316,16 @@ describe('pipeline plugin test', () => {
         };
         generateProfileMock = sinon.stub();
         generateTokenMock = sinon.stub();
+        lockMock = {
+            lock: sinon.stub().resolves(null),
+            unlock: sinon.stub().resolves(null)
+        };
+        lockMock.locker = lockMock;
 
         /* eslint-disable global-require */
-        plugin = require('../../plugins/pipelines');
+        plugin = rewiremock.proxy('../../plugins/pipelines', {
+            '../../plugins/lock': lockMock
+        });
         /* eslint-enable global-require */
         server = new hapi.Server({
             port: 1234
