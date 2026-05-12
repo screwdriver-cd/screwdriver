@@ -370,7 +370,8 @@ describe('startHookEvent test', () => {
                 getChangedFiles: sinon.stub(),
                 getCommitSha: sinon.stub(),
                 getCommitRefSha: sinon.stub(),
-                getReadOnlyInfo: sinon.stub().returns({ enabled: false })
+                getReadOnlyInfo: sinon.stub().returns({ enabled: false }),
+                withRequestCache: sinon.stub().callsFake((requestCache, method) => method())
             }
         };
         userFactoryMock = {
@@ -548,6 +549,8 @@ describe('startHookEvent test', () => {
 
             return startHookEvent(request, responseHandler, parsed).then(reply => {
                 assert.equal(reply.statusCode, 201);
+                assert.calledOnce(pipelineFactoryMock.scm.withRequestCache);
+                assert.instanceOf(pipelineFactoryMock.scm.withRequestCache.firstCall.args[0], Map);
                 assert.calledOnce(pipelineFactoryMock.scm.getCommitRefSha);
                 assert.calledWith(pipelineFactoryMock.scm.getCommitRefSha, sinon.match({ refType: 'tags' }));
                 assert.calledTwice(pipelineFactoryMock.list);
@@ -2717,6 +2720,8 @@ describe('startHookEvent test', () => {
 
             it('returns 201 on success', () =>
                 startHookEvent(request, responseHandler, parsed).then(reply => {
+                    assert.calledWithExactly(pipelineFactoryMock.scm.getCommitSha, scmConfig);
+                    assert.calledWithExactly(eventFactoryMock.scm.getPrInfo, scmConfig);
                     assert.calledWith(eventFactoryMock.create, {
                         prInfo,
                         pipelineId,
