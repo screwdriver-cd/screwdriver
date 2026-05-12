@@ -71,12 +71,9 @@ module.exports = () => ({
             // Therefore, you should not specify a parentEventId in the payload except when using RESTART.
             // Prevents metadata from transferring when Start from a specific event
             if (parentEventId) {
-                // eslint-disable-next-line default-case
-                switch (startAction) {
-                    case 'RESTART_FROM_EVENT':
-                    case 'RESTART_FROM_BUILD': {
-                        payload.parentEventId = parentEventId;
-                    }
+                payload.parentEventId = parentEventId;
+                if (startAction === 'START_FROM_LATEST_COMMIT' || startAction === 'START_FROM_EVENT') {
+                    delete payload.parentEventId;
                 }
             }
 
