@@ -397,7 +397,8 @@ describe('event plugin test', () => {
                     parentBuildId,
                     pipelineId,
                     startFrom: '~commit',
-                    meta
+                    meta,
+                    startAction: 'START_FROM_LATEST_COMMIT'
                 },
                 auth: {
                     credentials: {
@@ -428,10 +429,11 @@ describe('event plugin test', () => {
             pipelineFactoryMock.get.resolves(pipelineMock);
         });
 
-        it('returns 201 when it successfully creates an event with buildId passed in', () => {
+        it('returns 201 when it successfully creates restart event with buildId passed in', () => {
             options.payload = {
                 buildId: 1234,
-                meta
+                meta,
+                startAction: 'RESTART_FROM_BUILD'
             };
             buildFactoryMock.get.resolves({
                 id: 1234,
@@ -470,6 +472,75 @@ describe('event plugin test', () => {
             });
         });
 
+        it('returns 201 when it successfully creates restart event with branch specific triggered parent event', () => {
+            options.payload.startFrom = 'main';
+            options.payload.startAction = 'RESTART_FROM_EVENT';
+            options.payload.parentEventId = 888;
+            options.payload.groupEventId = 888;
+            delete options.payload.parentBuildId;
+            jobFactoryMock.get.resolves({
+                pipelineId,
+                name: 'main'
+            });
+            eventConfig.startFrom = 'main';
+            eventConfig.workflowGraph = getEventMock(testEvent).workflowGraph;
+            eventConfig.sha = getEventMock(testEvent).sha;
+            eventConfig.parentEventId = 888;
+            eventConfig.groupEventId = 888;
+            eventConfig.baseBranch = 'test';
+            delete eventConfig.parentBuildId;
+            testEvent.baseBranch = 'test';
+            eventFactoryMock.get.resolves(getEventMock(testEvent));
+
+            return server.inject(options).then(reply => {
+                expectedLocation = {
+                    host: reply.request.headers.host,
+                    port: reply.request.headers.port,
+                    protocol: reply.request.server.info.protocol,
+                    pathname: `${options.url}/12345`
+                };
+                assert.calledWith(userMock.getPermissions, scmUri, scmContext, scmRepo);
+                assert.calledWith(eventFactoryMock.create, eventConfig);
+                assert.strictEqual(reply.headers.location, urlLib.format(expectedLocation));
+                assert.notCalled(eventFactoryMock.scm.getPrInfo);
+                assert.equal(reply.statusCode, 201);
+            });
+        });
+
+        it('returns 201 when it successfully creates a new event with branch specific triggered parent event', () => {
+            options.payload.startFrom = 'main';
+            options.payload.startAction = 'START_FROM_EVENT';
+            options.payload.parentEventId = 888;
+            options.payload.groupEventId = 888;
+            delete options.payload.parentBuildId;
+            jobFactoryMock.get.resolves({
+                pipelineId,
+                name: 'main'
+            });
+            eventConfig.startFrom = 'main';
+            eventConfig.workflowGraph = getEventMock(testEvent).workflowGraph;
+            eventConfig.sha = getEventMock(testEvent).sha;
+            eventConfig.groupEventId = 888;
+            eventConfig.baseBranch = 'test';
+            delete eventConfig.parentBuildId;
+            testEvent.baseBranch = 'test';
+            eventFactoryMock.get.resolves(getEventMock(testEvent));
+
+            return server.inject(options).then(reply => {
+                expectedLocation = {
+                    host: reply.request.headers.host,
+                    port: reply.request.headers.port,
+                    protocol: reply.request.server.info.protocol,
+                    pathname: `${options.url}/12345`
+                };
+                assert.calledWith(userMock.getPermissions, scmUri, scmContext, scmRepo);
+                assert.calledWith(eventFactoryMock.create, eventConfig);
+                assert.strictEqual(reply.headers.location, urlLib.format(expectedLocation));
+                assert.notCalled(eventFactoryMock.scm.getPrInfo);
+                assert.equal(reply.statusCode, 201);
+            });
+        });
+
         it('returns 201 when it successfully creates an event with causeMessage and scheduler creator passed in', () => {
             delete options.payload.parentBuildId;
             delete eventConfig.parentBuildId;
@@ -483,7 +554,8 @@ describe('event plugin test', () => {
                 creator: {
                     name: 'Screwdriver scheduler',
                     username: 'sd:scheduler'
-                }
+                },
+                startAction: 'START_FROM_LATEST_COMMIT'
             };
 
             return server.inject(options).then(reply => {
@@ -515,7 +587,8 @@ describe('event plugin test', () => {
                 creator: {
                     name: 'foo bar',
                     username: 'foobar'
-                }
+                },
+                startAction: 'START_FROM_LATEST_COMMIT'
             };
 
             return server.inject(options).then(reply => {
@@ -843,12 +916,35 @@ describe('event plugin test', () => {
             });
         });
 
-        it('returns 201 when it successfully creates an event with parent event', () => {
+        it('returns 201 when it successfully creates an restart event with parent event', () => {
             eventConfig.parentEventId = parentEventId;
             eventConfig.workflowGraph = getEventMock(testEvent).workflowGraph;
             eventConfig.sha = getEventMock(testEvent).sha;
             eventConfig.baseBranch = 'master';
             options.payload.parentEventId = parentEventId;
+            options.payload.startAction = 'RESTART_FROM_EVENT';
+
+            return server.inject(options).then(reply => {
+                expectedLocation = {
+                    host: reply.request.headers.host,
+                    port: reply.request.headers.port,
+                    protocol: reply.request.server.info.protocol,
+                    pathname: `${options.url}/12345`
+                };
+                assert.equal(reply.statusCode, 201);
+                assert.calledWith(userMock.getPermissions, scmUri, scmContext, scmRepo);
+                assert.calledWith(eventFactoryMock.create, eventConfig);
+                assert.strictEqual(reply.headers.location, urlLib.format(expectedLocation));
+                assert.notCalled(eventFactoryMock.scm.getPrInfo);
+            });
+        });
+
+        it('returns 201 when it successfully creates a new event with parent event', () => {
+            eventConfig.workflowGraph = getEventMock(testEvent).workflowGraph;
+            eventConfig.sha = getEventMock(testEvent).sha;
+            eventConfig.baseBranch = 'master';
+            options.payload.parentEventId = parentEventId;
+            options.payload.startAction = 'START_FROM_EVENT';
 
             return server.inject(options).then(reply => {
                 expectedLocation = {
@@ -869,7 +965,8 @@ describe('event plugin test', () => {
             options.payload = {
                 buildId: 1234,
                 meta,
-                parentBuilds
+                parentBuilds,
+                startAction: 'RESTART_FROM_BUILD'
             };
             buildFactoryMock.get.resolves({
                 id: 1234,
@@ -912,7 +1009,8 @@ describe('event plugin test', () => {
                 buildId: 1234,
                 meta,
                 parentBuilds,
-                groupEventId: 2
+                groupEventId: 2,
+                startAction: 'RESTART_FROM_BUILD'
             };
             buildFactoryMock.get.resolves({
                 id: 1234,
@@ -966,6 +1064,7 @@ describe('event plugin test', () => {
             eventConfig.startFrom = 'stage@integration:teardown';
             options.payload.parentEventId = parentEventId;
             options.payload.startFrom = 'stage@integration:teardown';
+            options.payload.startAction = 'RESTART_FROM_EVENT';
 
             return server.inject(options).then(reply => {
                 expectedLocation = {
@@ -981,12 +1080,36 @@ describe('event plugin test', () => {
             });
         });
 
-        it('returns 201 when it successfully creates an event with parent event and the startFrom is not a stage teardown', () => {
+        it('returns 201 when it successfully creates a new event with parent event and the startFrom is a stage teardown', () => {
+            eventConfig.workflowGraph = getEventMock(testEvent).workflowGraph;
+            eventConfig.sha = getEventMock(testEvent).sha;
+            eventConfig.baseBranch = 'master';
+            eventConfig.startFrom = 'stage@integration:teardown';
+            options.payload.parentEventId = parentEventId;
+            options.payload.startFrom = 'stage@integration:teardown';
+            options.payload.startAction = 'START_FROM_EVENT';
+
+            return server.inject(options).then(reply => {
+                expectedLocation = {
+                    host: reply.request.headers.host,
+                    port: reply.request.headers.port,
+                    protocol: reply.request.server.info.protocol,
+                    pathname: `${options.url}/12345`
+                };
+                assert.equal(reply.statusCode, 201);
+                assert.calledWith(eventFactoryMock.create, eventConfig);
+                assert.strictEqual(reply.headers.location, urlLib.format(expectedLocation));
+                assert.notCalled(eventFactoryMock.scm.getPrInfo);
+            });
+        });
+
+        it('returns 201 when it successfully creates restarted event with parent event and the startFrom is not a stage teardown', () => {
             eventConfig.parentEventId = parentEventId;
             eventConfig.workflowGraph = getEventMock(testEvent).workflowGraph;
             eventConfig.sha = getEventMock(testEvent).sha;
             eventConfig.baseBranch = 'master';
             options.payload.parentEventId = parentEventId;
+            options.payload.startAction = 'RESTART_FROM_EVENT';
 
             return server.inject(options).then(reply => {
                 expectedLocation = {
@@ -1002,7 +1125,28 @@ describe('event plugin test', () => {
             });
         });
 
-        it('returns 201 when it creates an event with parent event for child pipeline', () => {
+        it('returns 201 when it successfully creates a new event with parent event and the startFrom is not a stage teardown', () => {
+            eventConfig.workflowGraph = getEventMock(testEvent).workflowGraph;
+            eventConfig.sha = getEventMock(testEvent).sha;
+            eventConfig.baseBranch = 'master';
+            options.payload.parentEventId = parentEventId;
+            options.payload.startAction = 'START_FROM_EVENT';
+
+            return server.inject(options).then(reply => {
+                expectedLocation = {
+                    host: reply.request.headers.host,
+                    port: reply.request.headers.port,
+                    protocol: reply.request.server.info.protocol,
+                    pathname: `${options.url}/12345`
+                };
+                assert.equal(reply.statusCode, 201);
+                assert.calledWith(eventFactoryMock.create, eventConfig);
+                assert.strictEqual(reply.headers.location, urlLib.format(expectedLocation));
+                assert.notCalled(eventFactoryMock.scm.getPrInfo);
+            });
+        });
+
+        it('returns 201 when it creates restarted event with parent event for child pipeline', () => {
             eventConfig.parentEventId = parentEventId;
             eventConfig.workflowGraph = getEventMock(testEvent).workflowGraph;
             eventConfig.sha = getEventMock(testEvent).sha;
@@ -1011,15 +1155,20 @@ describe('event plugin test', () => {
             testEvent.meta = {
                 parameters: {
                     user: { value: 'adong' }
-                }
+                },
+                foo: 'bar',
+                one: 1
             };
             eventConfig.configPipelineSha = 'configPipelineSha';
             eventConfig.meta = {
                 parameters: {
                     user: { value: 'adong' }
-                }
+                },
+                foo: 'bar',
+                one: 1
             };
             options.payload.parentEventId = parentEventId;
+            options.payload.startAction = 'RESTART_FROM_EVENT';
             delete options.payload.meta;
             eventFactoryMock.get.withArgs(parentEventId).resolves(getEventMock(testEvent));
 
@@ -1039,7 +1188,44 @@ describe('event plugin test', () => {
             });
         });
 
-        it('returns 201 when it creates an event with custom parameters and parent event', () => {
+        it('returns 201 when it creates a new event with parent event for child pipeline', () => {
+            // This test case ensures that when "Start" is called with a parent event specified,
+            // the parent event's metadata is not inherited.
+            eventConfig.workflowGraph = getEventMock(testEvent).workflowGraph;
+            eventConfig.sha = getEventMock(testEvent).sha;
+            eventConfig.baseBranch = 'master';
+            testEvent.configPipelineSha = 'configPipelineSha';
+            testEvent.meta = {
+                parameters: {
+                    user: { value: 'adong' }
+                },
+                foo: 'bar',
+                one: 1
+            };
+            eventConfig.configPipelineSha = 'configPipelineSha';
+            eventConfig.meta = {};
+            options.payload.parentEventId = parentEventId;
+            options.payload.startAction = 'START_FROM_EVENT';
+            delete options.payload.meta;
+            eventFactoryMock.get.withArgs(parentEventId).resolves(getEventMock(testEvent));
+
+            return server.inject(options).then(reply => {
+                expectedLocation = {
+                    host: reply.request.headers.host,
+                    port: reply.request.headers.port,
+                    protocol: reply.request.server.info.protocol,
+                    pathname: `${options.url}/12345`
+                };
+                assert.equal(reply.statusCode, 201);
+                assert.calledWith(userMock.getPermissions, scmUri, scmContext, scmRepo);
+                assert.calledWith(eventFactoryMock.create, eventConfig);
+                assert.strictEqual(reply.headers.location, urlLib.format(expectedLocation));
+                assert.notCalled(eventFactoryMock.scm.getPrInfo);
+                delete testEvent.configPipelineSha;
+            });
+        });
+
+        it('returns 201 when it creates restarted event with custom parameters and parent event', () => {
             eventConfig.parentEventId = parentEventId;
             eventConfig.workflowGraph = getEventMock(testEvent).workflowGraph;
             eventConfig.sha = getEventMock(testEvent).sha;
@@ -1058,6 +1244,7 @@ describe('event plugin test', () => {
             options.payload.meta.parameters = {
                 user: { value: 'klu' }
             };
+            options.payload.startAction = 'RESTART_FROM_EVENT';
             eventFactoryMock.get.withArgs(parentEventId).resolves(getEventMock(testEvent));
 
             return server.inject(options).then(reply => {
@@ -1076,7 +1263,44 @@ describe('event plugin test', () => {
             });
         });
 
-        it('returns 201 when it creates an event with parent event which has meta', () => {
+        it('returns 201 when it creates a new event with custom parameters and parent event', () => {
+            eventConfig.workflowGraph = getEventMock(testEvent).workflowGraph;
+            eventConfig.sha = getEventMock(testEvent).sha;
+            eventConfig.baseBranch = 'master';
+            testEvent.configPipelineSha = 'configPipelineSha';
+            testEvent.meta = {
+                parameters: {
+                    user: { value: 'adong' }
+                }
+            };
+            eventConfig.configPipelineSha = 'configPipelineSha';
+            eventConfig.meta.parameters = {
+                user: { value: 'klu' }
+            };
+            options.payload.parentEventId = parentEventId;
+            options.payload.meta.parameters = {
+                user: { value: 'klu' }
+            };
+            options.payload.startAction = 'START_FROM_EVENT';
+            eventFactoryMock.get.withArgs(parentEventId).resolves(getEventMock(testEvent));
+
+            return server.inject(options).then(reply => {
+                expectedLocation = {
+                    host: reply.request.headers.host,
+                    port: reply.request.headers.port,
+                    protocol: reply.request.server.info.protocol,
+                    pathname: `${options.url}/12345`
+                };
+                assert.equal(reply.statusCode, 201);
+                assert.calledWith(userMock.getPermissions, scmUri, scmContext, scmRepo);
+                assert.calledWith(eventFactoryMock.create, eventConfig);
+                assert.strictEqual(reply.headers.location, urlLib.format(expectedLocation));
+                assert.notCalled(eventFactoryMock.scm.getPrInfo);
+                delete testEvent.configPipelineSha;
+            });
+        });
+
+        it('returns 201 when it creates restarted event with parent event which has meta', () => {
             eventConfig.parentEventId = parentEventId;
             eventConfig.workflowGraph = getEventMock(testEvent).workflowGraph;
             eventConfig.sha = getEventMock(testEvent).sha;
@@ -1085,6 +1309,35 @@ describe('event plugin test', () => {
             testEvent.meta = meta;
             eventConfig.configPipelineSha = 'configPipelineSha';
             eventConfig.meta = meta;
+            options.payload.parentEventId = parentEventId;
+            options.payload.startAction = 'RESTART_FROM_EVENT';
+            eventFactoryMock.get.withArgs(parentEventId).resolves(getEventMock(testEvent));
+
+            return server.inject(options).then(reply => {
+                expectedLocation = {
+                    host: reply.request.headers.host,
+                    port: reply.request.headers.port,
+                    protocol: reply.request.server.info.protocol,
+                    pathname: `${options.url}/12345`
+                };
+                assert.equal(reply.statusCode, 201);
+                assert.calledWith(userMock.getPermissions, scmUri, scmContext, scmRepo);
+                assert.calledWith(eventFactoryMock.create, eventConfig);
+                assert.strictEqual(reply.headers.location, urlLib.format(expectedLocation));
+                assert.notCalled(eventFactoryMock.scm.getPrInfo);
+                delete testEvent.configPipelineSha;
+            });
+        });
+
+        it('returns 201 when it creates a new event with parent event which has meta', () => {
+            eventConfig.workflowGraph = getEventMock(testEvent).workflowGraph;
+            eventConfig.sha = getEventMock(testEvent).sha;
+            eventConfig.baseBranch = 'master';
+            testEvent.configPipelineSha = 'configPipelineSha';
+            testEvent.meta = meta;
+            eventConfig.configPipelineSha = 'configPipelineSha';
+            eventConfig.meta = meta;
+            options.payload.startAction = 'START_FROM_EVENT';
             options.payload.parentEventId = parentEventId;
             eventFactoryMock.get.withArgs(parentEventId).resolves(getEventMock(testEvent));
 
@@ -1104,7 +1357,7 @@ describe('event plugin test', () => {
             });
         });
 
-        it('returns 201 when it creates an event with custom parameters and parent event which has meta', () => {
+        it('returns 201 when it creates restarted event with custom parameters and parent event which has meta', () => {
             eventConfig.parentEventId = parentEventId;
             eventConfig.workflowGraph = getEventMock(testEvent).workflowGraph;
             eventConfig.sha = getEventMock(testEvent).sha;
@@ -1126,6 +1379,52 @@ describe('event plugin test', () => {
                 one: 1
             };
             options.payload.parentEventId = parentEventId;
+            options.payload.startAction = 'RESTART_FROM_EVENT';
+            options.payload.meta = {
+                parameters: {
+                    user: { value: 'klu' }
+                }
+            };
+            eventFactoryMock.get.withArgs(parentEventId).resolves(getEventMock(testEvent));
+
+            return server.inject(options).then(reply => {
+                expectedLocation = {
+                    host: reply.request.headers.host,
+                    port: reply.request.headers.port,
+                    protocol: reply.request.server.info.protocol,
+                    pathname: `${options.url}/12345`
+                };
+                assert.equal(reply.statusCode, 201);
+                assert.calledWith(userMock.getPermissions, scmUri, scmContext, scmRepo);
+                assert.calledWith(eventFactoryMock.create, eventConfig);
+                assert.strictEqual(reply.headers.location, urlLib.format(expectedLocation));
+                assert.notCalled(eventFactoryMock.scm.getPrInfo);
+                delete testEvent.configPipelineSha;
+            });
+        });
+
+        it('returns 201 when it creates new event with custom parameters and parent event which has meta', () => {
+            // This test case ensures that when "Start" is called with a parent event specified,
+            // the parent event's metadata is not inherited.
+            eventConfig.workflowGraph = getEventMock(testEvent).workflowGraph;
+            eventConfig.sha = getEventMock(testEvent).sha;
+            eventConfig.baseBranch = 'master';
+            testEvent.configPipelineSha = 'configPipelineSha';
+            testEvent.meta = {
+                parameters: {
+                    user: { value: 'adong' }
+                },
+                foo: 'bar',
+                one: 1
+            };
+            eventConfig.configPipelineSha = 'configPipelineSha';
+            eventConfig.meta = {
+                parameters: {
+                    user: { value: 'klu' }
+                }
+            };
+            options.payload.parentEventId = parentEventId;
+            options.payload.startAction = 'START_FROM_EVENT';
             options.payload.meta = {
                 parameters: {
                     user: { value: 'klu' }
@@ -1360,7 +1659,7 @@ describe('event plugin test', () => {
             });
         });
 
-        it('returns 201 when it successfully creates a PR event with parent event', () => {
+        it('returns 201 when it successfully creates restarted PR event with parent event', () => {
             eventConfig.parentEventId = parentEventId;
             eventConfig.sha = commitSha;
             eventConfig.startFrom = 'PR-1:main';
@@ -1368,6 +1667,42 @@ describe('event plugin test', () => {
             eventConfig.type = 'pr';
             eventConfig.chainPR = false;
             options.payload.startFrom = 'PR-1:main';
+            options.payload.startAction = 'RESTART_FROM_EVENT';
+            options.payload.parentEventId = parentEventId;
+            eventConfig.prInfo = prInfo;
+            ({ ref: eventConfig.prRef, prSource: eventConfig.prSource } = prInfo);
+            eventConfig.changedFiles = ['screwdriver.yaml'];
+            eventConfig.baseBranch = 'master';
+            eventConfig.meta.parameters = {
+                user: { value: 'adong' }
+            };
+
+            return server.inject(options).then(reply => {
+                expectedLocation = {
+                    host: reply.request.headers.host,
+                    port: reply.request.headers.port,
+                    protocol: reply.request.server.info.protocol,
+                    pathname: `${options.url}/12345`
+                };
+                assert.equal(reply.statusCode, 201);
+                assert.calledWith(userMock.getPermissions, scmUri, scmContext, scmRepo);
+                assert.calledWith(eventFactoryMock.create, eventConfig);
+                assert.strictEqual(reply.headers.location, urlLib.format(expectedLocation));
+                assert.calledOnce(eventFactoryMock.scm.getCommitSha);
+                assert.calledOnce(eventFactoryMock.scm.getPrInfo);
+                assert.calledWith(eventFactoryMock.scm.getPrInfo, { ...scmConfig, prNum: eventConfig.prNum });
+                assert.calledOnce(eventFactoryMock.scm.getChangedFiles);
+            });
+        });
+
+        it('returns 201 when it successfully creates a new PR event with parent event', () => {
+            eventConfig.sha = commitSha;
+            eventConfig.startFrom = 'PR-1:main';
+            eventConfig.prNum = '1';
+            eventConfig.type = 'pr';
+            eventConfig.chainPR = false;
+            options.payload.startFrom = 'PR-1:main';
+            options.payload.startAction = 'START_FROM_EVENT';
             options.payload.parentEventId = parentEventId;
             eventConfig.prInfo = prInfo;
             ({ ref: eventConfig.prRef, prSource: eventConfig.prSource } = prInfo);
@@ -1543,7 +1878,7 @@ describe('event plugin test', () => {
             });
         });
 
-        it('returns 201 when it creates an event with parent event for child pipeline', () => {
+        it('returns 404 when event have no builds', () => {
             testEvent.builds = null;
             eventFactoryMock.create.resolves(getEventMock(testEvent));
 
