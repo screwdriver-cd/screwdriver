@@ -134,10 +134,10 @@
     "screwdriver-scm-router": "^9.0.0",
     "screwdriver-template-validator": "^10.0.0",
     "screwdriver-workflow-parser": "^6.1.0",
-    "sqlite3": "^5.1.4",
+    "sqlite3": "^6.0.1",
     "stream": "0.0.3",
     "tinytim": "^0.1.1",
-    "uuid": "^9.0.0",
+    "uuid": "^11.1.1",
     "verror": "^1.10.1"
   },
   "release": {
@@ -168,5 +168,13 @@
     "rewiremock": "^3.14.4",
     "sinon": "^15.0.0",
     "stream-to-promise": "^3.0.0"
+  },
+  "overrides": {
+    "screwdriver-datastore-sequelize": {
+      "uuid": "^14.0.0"
+    },
+    "screwdriver-scm-github": {
+      "underscore": "^1.13.8"
+    }
   }
 }
