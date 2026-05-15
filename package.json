@@ -171,7 +171,9 @@
   },
   "overrides": {
     "screwdriver-datastore-sequelize": {
-      "uuid": "^11.1.1"
+      "sequelize": {
+        "uuid": "^11.1.1"
+      }
     },
     "screwdriver-scm-github": {
       "underscore": "^1.13.8"
