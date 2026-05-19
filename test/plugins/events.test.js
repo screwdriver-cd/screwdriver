@@ -523,6 +523,7 @@ describe('event plugin test', () => {
             eventConfig.groupEventId = 888;
             eventConfig.baseBranch = 'test';
             delete eventConfig.parentBuildId;
+            delete eventConfig.groupEventId;
             testEvent.baseBranch = 'test';
             eventFactoryMock.get.resolves(getEventMock(testEvent));
 
