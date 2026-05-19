@@ -83,6 +83,9 @@ module.exports = () => ({
 
             if (groupEventId) {
                 payload.groupEventId = groupEventId;
+                if (startAction === 'START_FROM_LATEST_COMMIT' || startAction === 'START_FROM_EVENT') {
+                    delete payload.groupEventId;
+                }
             }
 
             if (parentBuilds) {
