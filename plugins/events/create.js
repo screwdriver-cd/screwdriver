@@ -77,15 +77,16 @@ module.exports = () => ({
                 }
             }
 
-            if (parentBuildId) {
-                payload.parentBuildId = parentBuildId;
-            }
-
+            // The groupEventId also inherits the build status, so it is excluded.
             if (groupEventId) {
                 payload.groupEventId = groupEventId;
                 if (startAction === 'START_FROM_LATEST_COMMIT' || startAction === 'START_FROM_EVENT') {
                     delete payload.groupEventId;
                 }
+            }
+
+            if (parentBuildId) {
+                payload.parentBuildId = parentBuildId;
             }
 
             if (parentBuilds) {
