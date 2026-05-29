@@ -133,6 +133,22 @@ function isStageTeardown(jobName) {
     return STAGE_TEARDOWN_PATTERN.test(jobName);
 }
 
+/**
+ * Coerce a YAML-derived boolean-or-string into a Boolean. Accepts the
+ * common YAML 1.1 truthy strings ('on', 'true', 'yes', 'y') for
+ * consistency with the convention historically used by plugins/lock.js.
+ * @method parseBool
+ * @param  {Boolean|String} value
+ * @returns {Boolean}
+ */
+function parseBool(value) {
+    if (typeof value === 'boolean') {
+        return value;
+    }
+
+    return ['on', 'true', 'yes', 'y'].includes(String(value).toLowerCase());
+}
+
 module.exports = {
     getReadOnlyInfo,
     getScmUri,
@@ -140,5 +156,6 @@ module.exports = {
     setDefaultTimeRange,
     validTimeRange,
     getFullStageJobName,
-    isStageTeardown
+    isStageTeardown,
+    parseBool
 };

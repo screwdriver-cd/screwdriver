@@ -4,21 +4,7 @@ const Redis = require('ioredis');
 const Redlock = require('redlock');
 const config = require('config');
 const logger = require('screwdriver-logger');
-
-/**
- * parse value to Boolean
- * @method parseBool
- * @param {(Boolean|String)} value
- * @return {Boolean}
- */
-function parseBool(value) {
-    if (typeof value === 'boolean') {
-        return value;
-    }
-
-    // True values refers to https://yaml.org/type/bool.html
-    return ['on', 'true', 'yes', 'y'].includes(String(value).toLowerCase());
-}
+const { parseBool } = require('./helper');
 
 class Lock {
     /**

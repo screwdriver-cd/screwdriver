@@ -5,6 +5,7 @@ const logger = require('screwdriver-logger');
 const boom = require('@hapi/boom');
 const { ValidationError } = require('joi');
 const { startHookEvent } = require('./helper');
+const dedupStore = require('./dedupStore');
 
 const DEFAULT_MAX_BYTES = 1048576; // 1MB
 const providerSchema = joi
@@ -98,6 +99,20 @@ const webhooksPlugin = {
                         hookId = parsed.hookId;
 
                         request.log(['webhook', hookId], `Received event type ${type}`);
+
+                        // Replay protection: dedupe identical x-github-delivery within a short window.
+                        // On duplicate, return 204 No Content with no body so the SCM stops
+                        // retrying and an attacker probing IDs cannot distinguish a seen ID from
+                        // an unseen one based on the response. The replay decision is recorded
+                        // server-side via request.log. Fail-open is handled inside dedupStore.claim().
+                        const dedupKey = `webhook:${parsed.scmContext}:${hookId}`;
+                        const fresh = await dedupStore.claim(dedupKey);
+
+                        if (!fresh) {
+                            request.log(['webhook', hookId], 'Duplicate delivery — skipping (replay protection)');
+
+                            return h.response().code(204);
+                        }
 
                         if (queueWebhookEnabled) {
                             parsed.token = request.server.plugins.auth.generateToken({
