@@ -19,6 +19,7 @@ describe('webhooks plugin test', () => {
     let eventFactoryMock;
     let queueWebhookMock;
     let startHookEventMock;
+    let dedupStoreMock;
     let plugin;
     let server;
     const apiUri = 'http://foo.bar:12345';
@@ -43,10 +44,15 @@ describe('webhooks plugin test', () => {
 
         startHookEventMock = sinon.stub();
 
+        dedupStoreMock = {
+            claim: sinon.stub().resolves(true)
+        };
+
         plugin = rewiremock.proxy('../../plugins/webhooks', {
             '../../plugins/webhooks/helper': {
                 startHookEvent: startHookEventMock
-            }
+            },
+            '../../plugins/webhooks/dedupStore': dedupStoreMock
         });
 
         server = new hapi.Server({
@@ -190,6 +196,21 @@ describe('webhooks plugin test', () => {
             return server.inject(options).then(() => {
                 assert.calledOnce(pipelineFactoryMock.scm.parseHook);
                 assert.calledWith(startHookEventMock, sinon.match.any, sinon.match.any, parsed);
+                assert.notCalled(queueWebhookMock.executor.enqueueWebhook);
+            });
+        });
+
+        it('returns 204 with empty body when the delivery is a duplicate', () => {
+            pipelineFactoryMock.scm.parseHook.resolves(parsed);
+            dedupStoreMock.claim.resolves(false);
+
+            return server.inject(options).then(reply => {
+                // 204 with no body so an attacker probing hookIds cannot
+                // distinguish a seen ID from an unseen one.
+                assert.equal(reply.statusCode, 204);
+                assert.equal(reply.payload, '');
+                assert.calledWith(dedupStoreMock.claim, `webhook:${parsed.scmContext}:${parsed.hookId}`);
+                assert.notCalled(startHookEventMock);
                 assert.notCalled(queueWebhookMock.executor.enqueueWebhook);
             });
         });

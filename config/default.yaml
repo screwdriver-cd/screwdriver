@@ -278,6 +278,20 @@ scms: {}
 #         # SCM clone type (https or ssh)
 #         cloneType: https
 webhooks:
+  # Replay protection for incoming webhook deliveries. Dedupes identical
+  # x-github-delivery values within a short TTL so a captured webhook cannot be
+  # replayed by an attacker. The Redis backend reuses the connection configured
+  # under redisLock.options.redisConnection (a single Redis instance generally
+  # serves both features). When no Redis host is configured, falls back to a
+  # per-process in-memory store. Fail-open: infrastructure errors never block
+  # legitimate webhook deliveries.
+  replayProtection:
+    # Master switch. Set to false to disable replay protection entirely.
+    enabled: true
+    # Window in which a duplicate x-github-delivery is rejected. Defaults to 5
+    # minutes — long enough to defeat realistic fast-replay attempts, short
+    # enough that legitimate manual redelivery from the SCM UI is unaffected.
+    ttlSeconds: 300
   scms:
     github:
       # Obtains the SCM token for a given user. If a user does not have a valid SCM token registered with Screwdriver, it will use this user's token instead.
