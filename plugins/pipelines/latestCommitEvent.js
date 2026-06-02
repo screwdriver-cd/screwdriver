@@ -20,28 +20,15 @@ module.exports = () => ({
 
         handler: async (request, h) => {
             const { eventFactory } = request.server.app;
+            const event = await eventFactory.getLatestCommitEvent({
+                pipelineId: request.params.id
+            });
 
-            return eventFactory
-                .list({
-                    params: {
-                        pipelineId: request.params.id,
-                        parentEventId: null,
-                        type: 'pipeline'
-                    },
-                    paginate: {
-                        count: 1
-                    }
-                })
-                .then(async events => {
-                    if (!events || Object.keys(events).length === 0) {
-                        throw boom.notFound('Event does not exist');
-                    }
+            if (!event) {
+                throw boom.notFound('Event does not exist');
+            }
 
-                    return h.response(await events[0].toJson());
-                })
-                .catch(err => {
-                    throw err;
-                });
+            return h.response(await event.toJson());
         },
         response: {
             schema: getSchema
