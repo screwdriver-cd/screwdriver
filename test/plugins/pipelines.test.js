@@ -274,6 +274,7 @@ describe('pipeline plugin test', () => {
         eventFactoryMock = {
             create: sinon.stub().resolves(null),
             list: sinon.stub().resolves(null),
+            getLatestCommitEvent: sinon.stub().resolves(null),
             getPipelineTypeBuildEvents: sinon.stub().resolves(null)
         };
         stageFactoryMock = {
@@ -1433,7 +1434,7 @@ describe('pipeline plugin test', () => {
     describe('GET /pipelines/{id}/latestCommitEvent', () => {
         const id = 1234;
         let options;
-        let events;
+        let event;
 
         beforeEach(() => {
             options = {
@@ -1441,13 +1442,12 @@ describe('pipeline plugin test', () => {
                 url: `/pipelines/${id}/latestCommitEvent`
             };
 
-            events = getEventsMocks(testEvents);
-
-            eventFactoryMock.list.resolves(events);
+            event = getEventsMocks(testEvents[0]);
+            eventFactoryMock.getLatestCommitEvent.resolves(event);
         });
 
         it('returns 404 if event does not exist', () => {
-            eventFactoryMock.list.resolves(null);
+            eventFactoryMock.getLatestCommitEvent.resolves(null);
 
             return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 404);
@@ -1457,15 +1457,8 @@ describe('pipeline plugin test', () => {
         it('returns 200 if found last commit event', () =>
             server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 200);
-                assert.calledWith(eventFactoryMock.list, {
-                    params: {
-                        pipelineId: id,
-                        parentEventId: null,
-                        type: 'pipeline'
-                    },
-                    paginate: {
-                        count: 1
-                    }
+                assert.calledWith(eventFactoryMock.getLatestCommitEvent, {
+                    pipelineId: id
                 });
                 assert.deepEqual(reply.result, testEvents[0]);
             }));
