@@ -1,6 +1,5 @@
 'use strict';
 
-const archiver = require('archiver');
 const boom = require('@hapi/boom');
 const request = require('got');
 const joi = require('joi');
@@ -10,6 +9,12 @@ const { PassThrough } = require('stream');
 const schema = require('screwdriver-data-schema');
 const { v4: uuidv4 } = require('uuid');
 const idSchema = schema.models.build.base.extract('id');
+
+async function createZipArchive() {
+    const { ZipArchive } = await import('archiver');
+
+    return new ZipArchive({ zlib: { level: 9 } });
+}
 
 
 module.exports = config => ({
@@ -63,7 +68,7 @@ module.exports = config => ({
                     const manifestArray = manifest.trim().split('\n');
 
                     // Create a stream and set up archiver
-                    const archive = archiver('zip', { zlib: { level: 9 } });
+                    const archive = await createZipArchive();
                     // PassThrough stream to make archiver readable by Hapi
                     const passThrough = new PassThrough();
 
