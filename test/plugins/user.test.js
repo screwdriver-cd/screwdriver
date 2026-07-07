@@ -187,6 +187,23 @@ describe('user plugin test', () => {
             });
         });
 
+        it('throws error when put invalid settings', () => {
+            options.payload = {
+                settings: { displayJobNameLength: 100 }
+            };
+
+            const error = {
+                statusCode: 400,
+                error: 'Bad Request',
+                message: 'Invalid request payload input'
+            };
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 400);
+                assert.deepEqual(reply.result, error);
+            });
+        });
+
         it('throws error not found when user does not exist', () => {
             const error = {
                 statusCode: 404,
