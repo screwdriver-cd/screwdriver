@@ -5,13 +5,18 @@ const joi = require('joi');
 const jwt = require('jsonwebtoken');
 const request = require('got');
 const schema = require('screwdriver-data-schema');
-const archiver = require('archiver');
 const { PassThrough } = require('stream');
 const logger = require('screwdriver-logger');
 const { v4: uuidv4 } = require('uuid');
 const idSchema = schema.models.build.base.extract('id');
 const artifactSchema = joi.string().label('Artifact Name');
 const typeSchema = joi.string().default('preview').valid('download', 'preview').label('Flag to trigger type either to download or preview');
+
+async function createZipArchive() {
+    const { ZipArchive } = await import('archiver');
+
+    return new ZipArchive({ zlib: { level: 9 } });
+}
 
 module.exports = config => ({
     method: 'GET',
@@ -90,7 +95,7 @@ module.exports = config => ({
                             }
 
                             // Create a stream and set up archiver
-                            const archive = archiver('zip', { zlib: { level: 9 } });
+                            const archive = await createZipArchive();
                             const passThrough = new PassThrough();
 
                             // Handle archiver errors
