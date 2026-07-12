@@ -179,8 +179,9 @@ function collectPackage(pkgDir, data) {
 
     const json = readJson(packageJsonPath);
     const key = `${json.name}@${json.version}`;
+    const hasIdentity = json.name && json.version;
 
-    if (!json.name || !json.version || data[key]) {
+    if (hasIdentity && data[key]) {
         return data;
     }
 
@@ -234,7 +235,9 @@ function collectPackage(pkgDir, data) {
         moduleInfo.licenses = UNLICENSED;
     }
 
-    data[key] = moduleInfo;
+    if (hasIdentity) {
+        data[key] = moduleInfo;
+    }
 
     [json.dependencies, json.optionalDependencies, json.peerDependencies].forEach(dependencies => {
         Object.keys(dependencies || {}).forEach(depName => {
