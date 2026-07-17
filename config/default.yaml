@@ -340,6 +340,10 @@ multiBuildCluster:
   # Enabled multi build cluster feature or not
   enabled: false
 
+yamlParser:
+  # Maximum total number of YAML merge keys allowed in a pipeline configuration
+  maxTotalMergeKeys: 11000
+
 unzipArtifacts:
   # Enabled unzip artifacts feature or not
   enabled: false

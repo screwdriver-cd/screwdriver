@@ -28,7 +28,7 @@ const validatorTemplate = {
                     }
                 },
                 handler: async (request, h) => {
-                    const { notificationsValidationErr } = options;
+                    const { notificationsValidationErr, maxTotalMergeKeys } = options;
                     const {
                         buildClusterFactory,
                         templateFactory,
@@ -45,7 +45,8 @@ const validatorTemplate = {
                         pipelineTemplateVersionFactory,
                         pipelineTemplateTagFactory,
                         pipelineTemplateFactory,
-                        notificationsValidationErr
+                        notificationsValidationErr,
+                        maxTotalMergeKeys
                     }).then(pipeline => h.response(pipeline));
                 },
                 validate: {

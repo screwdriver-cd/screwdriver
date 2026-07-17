@@ -61,6 +61,13 @@ const notificationConfig = config.get('notifications');
 // Multiple build cluster feature flag
 const multiBuildClusterEnabled = convertToBool(config.get('multiBuildCluster').enabled);
 
+// Maximum total number of YAML merge keys allowed in a pipeline configuration
+const maxTotalMergeKeys = Number(config.get('yamlParser.maxTotalMergeKeys'));
+
+if (!Number.isSafeInteger(maxTotalMergeKeys) || maxTotalMergeKeys <= 0) {
+    throw new TypeError('yamlParser.maxTotalMergeKeys must be a positive safe integer.');
+}
+
 // Unzip artifacts feature flag
 const unzipArtifactsEnabled = convertToBool(config.get('unzipArtifacts').enabled);
 
@@ -145,6 +152,7 @@ const pipelineFactory = Models.PipelineFactory.getInstance({
     scm,
     externalJoin: true,
     notificationsValidationErr,
+    maxTotalMergeKeys,
     multiBuildClusterEnabled
 });
 
@@ -313,7 +321,8 @@ datastore.setup(datastoreConfig.ddlSyncEnabled).then(() =>
         log,
         validator: {
             externalJoin: true,
-            notificationsValidationErr
+            notificationsValidationErr,
+            maxTotalMergeKeys
         },
         queueWebhook: {
             executor,
