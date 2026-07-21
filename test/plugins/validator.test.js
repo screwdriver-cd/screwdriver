@@ -43,7 +43,7 @@ describe('validator plugin test', () => {
             validatorPlugin.__set__('parser', parserMock);
             await validatorServer.register({
                 plugin: validatorPlugin,
-                options: { maxTotalMergeKeys: 11000 }
+                options: { maxTotalMergeKeys: 10000 }
             });
             await validatorServer.inject({
                 method: 'POST',
@@ -51,7 +51,7 @@ describe('validator plugin test', () => {
                 payload: testInput
             });
 
-            assert.calledWithMatch(parserMock, { maxTotalMergeKeys: 11000 });
+            assert.calledWithMatch(parserMock, { maxTotalMergeKeys: 10000 });
         });
 
         it('returns 200 for a successful yaml', () =>
