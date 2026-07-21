@@ -3,6 +3,7 @@
 const { assert } = require('chai');
 const sinon = require('sinon');
 const hapi = require('@hapi/hapi');
+const rewire = require('rewire');
 
 const testInput = require('./data/validator.input.json');
 const testOutput = require('./data/validator.output.json');
@@ -34,6 +35,25 @@ describe('validator plugin test', () => {
     });
 
     describe('POST /validator', () => {
+        it('passes maxTotalMergeKeys to the config parser', async () => {
+            const parserMock = sinon.stub().resolves(testOutput);
+            const validatorPlugin = rewire('../../plugins/validator');
+            const validatorServer = new hapi.Server({ port: 1235 });
+
+            validatorPlugin.__set__('parser', parserMock);
+            await validatorServer.register({
+                plugin: validatorPlugin,
+                options: { maxTotalMergeKeys: 10000 }
+            });
+            await validatorServer.inject({
+                method: 'POST',
+                url: '/validator',
+                payload: testInput
+            });
+
+            assert.calledWithMatch(parserMock, { maxTotalMergeKeys: 10000 });
+        });
+
         it('returns 200 for a successful yaml', () =>
             server
                 .inject({
