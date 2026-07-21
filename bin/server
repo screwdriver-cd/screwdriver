@@ -62,10 +62,16 @@ const notificationConfig = config.get('notifications');
 const multiBuildClusterEnabled = convertToBool(config.get('multiBuildCluster').enabled);
 
 // Maximum total number of YAML merge keys allowed in a pipeline configuration
-const maxTotalMergeKeys = Number(config.get('yamlParser.maxTotalMergeKeys'));
+const maxTotalMergeKeys = config.has('yamlParser.maxTotalMergeKeys')
+    ? Number(config.get('yamlParser.maxTotalMergeKeys'))
+    : undefined;
 
-if (!Number.isSafeInteger(maxTotalMergeKeys) || maxTotalMergeKeys <= 0) {
-    throw new TypeError('yamlParser.maxTotalMergeKeys must be a positive safe integer.');
+if (
+    maxTotalMergeKeys !== undefined && !Number.isSafeInteger(maxTotalMergeKeys)
+) {
+    throw new TypeError(
+        'yamlParser.maxTotalMergeKeys must be a positive safe integer.'
+    );
 }
 
 // Unzip artifacts feature flag
