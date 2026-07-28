@@ -431,6 +431,9 @@ multiBuildCluster:
   # Enabled multi build cluster feature or not
   enabled: MULTI_BUILD_CLUSTER_ENABLED
 
+yamlParser:
+  maxTotalMergeKeys: YAML_PARSER_MAX_TOTAL_MERGE_KEYS
+
 unzipArtifacts:
   # Enabled unzip artifacts feature or not
   enabled: UNZIP_ARTIFACTS_ENABLED
