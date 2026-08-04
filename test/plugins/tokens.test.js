@@ -107,8 +107,7 @@ describe('token plugin test', () => {
 
     describe('POST /tokens', () => {
         let options;
-        const { name } = testToken;
-        const { description } = testToken;
+        const { name, description, expiresAt, options: tokenOptions } = testToken;
 
         beforeEach(() => {
             options = {
@@ -116,7 +115,9 @@ describe('token plugin test', () => {
                 url: '/tokens',
                 payload: {
                     name,
-                    description
+                    description,
+                    expiresAt,
+                    options: tokenOptions
                 },
                 auth: {
                     credentials: {
@@ -146,7 +147,35 @@ describe('token plugin test', () => {
                 assert.equal(reply.statusCode, 201);
                 assert.deepEqual(reply.result, testTokenWithValue);
                 assert.strictEqual(reply.headers.location, urlLib.format(expectedLocation));
-                assert.calledWith(tokenFactoryMock.create, { ...options.payload, userId });
+                assert.calledWith(tokenFactoryMock.create, { ...options.payload, userId, issuerId: userId });
+            });
+        });
+
+        it('returns 201 and correct minimum token data', () => {
+            options.payload = { name };
+
+            tokenMock = getTokenMock(testTokenWithValue);
+            tokenFactoryMock.create.resolves(tokenMock);
+
+            return server.inject(options).then(reply => {
+                const expectedLocation = {
+                    host: reply.request.headers.host,
+                    port: reply.request.headers.port,
+                    protocol: reply.request.server.info.protocol,
+                    pathname: `${options.url}/${testToken.id}`
+                };
+
+                assert.equal(reply.statusCode, 201);
+                assert.deepEqual(reply.result, testTokenWithValue);
+                assert.strictEqual(reply.headers.location, urlLib.format(expectedLocation));
+                assert.calledWith(tokenFactoryMock.create, {
+                    name,
+                    userId,
+                    issuerId: userId,
+                    options: {},
+                    expiresAt: undefined,
+                    description: undefined
+                });
             });
         });
 
@@ -202,7 +231,9 @@ describe('token plugin test', () => {
                     name: testToken.name,
                     description: testToken.description,
                     id: testToken.id,
-                    lastUsed: testToken.lastUsed
+                    lastUsed: testToken.lastUsed,
+                    expiresAt: testToken.expiresAt,
+                    options: testToken.options
                 }
             ];
 

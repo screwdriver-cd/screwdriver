@@ -4,5 +4,10 @@
     "description": "a token for pipeline API",
     "pipelineId": 123,
     "hash": "abcd",
-    "lastUsed": "2018-06-13T05:58:04.296Z"
+    "lastUsed": "2018-06-13T05:58:04.296Z",
+    "expiresAt": "2026-01-01T00:00:00.000Z",
+    "options": {
+        "permission": "read",
+        "resources": {}
+    }
 }
