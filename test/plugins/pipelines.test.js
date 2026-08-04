@@ -4079,6 +4079,7 @@ describe('pipeline plugin test', () => {
         const scmUri = 'github.com:12345:branchName';
         const name = 'pipeline token';
         const description = 'a token for pipeline API';
+        const expiresAt = '2026-01-01T00:00:00.000Z';
         let options;
         let pipelineMock;
         let userMock;
@@ -4089,7 +4090,12 @@ describe('pipeline plugin test', () => {
                 url: `/pipelines/${id}/tokens`,
                 payload: {
                     name,
-                    description
+                    description,
+                    expiresAt,
+                    options: {
+                        permission: 'read',
+                        resources: {}
+                    }
                 },
                 auth: {
                     credentials: {
@@ -4100,7 +4106,7 @@ describe('pipeline plugin test', () => {
                     strategy: ['token']
                 }
             };
-            userMock = getUserMock({ username, scmContext });
+            userMock = getUserMock({ id: 12345, username, scmContext });
             userMock.getPermissions.withArgs(scmUri).resolves({ admin: true });
             userFactoryMock.get.withArgs({ username, scmContext }).resolves(userMock);
             pipelineMock = getPipelineMocks(testPipeline);
@@ -4121,7 +4127,38 @@ describe('pipeline plugin test', () => {
                 assert.deepEqual(reply.result, testTokens);
                 assert.strictEqual(reply.headers.location, urlLib.format(expectedLocation));
                 assert.equal(reply.statusCode, 201);
+                assert.calledWith(tokenFactoryMock.create, {
+                    ...options.payload,
+                    pipelineId: pipelineMock.id,
+                    issuerId: userMock.id
+                });
             }));
+
+        it('returns 201 and created new minimum token', () => {
+            options.payload = { name };
+
+            return server.inject(options).then(reply => {
+                const expectedLocation = {
+                    host: reply.request.headers.host,
+                    port: reply.request.headers.port,
+                    protocol: reply.request.server.info.protocol,
+                    pathname: `${options.url}/${testTokens.id}`
+                };
+
+                assert.strictEqual(reply.result.id, testTokens.id);
+                assert.strictEqual(reply.result.name, testTokens.name);
+                assert.strictEqual(reply.headers.location, urlLib.format(expectedLocation));
+                assert.equal(reply.statusCode, 201);
+                assert.calledWith(tokenFactoryMock.create, {
+                    name,
+                    pipelineId: pipelineMock.id,
+                    issuerId: userMock.id,
+                    options: {},
+                    expiresAt: undefined,
+                    description: undefined
+                });
+            });
+        });
 
         it('returns 403 when user does not have admin permission', () => {
             const error = {

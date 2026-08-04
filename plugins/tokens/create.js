@@ -41,6 +41,9 @@ module.exports = () => ({
                             return tokenFactory.create({
                                 name: request.payload.name,
                                 description: request.payload.description,
+                                issuerId: user.id,
+                                expiresAt: request.payload.expiresAt,
+                                options: request.payload.options,
                                 userId: user.id
                             });
                         });
