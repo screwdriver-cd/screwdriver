@@ -58,6 +58,9 @@ module.exports = () => ({
                             username: profile.username,
                             scmContext: profile.scmContext,
                             scope: ['build'],
+                            auth: {
+                                type: 'temporary'
+                            },
                             metadata: jwtInfo
                         }),
                         parseInt(buildTimeout, 10)

@@ -106,8 +106,8 @@ const authPlugin = {
          * @return {Object}                     The profile to be stored in jwt and/or cookie
          */
         server.expose('generateProfile', config => {
-            const { username, scmUserId, scmContext, scope, metadata } = config;
-            const profile = { username, scmContext, scmUserId, scope, ...(metadata || {}) };
+            const { username, scmUserId, scmContext, scope, auth, options, metadata } = config;
+            const profile = { username, scmContext, scmUserId, scope, auth, ...(options || {}), ...(metadata || {}) };
 
             if (pluginOptions.jwtEnvironment) {
                 profile.environment = pluginOptions.jwtEnvironment;
@@ -228,7 +228,13 @@ const authPlugin = {
                             username: user.username,
                             scmUserId: scmUser.id,
                             scmContext: user.scmContext,
-                            scope: ['user']
+                            scope: ['user'],
+                            auth: {
+                                type: 'api_token',
+                                apiTokenId: token.id,
+                                apiTokenType: 'user'
+                            },
+                            ...(token.options || {})
                         };
 
                         const scmDisplayName = scm.getDisplayName({ scmContext: profile.scmContext });
@@ -256,7 +262,13 @@ const authPlugin = {
                             username: admin.username,
                             scmContext: pipeline.scmContext,
                             pipelineId: token.pipelineId,
-                            scope: ['pipeline']
+                            scope: ['pipeline'],
+                            auth: {
+                                type: 'api_token',
+                                apiTokenId: token.id,
+                                apiTokenType: 'pipeline'
+                            },
+                            ...(token.options || {})
                         };
                     }
                     if (!profile) {

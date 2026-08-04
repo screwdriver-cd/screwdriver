@@ -40,7 +40,10 @@ async function invoke(request) {
             username,
             scmContext,
             scope: ['sdapi'],
-            metadata: { pipelineId }
+            metadata: { pipelineId },
+            auth: {
+                type: 'temporary'
+            }
         })
     );
 
