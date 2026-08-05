@@ -9,6 +9,7 @@ const keyRoute = require('./key');
 const loginRoute = require('./login');
 const logoutRoute = require('./logout');
 const tokenRoute = require('./token');
+const boom = require('@hapi/boom');
 
 const DEFAULT_TIMEOUT = 2 * 60; // 2h in minutes
 const ALGORITHM = 'RS256';
@@ -93,6 +94,55 @@ const authPlugin = {
     name: 'auth',
     async register(server, options) {
         const pluginOptions = joi.attempt(options, AUTH_PLUGIN_SCHEMA, 'Invalid config for plugin-auth');
+
+        server.ext('onPostAuth', (request, h) => {
+            const { tokenFactory } = request.server.app;
+
+            const permissionLevels = {
+                read: 1,
+                execute: 2,
+                write: 3,
+                all: 4
+            };
+
+            const authSettings = request.route.settings.plugins?.authorization;
+
+            if (!authSettings) {
+                return h.continue;
+            }
+
+            if (!request.auth.isAuthenticated) {
+                throw boom.unauthorized();
+            }
+
+            const credentials = request.auth.credentials;
+
+            if (credentials.auth.type !== 'api_token') {
+                return h.continue;
+            }
+
+            const apiTokenId = credentials.auth.apiTokenId;
+            const token = await tokenFactory.get({ id: apiTokenId });
+
+            if (token.expiresAt && new Date(token.expiresAt) < new Date()) {
+                throw boom.forbidden(`Your token is expired: token id ${token.auth.apiTokenId}`);
+            }
+
+            const actualPermission = credentials.permission || 'all';
+            const requiredPermission = authSettings.permission;
+
+            if (
+                !permissionLevels[actualPermission] ||
+                permissionLevels[actualPermission] <
+                permissionLevels[requiredPermission]
+            ) {
+                throw boom.forbidden(
+                `This endpoint requires "${requiredPermission}" permission`
+                );
+            }
+
+            return h.continue;
+        });
 
         /**
          * Generates a profile for storage in cookie and jwt
