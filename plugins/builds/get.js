@@ -28,6 +28,11 @@ module.exports = () => ({
                         throw boom.notFound('Build does not exist');
                     }
 
+                    await request.server.plugins.pipelines.canAccessPipeline(
+                        request.auth.credentials,
+                        buildModel.pipelineId
+                    );
+
                     if (Array.isArray(buildModel.environment)) {
                         const data = await buildModel.toJsonWithSteps();
 
