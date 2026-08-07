@@ -95,7 +95,7 @@ const authPlugin = {
     async register(server, options) {
         const pluginOptions = joi.attempt(options, AUTH_PLUGIN_SCHEMA, 'Invalid config for plugin-auth');
 
-        server.ext('onPostAuth', (request, h) => {
+        server.ext('onPostAuth', async (request, h) => {
             const { tokenFactory } = request.server.app;
 
             const permissionLevels = {
@@ -105,7 +105,7 @@ const authPlugin = {
                 all: 4
             };
 
-            const authSettings = request.route.settings.plugins?.authorization;
+            const authSettings = request.route.settings.plugins ? request.route.settings.plugins.authorization : null;
 
             if (!authSettings) {
                 return h.continue;
@@ -117,28 +117,35 @@ const authPlugin = {
 
             const credentials = request.auth.credentials;
 
-            if (credentials.auth.type !== 'api_token') {
+            if (!credentials.auth || credentials.auth.type !== 'api_token') {
                 return h.continue;
             }
 
             const apiTokenId = credentials.auth.apiTokenId;
+            if (!apiTokenId) {
+                throw boom.forbidden(`Your token is invalid`);
+            }
+
             const token = await tokenFactory.get({ id: apiTokenId });
+            if (!token) {
+                throw boom.forbidden(`Your token is invalid`);
+            }
 
             if (token.expiresAt && new Date(token.expiresAt) < new Date()) {
-                throw boom.forbidden(`Your token is expired: token id ${token.auth.apiTokenId}`);
+                throw boom.forbidden(`Your token is expired: token id ${apiTokenId}`);
             }
 
             const actualPermission = credentials.permission || 'all';
             const requiredPermission = authSettings.permission;
+            const actualPermissionLevel = permissionLevels[actualPermission];
+            const requiredPermissionLevel = permissionLevels[requiredPermission];
 
-            if (
-                !permissionLevels[actualPermission] ||
-                permissionLevels[actualPermission] <
-                permissionLevels[requiredPermission]
-            ) {
-                throw boom.forbidden(
-                `This endpoint requires "${requiredPermission}" permission`
-                );
+            if (!requiredPermissionLevel) {
+                throw boom.badImplementation(`Invalid required permission: "${requiredPermission}"`);
+            }
+
+            if (!actualPermissionLevel || actualPermissionLevel < requiredPermissionLevel) {
+                throw boom.forbidden(`This endpoint requires "${requiredPermission}" permission`);
             }
 
             return h.continue;
