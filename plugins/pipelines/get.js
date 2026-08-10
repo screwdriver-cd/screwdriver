@@ -19,7 +19,7 @@ module.exports = () => ({
         },
         plugins: {
             authorization: {
-                permission: 'read',
+                permission: 'read'
             }
         },
 

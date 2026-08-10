@@ -1,5 +1,6 @@
 'use strict';
 
+const boom = require('@hapi/boom');
 const joi = require('joi');
 const jwt = require('jsonwebtoken');
 const { v4: uuidv4 } = require('uuid');
@@ -9,7 +10,6 @@ const keyRoute = require('./key');
 const loginRoute = require('./login');
 const logoutRoute = require('./logout');
 const tokenRoute = require('./token');
-const boom = require('@hapi/boom');
 
 const DEFAULT_TIMEOUT = 2 * 60; // 2h in minutes
 const ALGORITHM = 'RS256';
@@ -122,11 +122,13 @@ const authPlugin = {
             }
 
             const apiTokenId = credentials.auth.apiTokenId;
+
             if (!apiTokenId) {
                 throw boom.forbidden(`Your token is invalid`);
             }
 
             const token = await tokenFactory.get({ id: apiTokenId });
+
             if (!token) {
                 throw boom.forbidden(`Your token is invalid`);
             }
@@ -159,12 +161,22 @@ const authPlugin = {
          * @param  {String}   config.scmUserId  User ID in the SCM
          * @param  {String}   config.scmContext Scm to which the person logged in belongs
          * @param  {Array}    config.scope      Scope for this profile (usually build or user)
+         * @param  {Object}   config.auth       Authentication method information
+         * @param  {Object}   config.options    Additional token options
          * @param  {Object}   config.metadata   Additional information to tag along with the login
          * @return {Object}                     The profile to be stored in jwt and/or cookie
          */
         server.expose('generateProfile', config => {
-            const { username, scmUserId, scmContext, scope, auth, options, metadata } = config;
-            const profile = { username, scmContext, scmUserId, scope, auth, ...(options || {}), ...(metadata || {}) };
+            const { username, scmUserId, scmContext, scope, auth, options: profileOptions, metadata } = config;
+            const profile = {
+                username,
+                scmContext,
+                scmUserId,
+                scope,
+                auth,
+                ...(profileOptions || {}),
+                ...(metadata || {})
+            };
 
             if (pluginOptions.jwtEnvironment) {
                 profile.environment = pluginOptions.jwtEnvironment;
