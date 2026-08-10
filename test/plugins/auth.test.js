@@ -1594,7 +1594,12 @@ describe('auth plugin test', () => {
                 expect(reply.result.token).to.be.a.jwt.and.deep.include({
                     username: 'batman',
                     scope: ['pipeline'],
-                    pipelineId: 12345
+                    pipelineId: 12345,
+                    auth: {
+                        type: 'api_token',
+                        apiTokenId: tokenId,
+                        apiTokenType: 'pipeline'
+                    }
                 });
             });
         });
@@ -1716,7 +1721,10 @@ describe('auth plugin test', () => {
 
                         expect(reply.result.token).to.be.a.jwt.and.deep.include({
                             username: '474ee9ee179b0ecf0bc27408079a0b15eda4c99d',
-                            scope: ['build', 'impersonated']
+                            scope: ['build', 'impersonated'],
+                            auth: {
+                                type: 'temporary'
+                            }
                         });
                     }));
 
