@@ -514,6 +514,332 @@ describe('auth plugin test', () => {
         });
     });
 
+    describe('onPostAuth authorization', () => {
+        const apiTokenId = 123;
+        const apiTokenValue = 'aUserApiToken';
+        const user = {
+            id: 456,
+            username: 'batman',
+            scmContext: 'github:github.com',
+            token: 'oauthToken'
+        };
+
+        beforeEach(() => {
+            server.route([
+                {
+                    method: 'GET',
+                    path: '/test/no-authorization',
+                    options: {
+                        auth: false,
+                        handler: () => ({ ok: true })
+                    }
+                },
+                {
+                    method: 'GET',
+                    path: '/test/authorization/unauthenticated',
+                    options: {
+                        auth: false,
+                        plugins: {
+                            authorization: {
+                                permission: 'read'
+                            }
+                        },
+                        handler: () => ({ ok: true })
+                    }
+                },
+                {
+                    method: 'GET',
+                    path: '/test/authorization/read',
+                    options: {
+                        auth: {
+                            strategies: ['token'],
+                            scope: ['user']
+                        },
+                        plugins: {
+                            authorization: {
+                                permission: 'read'
+                            }
+                        },
+                        handler: () => ({ ok: true })
+                    }
+                },
+                {
+                    method: 'GET',
+                    path: '/test/authorization/write',
+                    options: {
+                        auth: {
+                            strategies: ['token'],
+                            scope: ['user']
+                        },
+                        plugins: {
+                            authorization: {
+                                permission: 'write'
+                            }
+                        },
+                        handler: () => ({ ok: true })
+                    }
+                },
+                {
+                    method: 'GET',
+                    path: '/test/authorization/invalid',
+                    options: {
+                        auth: {
+                            strategies: ['token'],
+                            scope: ['user']
+                        },
+                        plugins: {
+                            authorization: {
+                                permission: 'invalid'
+                            }
+                        },
+                        handler: () => ({ ok: true })
+                    }
+                }
+            ]);
+        });
+
+        const issueApiTokenJwt = async (permission, expiresAt) => {
+            const tokenMock = {
+                id: apiTokenId,
+                userId: user.id,
+                options: null
+            };
+
+            if (permission) {
+                tokenMock.options = { permission };
+            }
+
+            if (expiresAt) {
+                tokenMock.expiresAt = expiresAt;
+            }
+
+            const userMock = getUserMock(user);
+
+            userFactoryMock.get.resolves(userMock);
+            tokenFactoryMock.get.withArgs({ value: apiTokenValue }).resolves(tokenMock);
+            tokenFactoryMock.get.withArgs({ id: apiTokenId }).resolves(tokenMock);
+            collectionFactoryMock.list.resolves([{}]);
+            scm.decorateAuthor.resolves({ id: 1315 });
+
+            const reply = await server.inject({
+                url: `/auth/token?api_token=${apiTokenValue}`
+            });
+
+            assert.equal(reply.statusCode, 200);
+            assert.ok(reply.result.token);
+
+            const decoded = jwt.decode(reply.result.token);
+
+            assert.deepEqual(decoded.auth, {
+                type: 'api_token',
+                apiTokenId,
+                apiTokenType: 'user'
+            });
+
+            if (permission) {
+                assert.equal(decoded.permission, permission);
+            } else {
+                assert.notProperty(decoded, 'permission');
+            }
+
+            return reply.result.token;
+        };
+
+        const injectJwt = (url, token) =>
+            server.inject({
+                url,
+                headers: {
+                    authorization: `Bearer ${token}`
+                }
+            });
+
+        it('allows an unauthenticated endpoint without authorization settings', async () => {
+            const reply = await server.inject('/test/no-authorization');
+
+            assert.equal(reply.statusCode, 200);
+            assert.notCalled(tokenFactoryMock.get);
+        });
+
+        it('rejects an unauthenticated request when authorization settings exist', async () => {
+            const reply = await server.inject('/test/authorization/unauthenticated');
+
+            assert.equal(reply.statusCode, 401);
+            assert.notCalled(tokenFactoryMock.get);
+        });
+
+        it('allows an OAuth JWT without applying API Token permission checks', async () => {
+            const profile = server.plugins.auth.generateProfile({
+                username: 'robin',
+                scmUserId: 1357,
+                scmContext: 'github:github.com',
+                scope: ['user'],
+                auth: {
+                    type: 'oauth'
+                },
+                options: {
+                    permission: 'all'
+                },
+                metadata: {}
+            });
+            const oauthJwt = server.plugins.auth.generateToken(profile);
+            const reply = await injectJwt('/test/authorization/write', oauthJwt);
+
+            assert.equal(reply.statusCode, 200);
+            assert.notCalled(tokenFactoryMock.get);
+        });
+
+        it('allows a temporary guest JWT without applying API Token permission checks', async () => {
+            const profile = server.plugins.auth.generateProfile({
+                username: 'guest/123',
+                scope: ['user', 'guest'],
+                auth: {
+                    type: 'temporary'
+                },
+                options: {
+                    permission: 'read'
+                },
+                metadata: {}
+            });
+            const guestJwt = server.plugins.auth.generateToken(profile);
+            const reply = await injectJwt('/test/authorization/write', guestJwt);
+
+            assert.equal(reply.statusCode, 200);
+            assert.notCalled(tokenFactoryMock.get);
+        });
+
+        it('allows a JWT issued before the auth claim was added', async () => {
+            const oldJwt = server.plugins.auth.generateToken({
+                username: 'batman',
+                scmContext: 'github:github.com',
+                scope: ['user']
+            });
+            const reply = await injectJwt('/test/authorization/write', oldJwt);
+
+            assert.equal(reply.statusCode, 200);
+            assert.notCalled(tokenFactoryMock.get);
+        });
+
+        it('allows a read API Token JWT on an endpoint requiring read', async () => {
+            const token = await issueApiTokenJwt('read');
+            const reply = await injectJwt('/test/authorization/read', token);
+
+            assert.equal(reply.statusCode, 200);
+        });
+
+        it('allows an all API Token JWT on an endpoint requiring read', async () => {
+            const token = await issueApiTokenJwt('all');
+            const reply = await injectJwt('/test/authorization/read', token);
+
+            assert.equal(reply.statusCode, 200);
+        });
+
+        it('treats a legacy API Token JWT without permission as all on an endpoint requiring read', async () => {
+            const token = await issueApiTokenJwt();
+            const reply = await injectJwt('/test/authorization/read', token);
+
+            assert.equal(reply.statusCode, 200);
+        });
+
+        it('rejects an expired API Token JWT', async () => {
+            const token = await issueApiTokenJwt('read', '2000-01-01T00:00:00.000Z');
+            const reply = await injectJwt('/test/authorization/read', token);
+
+            assert.equal(reply.statusCode, 403);
+            assert.equal(reply.result.message, `Your token is expired: token id ${apiTokenId}`);
+        });
+
+        it('rejects a read API Token JWT on an endpoint requiring write', async () => {
+            const token = await issueApiTokenJwt('read');
+            const reply = await injectJwt('/test/authorization/write', token);
+
+            assert.equal(reply.statusCode, 403);
+            assert.equal(reply.result.message, 'This endpoint requires "write" permission');
+        });
+
+        it('allows an all API Token JWT on an endpoint requiring write', async () => {
+            const token = await issueApiTokenJwt('all', '2999-01-01T00:00:00.000Z');
+            const reply = await injectJwt('/test/authorization/write', token);
+
+            assert.equal(reply.statusCode, 200);
+        });
+
+        it('treats a legacy API Token JWT without permission as all on an endpoint requiring write', async () => {
+            const token = await issueApiTokenJwt();
+            const reply = await injectJwt('/test/authorization/write', token);
+
+            assert.equal(reply.statusCode, 200);
+        });
+
+        it('returns an internal error for an invalid required permission', async () => {
+            const token = await issueApiTokenJwt('all');
+            const reply = await injectJwt('/test/authorization/invalid', token);
+
+            assert.equal(reply.statusCode, 500);
+        });
+
+        it('rejects an API Token JWT without an API Token ID', async () => {
+            const token = server.plugins.auth.generateToken({
+                username: 'batman',
+                scmContext: 'github:github.com',
+                scope: ['user'],
+                auth: {
+                    type: 'api_token',
+                    apiTokenType: 'user'
+                },
+                permission: 'all'
+            });
+            const reply = await injectJwt('/test/authorization/read', token);
+
+            assert.equal(reply.statusCode, 403);
+            assert.equal(reply.result.message, 'Your token is invalid');
+            assert.notCalled(tokenFactoryMock.get);
+        });
+
+        it('rejects an API Token JWT when its API Token no longer exists', async () => {
+            const missingTokenId = 999;
+            const token = server.plugins.auth.generateToken({
+                username: 'batman',
+                scmContext: 'github:github.com',
+                scope: ['user'],
+                auth: {
+                    type: 'api_token',
+                    apiTokenId: missingTokenId,
+                    apiTokenType: 'user'
+                },
+                permission: 'all'
+            });
+
+            tokenFactoryMock.get.withArgs({ id: missingTokenId }).resolves(null);
+
+            const reply = await injectJwt('/test/authorization/read', token);
+
+            assert.equal(reply.statusCode, 403);
+            assert.equal(reply.result.message, 'Your token is invalid');
+            assert.calledWith(tokenFactoryMock.get, { id: missingTokenId });
+        });
+
+        it('rejects an API Token JWT with an invalid actual permission', async () => {
+            const token = server.plugins.auth.generateToken({
+                username: 'batman',
+                scmContext: 'github:github.com',
+                scope: ['user'],
+                auth: {
+                    type: 'api_token',
+                    apiTokenId,
+                    apiTokenType: 'user'
+                },
+                permission: 'invalid'
+            });
+
+            tokenFactoryMock.get.withArgs({ id: apiTokenId }).resolves({ id: apiTokenId });
+
+            const reply = await injectJwt('/test/authorization/read', token);
+
+            assert.equal(reply.statusCode, 403);
+            assert.equal(reply.result.message, 'This endpoint requires "read" permission');
+        });
+    });
+
     describe('GET /auth/login/guest', () => {
         const options = {
             url: '/auth/login/guest'
