@@ -852,6 +852,25 @@ describe('auth plugin test', () => {
                     assert.isOk(reply.headers.location.match(/auth\/token/), 'Redirects to token');
                 }));
 
+            it('issues a temporary JWT with read permission', async () => {
+                const loginReply = await server.inject('/auth/login/guest');
+                const sessionCookie = loginReply.headers['set-cookie']
+                    .find(cookie => cookie.startsWith('sid='))
+                    .split(';')[0];
+                const tokenReply = await server.inject({
+                    url: '/auth/token',
+                    headers: {
+                        cookie: sessionCookie
+                    }
+                });
+                const decoded = jwt.decode(tokenReply.result.token);
+
+                assert.equal(tokenReply.statusCode, 200);
+                assert.match(decoded.username, /^guest\//);
+                assert.deepEqual(decoded.auth, { type: 'temporary' });
+                assert.equal(decoded.permission, 'read');
+            });
+
             it('creates a user tries to close a window', () => {
                 const webOptions = hoek.clone(options);
 
@@ -1081,6 +1100,27 @@ describe('auth plugin test', () => {
                     assert.calledOnce(userMock.update);
                     assert.notCalled(userFactoryMock.create);
                 }));
+
+            it('issues an OAuth JWT with all permission', async () => {
+                const loginReply = await server.inject(options);
+                const sessionCookie = loginReply.headers['set-cookie']
+                    .find(cookie => cookie.startsWith('sid='))
+                    .split(';')[0];
+                const tokenReply = await server.inject({
+                    url: '/auth/token',
+                    headers: {
+                        cookie: sessionCookie
+                    }
+                });
+                const decoded = jwt.decode(tokenReply.result.token);
+
+                assert.equal(tokenReply.statusCode, 200);
+                assert.equal(decoded.username, username);
+                assert.equal(decoded.scmUserId, scmUserId);
+                assert.equal(decoded.scmContext, scmContext);
+                assert.deepEqual(decoded.auth, { type: 'oauth' });
+                assert.equal(decoded.permission, 'all');
+            });
 
             describe('ghe cloud', () => {
                 beforeEach(async () => {
