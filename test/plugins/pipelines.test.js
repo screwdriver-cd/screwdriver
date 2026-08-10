@@ -3758,7 +3758,13 @@ describe('pipeline plugin test', () => {
                 assert.calledWith(generateProfileMock, {
                     username: adminUser.username,
                     scmContext: adminUser.scmContext,
-                    scope: ['user']
+                    scope: ['user'],
+                    auth: {
+                        type: 'temporary'
+                    },
+                    options: {
+                        permission: 'all'
+                    }
                 });
                 assert.calledWith(generateTokenMock, profile);
             });

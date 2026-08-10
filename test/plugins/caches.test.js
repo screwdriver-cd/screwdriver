@@ -182,11 +182,22 @@ describe('DELETE /pipelines/1234/caches', () => {
 
     describe('with cache strategy s3', () => {
         it('successfully deleting cache by id and scope', () => {
+            const profile = { username, scmContext };
+
+            generateProfileMock.returns(profile);
             mockRequestRetry.resolves({ statusCode: 204 });
 
             return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 204);
                 assert.calledOnce(mockRequestRetry);
+                assert.calledOnceWithExactly(generateProfileMock, {
+                    username,
+                    scmContext,
+                    scope: ['sdapi'],
+                    metadata: { pipelineId: id },
+                    auth: { type: 'temporary' }
+                });
+                assert.calledOnceWithExactly(generateTokenMock, profile);
             });
         });
 
