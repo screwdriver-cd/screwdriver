@@ -848,6 +848,12 @@ describe('pipeline plugin test', () => {
             });
         });
 
+        it('requires read permission', () => {
+            const route = server.table().find(r => r.path === '/pipelines/{id}' && r.method === 'get');
+
+            assert.equal(route.settings.plugins.authorization.permission, 'read');
+        });
+
         it('throws error not found when pipeline does not exist', () => {
             const error = {
                 statusCode: 404,
