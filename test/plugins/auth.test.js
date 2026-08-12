@@ -783,9 +783,7 @@ describe('auth plugin test', () => {
                     type: 'api_token',
                     apiTokenType: 'user'
                 },
-                options: {
-                    permission: 'all',
-                }
+                permission: 'all'
             });
             const reply = await injectJwt('/test/authorization/read', token);
 
@@ -805,9 +803,7 @@ describe('auth plugin test', () => {
                     apiTokenId: missingTokenId,
                     apiTokenType: 'user'
                 },
-                options: {
-                    permission: 'all',
-                }
+                permission: 'all'
             });
 
             tokenFactoryMock.get.withArgs({ id: missingTokenId }).resolves(null);
@@ -829,9 +825,7 @@ describe('auth plugin test', () => {
                     apiTokenId,
                     apiTokenType: 'user'
                 },
-                options: {
-                    permission: 'invalid',
-                }
+                permission: 'invalid'
             });
 
             tokenFactoryMock.get.withArgs({ id: apiTokenId }).resolves({ id: apiTokenId });
