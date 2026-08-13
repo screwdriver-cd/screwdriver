@@ -411,7 +411,7 @@ describe('pipeline plugin test', () => {
         assert.equal(server.registrations.pipelines.options.password, password);
     });
 
-    describe('authorization settings for core pipeline routes', () => {
+    describe('authorization settings for pipeline routes', () => {
         const routesRequiringAuthorization = [
             ['post', '/pipelines', 'all'],
             ['delete', '/pipelines/{id}', 'all'],
@@ -433,14 +433,38 @@ describe('pipeline plugin test', () => {
             ['get', '/pipelines/{id}/lastSuccessfulEvent', 'read'],
             ['get', '/pipelines/{id}/latestCommitEvent', 'read'],
             ['post', '/pipelines/{id}/openPr', 'all'],
-            ['put', '/pipelines/{id}/buildCluster', 'all']
+            ['put', '/pipelines/{id}/buildCluster', 'all'],
+            ['get', '/pipelines/{id}/tokens', 'read'],
+            ['get', '/pipelines/{id}/admins', 'read'],
+            ['get', '/pipelines/{id}/admin', 'read'],
+            ['get', '/pipeline/templates', 'read'],
+            ['get', '/pipeline/template/{namespace}/{name}', 'read'],
+            ['get', '/pipeline/template/{id}', 'read'],
+            ['get', '/pipeline/template/{namespace}/{name}/{versionOrTag}', 'read'],
+            ['get', '/pipeline/templates/{namespace}/{name}/versions', 'read'],
+            ['get', '/pipeline/templates/{namespace}/{name}/tags', 'read'],
+            ['delete', '/pipelines/{id}/caches', 'write'],
+            ['post', '/pipelines/{id}/tokens', 'all'],
+            ['put', '/pipelines/{pipelineId}/tokens/{tokenId}', 'all'],
+            ['put', '/pipelines/{pipelineId}/tokens/{tokenId}/refresh', 'all'],
+            ['delete', '/pipelines/{pipelineId}/tokens/{tokenId}', 'all'],
+            ['delete', '/pipelines/{id}/tokens', 'all'],
+            ['put', '/pipelines/{id}/updateAdmins', 'all'],
+            ['put', '/pipelines/updateAdmins', 'all'],
+            ['post', '/pipeline/template', 'all'],
+            ['put', '/pipeline/template/{namespace}/{name}/tags/{tag}', 'all'],
+            ['delete', '/pipeline/templates/{namespace}/{name}', 'all'],
+            ['delete', '/pipeline/templates/{namespace}/{name}/tags/{tag}', 'all'],
+            ['delete', '/pipeline/templates/{namespace}/{name}/versions/{version}', 'all'],
+            ['put', '/pipeline/templates/{namespace}/{name}/trusted', 'all']
         ];
         const publicRoutes = [
             ['get', '/pipelines/{id}/badge'],
-            ['get', '/pipelines/{id}/{jobName}/badge']
+            ['get', '/pipelines/{id}/{jobName}/badge'],
+            ['post', '/pipeline/template/validate']
         ];
 
-        it('sets the agreed permission on every authenticated core route', () => {
+        it('sets the agreed permission on every authenticated pipeline route', () => {
             routesRequiringAuthorization.forEach(([method, path, permission]) => {
                 const route = server.table().find(r => r.method === method && r.path === path);
 
@@ -453,7 +477,7 @@ describe('pipeline plugin test', () => {
             });
         });
 
-        it('does not add authorization settings to public badge routes', () => {
+        it('does not add authorization settings to public pipeline routes', () => {
             publicRoutes.forEach(([method, path]) => {
                 const route = server.table().find(r => r.method === method && r.path === path);
 
@@ -3744,7 +3768,8 @@ describe('pipeline plugin test', () => {
                     credentials: {
                         username,
                         scmContext,
-                        scope: ['user']
+                        scope: ['user'],
+                        permission: 'read'
                     },
                     strategy: ['token']
                 }
@@ -3794,6 +3819,31 @@ describe('pipeline plugin test', () => {
         });
         it('returns 200 with admin info along with user token for a pipeline when requested by SD admin', () => {
             options.auth.credentials.scope.push('admin');
+            options.auth.credentials.permission = 'all';
+            options.url = `/pipelines/${id}/admin?includeUserToken=true`;
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 200);
+                const res = JSON.parse(reply.payload);
+
+                assert.deepEqual(res, { ...adminUser, userToken });
+                assert.calledWith(generateProfileMock, {
+                    username: adminUser.username,
+                    scmContext: adminUser.scmContext,
+                    scope: ['user'],
+                    auth: {
+                        type: 'temporary'
+                    },
+                    options: {
+                        permission: 'all'
+                    }
+                });
+                assert.calledWith(generateTokenMock, profile);
+            });
+        });
+        it('returns 200 with user token for an SD admin whose legacy JWT has no permission', () => {
+            options.auth.credentials.scope.push('admin');
+            delete options.auth.credentials.permission;
             options.url = `/pipelines/${id}/admin?includeUserToken=true`;
 
             return server.inject(options).then(reply => {
@@ -3829,6 +3879,23 @@ describe('pipeline plugin test', () => {
             });
         });
         it('returns 403 when non SD admin requests for pipeline admin along with user token', () => {
+            options.auth.credentials.permission = 'all';
+            options.url = `/pipelines/${id}/admin?includeUserToken=true`;
+
+            return server.inject(options).then(reply => {
+                const res = JSON.parse(reply.payload);
+
+                assert.equal(reply.statusCode, 403);
+                assert.equal(res.message, 'Only Screwdriver admin is allowed to request user token');
+
+                assert.callCount(pipelineFactoryMock.get, 0);
+                assert.callCount(pipelineMock.getFirstAdmin, 0);
+                assert.callCount(generateProfileMock, 0);
+                assert.callCount(generateTokenMock, 0);
+            });
+        });
+        it('returns 403 when SD admin without all permission requests for pipeline admin along with user token', () => {
+            options.auth.credentials.scope.push('admin');
             options.url = `/pipelines/${id}/admin?includeUserToken=true`;
 
             return server.inject(options).then(reply => {

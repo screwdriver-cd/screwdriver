@@ -23,6 +23,11 @@ module.exports = () => ({
             strategies: ['token'],
             scope: ['user', 'build']
         },
+        plugins: {
+            authorization: {
+                permission: 'read'
+            }
+        },
         handler: async (request, h) => {
             const { pipelineTemplateFactory } = request.server.app;
 

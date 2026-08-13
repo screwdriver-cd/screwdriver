@@ -18,6 +18,11 @@ module.exports = () => ({
             strategies: ['token'],
             scope: ['user', 'build']
         },
+        plugins: {
+            authorization: {
+                permission: 'read'
+            }
+        },
         handler: async (request, h) => {
             const { namespace, name, versionOrTag } = request.params;
             const { pipelineTemplateFactory, pipelineTemplateVersionFactory, pipelineTemplateTagFactory } =
