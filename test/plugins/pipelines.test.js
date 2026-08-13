@@ -411,6 +411,58 @@ describe('pipeline plugin test', () => {
         assert.equal(server.registrations.pipelines.options.password, password);
     });
 
+    describe('authorization settings for core pipeline routes', () => {
+        const routesRequiringAuthorization = [
+            ['post', '/pipelines', 'all'],
+            ['delete', '/pipelines/{id}', 'all'],
+            ['put', '/pipelines/{id}', 'all'],
+            ['post', '/pipelines/{id}/sync', 'all'],
+            ['post', '/pipelines/{id}/sync/webhooks', 'all'],
+            ['post', '/pipelines/{id}/sync/pullrequests', 'all'],
+            ['get', '/pipelines/{id}', 'read'],
+            ['get', '/pipelines', 'read'],
+            ['get', '/pipelines/{id}/jobs', 'read'],
+            ['get', '/pipelines/{id}/stages', 'read'],
+            ['get', '/pipelines/{id}/triggers', 'read'],
+            ['get', '/pipelines/{id}/secrets', 'read'],
+            ['get', '/pipelines/{id}/events', 'read'],
+            ['get', '/pipelines/{id}/builds', 'read'],
+            ['post', '/pipelines/{id}/startall', 'execute'],
+            ['get', '/pipelines/{id}/metrics', 'read'],
+            ['get', '/pipelines/{id}/jobs/{jobName}/latestBuild', 'read'],
+            ['get', '/pipelines/{id}/lastSuccessfulEvent', 'read'],
+            ['get', '/pipelines/{id}/latestCommitEvent', 'read'],
+            ['post', '/pipelines/{id}/openPr', 'all'],
+            ['put', '/pipelines/{id}/buildCluster', 'all']
+        ];
+        const publicRoutes = [
+            ['get', '/pipelines/{id}/badge'],
+            ['get', '/pipelines/{id}/{jobName}/badge']
+        ];
+
+        it('sets the agreed permission on every authenticated core route', () => {
+            routesRequiringAuthorization.forEach(([method, path, permission]) => {
+                const route = server.table().find(r => r.method === method && r.path === path);
+
+                assert.isOk(route, `${method.toUpperCase()} ${path} should be registered`);
+                assert.equal(
+                    route.settings.plugins.authorization.permission,
+                    permission,
+                    `${method.toUpperCase()} ${path} should require ${permission} permission`
+                );
+            });
+        });
+
+        it('does not add authorization settings to public badge routes', () => {
+            publicRoutes.forEach(([method, path]) => {
+                const route = server.table().find(r => r.method === method && r.path === path);
+
+                assert.isOk(route, `${method.toUpperCase()} ${path} should be registered`);
+                assert.isUndefined(route.settings.plugins.authorization);
+            });
+        });
+    });
+
     describe('GET /pipelines', () => {
         let options;
 
@@ -846,12 +898,6 @@ describe('pipeline plugin test', () => {
                 assert.equal(reply.statusCode, 200);
                 assert.deepEqual(reply.result, testPipeline);
             });
-        });
-
-        it('requires read permission', () => {
-            const route = server.table().find(r => r.path === '/pipelines/{id}' && r.method === 'get');
-
-            assert.equal(route.settings.plugins.authorization.permission, 'read');
         });
 
         it('throws error not found when pipeline does not exist', () => {
