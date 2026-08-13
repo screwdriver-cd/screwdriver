@@ -381,7 +381,13 @@ describe('user plugin test', () => {
                 assert.calledWith(generateProfileMock, {
                     username: userGithubSam.username,
                     scmContext: userGithubSam.scmContext,
-                    scope: ['user']
+                    scope: ['user'],
+                    auth: {
+                        type: 'temporary'
+                    },
+                    options: {
+                        permission: 'all'
+                    }
                 });
                 assert.calledWith(generateTokenMock, profile);
 

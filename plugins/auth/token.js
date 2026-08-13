@@ -45,7 +45,10 @@ module.exports = () => ({
                 profile = request.server.plugins.auth.generateProfile({
                     username: request.params.buildId,
                     scmContext: pipeline.scmContext,
-                    scope: ['build', 'impersonated']
+                    scope: ['build', 'impersonated'],
+                    auth: {
+                        type: 'temporary'
+                    }
                 });
                 profile.token = request.server.plugins.auth.generateToken(profile);
 

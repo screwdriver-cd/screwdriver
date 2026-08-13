@@ -44,7 +44,13 @@ module.exports = () => ({
                     const profile = request.server.plugins.auth.generateProfile({
                         username: admin.username,
                         scmContext: admin.scmContext,
-                        scope: ['user']
+                        scope: ['user'],
+                        auth: {
+                            type: 'temporary'
+                        },
+                        options: {
+                            permission: 'all'
+                        }
                     });
 
                     admin.userToken = request.server.plugins.auth.generateToken(profile);

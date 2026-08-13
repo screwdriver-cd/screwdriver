@@ -113,6 +113,10 @@ describe('server case', () => {
         });
 
         it('populates server.app values', () => {
+            const buildMetadata = { buildId: 123 };
+            const jobMetadata = { jobId: 456 };
+            const scmContext = 'github:github.com';
+
             Assert.isObject(server.app);
             Assert.strictEqual(server.app.triggerFactory, 'trigger');
             Assert.strictEqual(server.app.pipelineFactory, 'pipeline');
@@ -121,14 +125,30 @@ describe('server case', () => {
             Assert.match(server.app.buildFactory.apiUri, /^http(s)?:\/\/[^:]+:12347$/);
             Assert.match(server.app.jobFactory.apiUri, /^http(s)?:\/\/[^:]+:12347$/);
             Assert.isFunction(server.app.buildFactory.tokenGen);
-            Assert.strictEqual(server.app.buildFactory.tokenGen('bar'), 'foo');
+            Assert.strictEqual(server.app.buildFactory.tokenGen('123', buildMetadata, scmContext, 60), 'foo');
+            sinon.assert.calledWithExactly(server.plugins.auth.generateProfile, {
+                username: '123',
+                scmContext,
+                scope: ['temporal'],
+                auth: { type: 'temporary' },
+                metadata: buildMetadata
+            });
+            sinon.assert.calledWithExactly(server.plugins.auth.generateToken, 'bar', 60);
             Assert.isObject(server.app.jobFactory);
             Assert.isFunction(server.app.jobFactory.tokenGen);
-            Assert.strictEqual(server.app.jobFactory.tokenGen('bar'), 'foo');
+            Assert.strictEqual(server.app.jobFactory.tokenGen('batman', jobMetadata, scmContext), 'foo');
+            sinon.assert.calledWithExactly(server.plugins.auth.generateProfile, {
+                username: 'batman',
+                scmContext,
+                scope: ['user'],
+                auth: { type: 'temporary' },
+                metadata: jobMetadata
+            });
+            sinon.assert.calledWithExactly(server.plugins.auth.generateToken, 'bar');
             Assert.isFunction(server.app.buildFactory.executor.tokenGen);
-            Assert.strictEqual(server.app.buildFactory.executor.tokenGen('bar'), 'foo');
+            Assert.strictEqual(server.app.buildFactory.executor.tokenGen, server.app.buildFactory.tokenGen);
             Assert.isFunction(server.app.jobFactory.executor.userTokenGen);
-            Assert.strictEqual(server.app.jobFactory.executor.userTokenGen('bar'), 'foo');
+            Assert.strictEqual(server.app.jobFactory.executor.userTokenGen, server.app.jobFactory.tokenGen);
         });
     });
 

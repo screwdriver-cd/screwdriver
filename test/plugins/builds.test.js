@@ -8738,6 +8738,9 @@ describe('build plugin test', () => {
                     username: '12345',
                     scmContext: 'github:github.com',
                     scope: ['build'],
+                    auth: {
+                        type: 'temporary'
+                    },
                     metadata: {
                         isPR: false,
                         jobId: 1234,
@@ -8773,6 +8776,9 @@ describe('build plugin test', () => {
                     username: '12345',
                     scmContext: 'github:github.com',
                     scope: ['build'],
+                    auth: {
+                        type: 'temporary'
+                    },
                     metadata: {
                         isPR: false,
                         jobId: 1234,

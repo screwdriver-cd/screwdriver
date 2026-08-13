@@ -1,5 +1,6 @@
 'use strict';
 
+const boom = require('@hapi/boom');
 const joi = require('joi');
 const jwt = require('jsonwebtoken');
 const { v4: uuidv4 } = require('uuid');
@@ -94,6 +95,64 @@ const authPlugin = {
     async register(server, options) {
         const pluginOptions = joi.attempt(options, AUTH_PLUGIN_SCHEMA, 'Invalid config for plugin-auth');
 
+        server.ext('onPostAuth', async (request, h) => {
+            const { tokenFactory } = request.server.app;
+
+            const permissionLevels = {
+                read: 1,
+                execute: 2,
+                write: 3,
+                all: 4
+            };
+
+            const authSettings = request.route.settings.plugins ? request.route.settings.plugins.authorization : null;
+
+            if (!authSettings) {
+                return h.continue;
+            }
+
+            if (!request.auth.isAuthenticated) {
+                throw boom.unauthorized();
+            }
+
+            const credentials = request.auth.credentials;
+
+            if (!credentials.auth || credentials.auth.type !== 'api_token') {
+                return h.continue;
+            }
+
+            const apiTokenId = credentials.auth.apiTokenId;
+
+            if (!apiTokenId) {
+                throw boom.forbidden(`Your token is invalid`);
+            }
+
+            const token = await tokenFactory.get({ id: apiTokenId });
+
+            if (!token) {
+                throw boom.forbidden(`Your token is invalid`);
+            }
+
+            if (token.expiresAt && new Date(token.expiresAt) < new Date()) {
+                throw boom.forbidden(`Your token is expired: token id ${apiTokenId}`);
+            }
+
+            const actualPermission = credentials.permission || 'all';
+            const requiredPermission = authSettings.permission;
+            const actualPermissionLevel = permissionLevels[actualPermission];
+            const requiredPermissionLevel = permissionLevels[requiredPermission];
+
+            if (!requiredPermissionLevel) {
+                throw boom.badImplementation(`Invalid required permission: "${requiredPermission}"`);
+            }
+
+            if (!actualPermissionLevel || actualPermissionLevel < requiredPermissionLevel) {
+                throw boom.forbidden(`This endpoint requires "${requiredPermission}" permission`);
+            }
+
+            return h.continue;
+        });
+
         /**
          * Generates a profile for storage in cookie and jwt
          * @method generateProfile
@@ -102,12 +161,22 @@ const authPlugin = {
          * @param  {String}   config.scmUserId  User ID in the SCM
          * @param  {String}   config.scmContext Scm to which the person logged in belongs
          * @param  {Array}    config.scope      Scope for this profile (usually build or user)
+         * @param  {Object}   config.auth       Authentication method information
+         * @param  {Object}   config.options    Additional token options
          * @param  {Object}   config.metadata   Additional information to tag along with the login
          * @return {Object}                     The profile to be stored in jwt and/or cookie
          */
         server.expose('generateProfile', config => {
-            const { username, scmUserId, scmContext, scope, metadata } = config;
-            const profile = { username, scmContext, scmUserId, scope, ...(metadata || {}) };
+            const { username, scmUserId, scmContext, scope, auth, options: profileOptions, metadata } = config;
+            const profile = {
+                username,
+                scmContext,
+                scmUserId,
+                scope,
+                auth,
+                ...(profileOptions || {}),
+                ...(metadata || {})
+            };
 
             if (pluginOptions.jwtEnvironment) {
                 profile.environment = pluginOptions.jwtEnvironment;
@@ -228,7 +297,13 @@ const authPlugin = {
                             username: user.username,
                             scmUserId: scmUser.id,
                             scmContext: user.scmContext,
-                            scope: ['user']
+                            scope: ['user'],
+                            auth: {
+                                type: 'api_token',
+                                apiTokenId: token.id,
+                                apiTokenType: 'user'
+                            },
+                            ...(token.options || {})
                         };
 
                         const scmDisplayName = scm.getDisplayName({ scmContext: profile.scmContext });
@@ -256,7 +331,13 @@ const authPlugin = {
                             username: admin.username,
                             scmContext: pipeline.scmContext,
                             pipelineId: token.pipelineId,
-                            scope: ['pipeline']
+                            scope: ['pipeline'],
+                            auth: {
+                                type: 'api_token',
+                                apiTokenId: token.id,
+                                apiTokenType: 'pipeline'
+                            },
+                            ...(token.options || {})
                         };
                     }
                     if (!profile) {

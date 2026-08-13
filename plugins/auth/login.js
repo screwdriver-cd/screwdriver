@@ -35,6 +35,12 @@ function addGuestRoute(config) {
                     const profile = request.server.plugins.auth.generateProfile({
                         username,
                         scope: ['user', 'guest'],
+                        auth: {
+                            type: 'temporary'
+                        },
+                        options: {
+                            permission: 'read'
+                        },
                         metadata: {}
                     });
 
@@ -92,6 +98,12 @@ function addOAuthRoutes(config) {
                     scmUserId,
                     scmContext,
                     scope: ['user'],
+                    auth: {
+                        type: 'oauth'
+                    },
+                    options: {
+                        permission: 'all'
+                    },
                     metadata: {}
                 });
                 const scmDisplayName = await userFactory.scm.getDisplayName({ scmContext });
