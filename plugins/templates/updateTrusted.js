@@ -16,6 +16,11 @@ module.exports = () => ({
             strategies: ['token'],
             scope: ['admin', '!guest']
         },
+        plugins: {
+            authorization: {
+                permission: 'all'
+            }
+        },
 
         handler: async (request, h) => {
             const { name } = request.params;

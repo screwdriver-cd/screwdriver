@@ -120,6 +120,37 @@ describe('template plugin test', () => {
         assert.isOk(server.registrations.templates);
     });
 
+    describe('authorization settings for template routes', () => {
+        const routesRequiringAuthorization = [
+            ['get', '/templates', 'read'],
+            ['get', '/templates/{name}', 'read'],
+            ['get', '/templates/{name}/{versionOrTag}', 'read'],
+            ['get', '/template/{id}', 'read'],
+            ['get', '/templates/{name}/tags', 'read'],
+            ['get', '/templates/{name}/metrics', 'read'],
+            ['get', '/templates/{name}/{versionOrTag}/usage/pipelines', 'read'],
+            ['post', '/templates', 'all'],
+            ['put', '/templates/{templateName}/tags/{tagName}', 'all'],
+            ['delete', '/templates/{templateName}/tags/{tagName}', 'all'],
+            ['delete', '/templates/{name}', 'all'],
+            ['delete', '/templates/{name}/versions/{version}', 'all'],
+            ['put', '/templates/{name}/trusted', 'all']
+        ];
+
+        it('sets the agreed permission on every authenticated template route', () => {
+            routesRequiringAuthorization.forEach(([method, path, permission]) => {
+                const route = server.table().find(r => r.method === method && r.path === path);
+
+                assert.isOk(route, `${method.toUpperCase()} ${path} should be registered`);
+                assert.equal(
+                    route.settings.plugins.authorization.permission,
+                    permission,
+                    `${method.toUpperCase()} ${path} should require ${permission} permission`
+                );
+            });
+        });
+    });
+
     describe('GET /templates', () => {
         let options;
 
