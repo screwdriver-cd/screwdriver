@@ -90,6 +90,26 @@ describe('coverage plugin test', () => {
         assert.isOk(server.registrations.coverage);
     });
 
+    describe('authorization settings for coverage routes', () => {
+        const routesRequiringAuthorization = [
+            ['get', '/coverage/info', 'read'],
+            ['get', '/coverage/token', 'all']
+        ];
+
+        it('sets the agreed permission on every authenticated coverage route', () => {
+            routesRequiringAuthorization.forEach(([method, path, permission]) => {
+                const route = server.table().find(r => r.method === method && r.path === path);
+
+                assert.isOk(route, `${method.toUpperCase()} ${path} should be registered`);
+                assert.equal(
+                    route.settings.plugins.authorization.permission,
+                    permission,
+                    `${method.toUpperCase()} ${path} should require ${permission} permission`
+                );
+            });
+        });
+    });
+
     describe('GET /coverage/token', () => {
         let options;
         let pipelineMock;
