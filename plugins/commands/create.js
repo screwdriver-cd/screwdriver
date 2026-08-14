@@ -108,6 +108,11 @@ module.exports = () => ({
             strategies: ['token'],
             scope: ['build', '!guest']
         },
+        plugins: {
+            authorization: {
+                permission: 'all'
+            }
+        },
 
         payload: {
             parse: true,

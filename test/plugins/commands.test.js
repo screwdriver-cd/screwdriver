@@ -125,6 +125,34 @@ describe('command plugin test', () => {
         assert.isOk(server.registrations.commands);
     });
 
+    describe('authorization settings for command routes', () => {
+        const routesRequiringAuthorization = [
+            ['get', '/commands', 'read'],
+            ['get', '/commands/{namespace}/{name}', 'read'],
+            ['get', '/commands/{namespace}/{name}/{versionOrTag}', 'read'],
+            ['get', '/commands/{namespace}/{name}/tags', 'read'],
+            ['post', '/commands', 'all'],
+            ['put', '/commands/{namespace}/{name}/tags/{tagName}', 'all'],
+            ['delete', '/commands/{namespace}/{name}/tags/{tagName}', 'all'],
+            ['delete', '/commands/{namespace}/{name}', 'all'],
+            ['delete', '/commands/{namespace}/{name}/versions/{version}', 'all'],
+            ['put', '/commands/{namespace}/{name}/trusted', 'all']
+        ];
+
+        it('sets the agreed permission on every authenticated command route', () => {
+            routesRequiringAuthorization.forEach(([method, path, permission]) => {
+                const route = server.table().find(r => r.method === method && r.path === path);
+
+                assert.isOk(route, `${method.toUpperCase()} ${path} should be registered`);
+                assert.equal(
+                    route.settings.plugins.authorization.permission,
+                    permission,
+                    `${method.toUpperCase()} ${path} should require ${permission} permission`
+                );
+            });
+        });
+    });
+
     describe('GET /commands', () => {
         let options;
 
