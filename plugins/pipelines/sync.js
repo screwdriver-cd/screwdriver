@@ -18,6 +18,11 @@ module.exports = () => ({
             strategies: ['token'],
             scope: ['user', '!guest', 'pipeline']
         },
+        plugins: {
+            authorization: {
+                permission: 'all'
+            }
+        },
 
         handler: async (request, h) => {
             const { id } = request.params;

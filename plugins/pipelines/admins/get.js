@@ -18,13 +18,18 @@ module.exports = () => ({
             strategies: ['token'],
             scope: ['user', 'admin', 'pipeline', '!guest']
         },
+        plugins: {
+            authorization: {
+                permission: 'read'
+            }
+        },
 
         handler: async (request, h) => {
             const { pipelineFactory } = request.server.app;
-            const { scope } = request.auth.credentials;
+            const { scope, permission = 'all' } = request.auth.credentials;
             const { scmContext, includeUserToken } = request.query;
 
-            if (includeUserToken && !scope.includes('admin')) {
+            if (includeUserToken && (!scope.includes('admin') || permission !== 'all')) {
                 throw boom.forbidden('Only Screwdriver admin is allowed to request user token');
             }
 

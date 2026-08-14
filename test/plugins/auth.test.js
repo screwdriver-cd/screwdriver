@@ -565,6 +565,22 @@ describe('auth plugin test', () => {
                 },
                 {
                     method: 'GET',
+                    path: '/test/authorization/execute',
+                    options: {
+                        auth: {
+                            strategies: ['token'],
+                            scope: ['user']
+                        },
+                        plugins: {
+                            authorization: {
+                                permission: 'execute'
+                            }
+                        },
+                        handler: () => ({ ok: true })
+                    }
+                },
+                {
+                    method: 'GET',
                     path: '/test/authorization/write',
                     options: {
                         auth: {
@@ -574,6 +590,22 @@ describe('auth plugin test', () => {
                         plugins: {
                             authorization: {
                                 permission: 'write'
+                            }
+                        },
+                        handler: () => ({ ok: true })
+                    }
+                },
+                {
+                    method: 'GET',
+                    path: '/test/authorization/all',
+                    options: {
+                        auth: {
+                            strategies: ['token'],
+                            scope: ['user']
+                        },
+                        plugins: {
+                            authorization: {
+                                permission: 'all'
                             }
                         },
                         handler: () => ({ ok: true })
@@ -737,12 +769,26 @@ describe('auth plugin test', () => {
             assert.equal(reply.statusCode, 200);
         });
 
-        it('rejects an expired API Token JWT', async () => {
-            const token = await issueApiTokenJwt('read', '2000-01-01T00:00:00.000Z');
-            const reply = await injectJwt('/test/authorization/read', token);
+        it('rejects a read API Token JWT on an endpoint requiring execute', async () => {
+            const token = await issueApiTokenJwt('read');
+            const reply = await injectJwt('/test/authorization/execute', token);
 
             assert.equal(reply.statusCode, 403);
-            assert.equal(reply.result.message, `Your token is expired: token id ${apiTokenId}`);
+            assert.equal(reply.result.message, 'This endpoint requires "execute" permission');
+        });
+
+        it('allows an execute API Token JWT on an endpoint requiring execute', async () => {
+            const token = await issueApiTokenJwt('execute');
+            const reply = await injectJwt('/test/authorization/execute', token);
+
+            assert.equal(reply.statusCode, 200);
+        });
+
+        it('allows a write API Token JWT on an endpoint requiring execute', async () => {
+            const token = await issueApiTokenJwt('write');
+            const reply = await injectJwt('/test/authorization/execute', token);
+
+            assert.equal(reply.statusCode, 200);
         });
 
         it('rejects a read API Token JWT on an endpoint requiring write', async () => {
@@ -753,8 +799,16 @@ describe('auth plugin test', () => {
             assert.equal(reply.result.message, 'This endpoint requires "write" permission');
         });
 
+        it('rejects an execute API Token JWT on an endpoint requiring write', async () => {
+            const token = await issueApiTokenJwt('execute');
+            const reply = await injectJwt('/test/authorization/write', token);
+
+            assert.equal(reply.statusCode, 403);
+            assert.equal(reply.result.message, 'This endpoint requires "write" permission');
+        });
+
         it('allows an all API Token JWT on an endpoint requiring write', async () => {
-            const token = await issueApiTokenJwt('all', '2999-01-01T00:00:00.000Z');
+            const token = await issueApiTokenJwt('all');
             const reply = await injectJwt('/test/authorization/write', token);
 
             assert.equal(reply.statusCode, 200);
@@ -767,11 +821,19 @@ describe('auth plugin test', () => {
             assert.equal(reply.statusCode, 200);
         });
 
-        it('returns an internal error for an invalid required permission', async () => {
-            const token = await issueApiTokenJwt('all');
-            const reply = await injectJwt('/test/authorization/invalid', token);
+        it('rejects a write API Token JWT on an endpoint requiring all', async () => {
+            const token = await issueApiTokenJwt('write');
+            const reply = await injectJwt('/test/authorization/all', token);
 
-            assert.equal(reply.statusCode, 500);
+            assert.equal(reply.statusCode, 403);
+            assert.equal(reply.result.message, 'This endpoint requires "all" permission');
+        });
+
+        it('allows an all API Token JWT on an endpoint requiring all', async () => {
+            const token = await issueApiTokenJwt('all');
+            const reply = await injectJwt('/test/authorization/all', token);
+
+            assert.equal(reply.statusCode, 200);
         });
 
         it('rejects an API Token JWT without an API Token ID', async () => {
@@ -815,6 +877,21 @@ describe('auth plugin test', () => {
             assert.calledWith(tokenFactoryMock.get, { id: missingTokenId });
         });
 
+        it('allows an unexpired API Token JWT', async () => {
+            const token = await issueApiTokenJwt('read', '2999-01-01T00:00:00.000Z');
+            const reply = await injectJwt('/test/authorization/read', token);
+
+            assert.equal(reply.statusCode, 200);
+        });
+
+        it('rejects an expired API Token JWT', async () => {
+            const token = await issueApiTokenJwt('read', '2000-01-01T00:00:00.000Z');
+            const reply = await injectJwt('/test/authorization/read', token);
+
+            assert.equal(reply.statusCode, 403);
+            assert.equal(reply.result.message, `Your token is expired: token id ${apiTokenId}`);
+        });
+
         it('rejects an API Token JWT with an invalid actual permission', async () => {
             const token = server.plugins.auth.generateToken({
                 username: 'batman',
@@ -834,6 +911,13 @@ describe('auth plugin test', () => {
 
             assert.equal(reply.statusCode, 403);
             assert.equal(reply.result.message, 'This endpoint requires "read" permission');
+        });
+
+        it('returns an internal error for an invalid required permission', async () => {
+            const token = await issueApiTokenJwt('all');
+            const reply = await injectJwt('/test/authorization/invalid', token);
+
+            assert.equal(reply.statusCode, 500);
         });
     });
 

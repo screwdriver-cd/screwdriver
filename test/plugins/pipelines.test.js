@@ -411,6 +411,82 @@ describe('pipeline plugin test', () => {
         assert.equal(server.registrations.pipelines.options.password, password);
     });
 
+    describe('authorization settings for pipeline routes', () => {
+        const routesRequiringAuthorization = [
+            ['post', '/pipelines', 'all'],
+            ['delete', '/pipelines/{id}', 'all'],
+            ['put', '/pipelines/{id}', 'all'],
+            ['post', '/pipelines/{id}/sync', 'all'],
+            ['post', '/pipelines/{id}/sync/webhooks', 'all'],
+            ['post', '/pipelines/{id}/sync/pullrequests', 'all'],
+            ['get', '/pipelines/{id}', 'read'],
+            ['get', '/pipelines', 'read'],
+            ['get', '/pipelines/{id}/jobs', 'read'],
+            ['get', '/pipelines/{id}/stages', 'read'],
+            ['get', '/pipelines/{id}/triggers', 'read'],
+            ['get', '/pipelines/{id}/secrets', 'read'],
+            ['get', '/pipelines/{id}/events', 'read'],
+            ['get', '/pipelines/{id}/builds', 'read'],
+            ['post', '/pipelines/{id}/startall', 'execute'],
+            ['get', '/pipelines/{id}/metrics', 'read'],
+            ['get', '/pipelines/{id}/jobs/{jobName}/latestBuild', 'read'],
+            ['get', '/pipelines/{id}/lastSuccessfulEvent', 'read'],
+            ['get', '/pipelines/{id}/latestCommitEvent', 'read'],
+            ['post', '/pipelines/{id}/openPr', 'all'],
+            ['put', '/pipelines/{id}/buildCluster', 'all'],
+            ['get', '/pipelines/{id}/tokens', 'read'],
+            ['get', '/pipelines/{id}/admins', 'read'],
+            ['get', '/pipelines/{id}/admin', 'read'],
+            ['get', '/pipeline/templates', 'read'],
+            ['get', '/pipeline/template/{namespace}/{name}', 'read'],
+            ['get', '/pipeline/template/{id}', 'read'],
+            ['get', '/pipeline/template/{namespace}/{name}/{versionOrTag}', 'read'],
+            ['get', '/pipeline/templates/{namespace}/{name}/versions', 'read'],
+            ['get', '/pipeline/templates/{namespace}/{name}/tags', 'read'],
+            ['delete', '/pipelines/{id}/caches', 'write'],
+            ['post', '/pipelines/{id}/tokens', 'all'],
+            ['put', '/pipelines/{pipelineId}/tokens/{tokenId}', 'all'],
+            ['put', '/pipelines/{pipelineId}/tokens/{tokenId}/refresh', 'all'],
+            ['delete', '/pipelines/{pipelineId}/tokens/{tokenId}', 'all'],
+            ['delete', '/pipelines/{id}/tokens', 'all'],
+            ['put', '/pipelines/{id}/updateAdmins', 'all'],
+            ['put', '/pipelines/updateAdmins', 'all'],
+            ['post', '/pipeline/template', 'all'],
+            ['put', '/pipeline/template/{namespace}/{name}/tags/{tag}', 'all'],
+            ['delete', '/pipeline/templates/{namespace}/{name}', 'all'],
+            ['delete', '/pipeline/templates/{namespace}/{name}/tags/{tag}', 'all'],
+            ['delete', '/pipeline/templates/{namespace}/{name}/versions/{version}', 'all'],
+            ['put', '/pipeline/templates/{namespace}/{name}/trusted', 'all']
+        ];
+        const publicRoutes = [
+            ['get', '/pipelines/{id}/badge'],
+            ['get', '/pipelines/{id}/{jobName}/badge'],
+            ['post', '/pipeline/template/validate']
+        ];
+
+        it('sets the agreed permission on every authenticated pipeline route', () => {
+            routesRequiringAuthorization.forEach(([method, path, permission]) => {
+                const route = server.table().find(r => r.method === method && r.path === path);
+
+                assert.isOk(route, `${method.toUpperCase()} ${path} should be registered`);
+                assert.equal(
+                    route.settings.plugins.authorization.permission,
+                    permission,
+                    `${method.toUpperCase()} ${path} should require ${permission} permission`
+                );
+            });
+        });
+
+        it('does not add authorization settings to public pipeline routes', () => {
+            publicRoutes.forEach(([method, path]) => {
+                const route = server.table().find(r => r.method === method && r.path === path);
+
+                assert.isOk(route, `${method.toUpperCase()} ${path} should be registered`);
+                assert.isUndefined(route.settings.plugins.authorization);
+            });
+        });
+    });
+
     describe('GET /pipelines', () => {
         let options;
 
@@ -846,12 +922,6 @@ describe('pipeline plugin test', () => {
                 assert.equal(reply.statusCode, 200);
                 assert.deepEqual(reply.result, testPipeline);
             });
-        });
-
-        it('requires read permission', () => {
-            const route = server.table().find(r => r.path === '/pipelines/{id}' && r.method === 'get');
-
-            assert.equal(route.settings.plugins.authorization.permission, 'read');
         });
 
         it('throws error not found when pipeline does not exist', () => {
@@ -3698,7 +3768,8 @@ describe('pipeline plugin test', () => {
                     credentials: {
                         username,
                         scmContext,
-                        scope: ['user']
+                        scope: ['user'],
+                        permission: 'read'
                     },
                     strategy: ['token']
                 }
@@ -3748,6 +3819,31 @@ describe('pipeline plugin test', () => {
         });
         it('returns 200 with admin info along with user token for a pipeline when requested by SD admin', () => {
             options.auth.credentials.scope.push('admin');
+            options.auth.credentials.permission = 'all';
+            options.url = `/pipelines/${id}/admin?includeUserToken=true`;
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 200);
+                const res = JSON.parse(reply.payload);
+
+                assert.deepEqual(res, { ...adminUser, userToken });
+                assert.calledWith(generateProfileMock, {
+                    username: adminUser.username,
+                    scmContext: adminUser.scmContext,
+                    scope: ['user'],
+                    auth: {
+                        type: 'temporary'
+                    },
+                    options: {
+                        permission: 'all'
+                    }
+                });
+                assert.calledWith(generateTokenMock, profile);
+            });
+        });
+        it('returns 200 with user token for an SD admin whose legacy JWT has no permission', () => {
+            options.auth.credentials.scope.push('admin');
+            delete options.auth.credentials.permission;
             options.url = `/pipelines/${id}/admin?includeUserToken=true`;
 
             return server.inject(options).then(reply => {
@@ -3782,7 +3878,41 @@ describe('pipeline plugin test', () => {
                 assert.callCount(generateTokenMock, 0);
             });
         });
-        it('returns 403 when non SD admin requests for pipeline admin along with user token', () => {
+        it('returns 403 when non SD admin with all permission requests a user token', () => {
+            options.auth.credentials.permission = 'all';
+            options.url = `/pipelines/${id}/admin?includeUserToken=true`;
+
+            return server.inject(options).then(reply => {
+                const res = JSON.parse(reply.payload);
+
+                assert.equal(reply.statusCode, 403);
+                assert.equal(res.message, 'Only Screwdriver admin is allowed to request user token');
+
+                assert.callCount(pipelineFactoryMock.get, 0);
+                assert.callCount(pipelineMock.getFirstAdmin, 0);
+                assert.callCount(generateProfileMock, 0);
+                assert.callCount(generateTokenMock, 0);
+            });
+        });
+        it('returns 403 when non SD admin with read permission requests a user token', () => {
+            options.auth.credentials.permission = 'read';
+            options.url = `/pipelines/${id}/admin?includeUserToken=true`;
+
+            return server.inject(options).then(reply => {
+                const res = JSON.parse(reply.payload);
+
+                assert.equal(reply.statusCode, 403);
+                assert.equal(res.message, 'Only Screwdriver admin is allowed to request user token');
+
+                assert.callCount(pipelineFactoryMock.get, 0);
+                assert.callCount(pipelineMock.getFirstAdmin, 0);
+                assert.callCount(generateProfileMock, 0);
+                assert.callCount(generateTokenMock, 0);
+            });
+        });
+        it('returns 403 when SD admin with read permission requests a user token', () => {
+            options.auth.credentials.scope.push('admin');
+            options.auth.credentials.permission = 'read';
             options.url = `/pipelines/${id}/admin?includeUserToken=true`;
 
             return server.inject(options).then(reply => {

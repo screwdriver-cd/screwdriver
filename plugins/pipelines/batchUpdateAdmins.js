@@ -18,6 +18,11 @@ module.exports = () => ({
             strategies: ['token'],
             scope: ['user', '!guest', 'admin']
         },
+        plugins: {
+            authorization: {
+                permission: 'all'
+            }
+        },
         handler: async (request, h) => {
             const { scmContext, username, scope } = request.auth.credentials;
             const { payload } = request;
