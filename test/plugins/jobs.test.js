@@ -189,6 +189,33 @@ describe('job plugin test', () => {
         assert.isOk(server.registrations.jobs);
     });
 
+    describe('authorization settings for job routes', () => {
+        const routesRequiringAuthorization = [
+            ['get', '/jobs/{id}', 'read'],
+            ['get', '/jobs/{id}/builds', 'read'],
+            ['get', '/jobs/{id}/lastSuccessfulMeta', 'read'],
+            ['get', '/jobs/{id}/metrics', 'read'],
+            ['get', '/jobs/{id}/latestBuild', 'read'],
+            ['put', '/jobs/{id}', 'write'],
+            ['post', '/jobs/{id}/notify', 'all'],
+            ['put', '/jobs/{id}/buildCluster', 'all'],
+            ['delete', '/jobs/{id}/buildCluster', 'all']
+        ];
+
+        it('sets the agreed permission on every authenticated job route', () => {
+            routesRequiringAuthorization.forEach(([method, path, permission]) => {
+                const route = server.table().find(r => r.method === method && r.path === path);
+
+                assert.isOk(route, `${method.toUpperCase()} ${path} should be registered`);
+                assert.equal(
+                    route.settings.plugins.authorization.permission,
+                    permission,
+                    `${method.toUpperCase()} ${path} should require ${permission} permission`
+                );
+            });
+        });
+    });
+
     describe('GET /jobs/{id}', () => {
         const id = 1234;
 
