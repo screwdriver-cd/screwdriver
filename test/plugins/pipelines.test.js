@@ -3878,7 +3878,7 @@ describe('pipeline plugin test', () => {
                 assert.callCount(generateTokenMock, 0);
             });
         });
-        it('returns 403 when non SD admin requests for pipeline admin along with user token', () => {
+        it('returns 403 when non SD admin with all permission requests a user token', () => {
             options.auth.credentials.permission = 'all';
             options.url = `/pipelines/${id}/admin?includeUserToken=true`;
 
@@ -3894,8 +3894,25 @@ describe('pipeline plugin test', () => {
                 assert.callCount(generateTokenMock, 0);
             });
         });
-        it('returns 403 when SD admin without all permission requests for pipeline admin along with user token', () => {
+        it('returns 403 when non SD admin with read permission requests a user token', () => {
+            options.auth.credentials.permission = 'read';
+            options.url = `/pipelines/${id}/admin?includeUserToken=true`;
+
+            return server.inject(options).then(reply => {
+                const res = JSON.parse(reply.payload);
+
+                assert.equal(reply.statusCode, 403);
+                assert.equal(res.message, 'Only Screwdriver admin is allowed to request user token');
+
+                assert.callCount(pipelineFactoryMock.get, 0);
+                assert.callCount(pipelineMock.getFirstAdmin, 0);
+                assert.callCount(generateProfileMock, 0);
+                assert.callCount(generateTokenMock, 0);
+            });
+        });
+        it('returns 403 when SD admin with read permission requests a user token', () => {
             options.auth.credentials.scope.push('admin');
+            options.auth.credentials.permission = 'read';
             options.url = `/pipelines/${id}/admin?includeUserToken=true`;
 
             return server.inject(options).then(reply => {
