@@ -17,6 +17,11 @@ module.exports = () => ({
             strategies: ['token'],
             scope: ['temporal']
         },
+        plugins: {
+            authorization: {
+                permission: 'all'
+            }
+        },
 
         handler: async (request, h) => {
             const profile = request.auth.credentials;

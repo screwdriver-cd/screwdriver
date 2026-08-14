@@ -14,6 +14,11 @@ module.exports = () => ({
             strategies: ['token'],
             scope: ['build', 'temporal']
         },
+        plugins: {
+            authorization: {
+                permission: 'all'
+            }
+        },
 
         handler: async (request, h) => {
             const { stepFactory } = request.server.app;

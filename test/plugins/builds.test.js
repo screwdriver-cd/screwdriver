@@ -297,6 +297,38 @@ describe('build plugin test', () => {
         assert.isOk(server.registrations.builds);
     });
 
+    describe('authorization settings for build routes', () => {
+        const routesRequiringAuthorization = [
+            ['get', '/builds/{id}', 'read'],
+            ['get', '/builds/statuses', 'read'],
+            ['get', '/builds/{id}/steps/{name}/logs', 'read'],
+            ['get', '/builds/{id}/steps/{name}', 'read'],
+            ['get', '/builds/{id}/steps', 'read'],
+            ['get', '/builds/{id}/secrets', 'read'],
+            ['get', '/builds/{id}/metrics', 'read'],
+            ['get', '/builds/{id}/artifacts', 'read'],
+            ['get', '/builds/{id}/artifacts/{name*}', 'read'],
+            ['post', '/builds', 'execute'],
+            ['put', '/builds/{id}', 'execute'],
+            ['put', '/builds/{id}/steps/{name}', 'all'],
+            ['post', '/builds/{id}/token', 'all'],
+            ['post', '/builds/{id}/artifacts/unzip', 'all']
+        ];
+
+        it('sets the agreed permission on every authenticated build route', () => {
+            routesRequiringAuthorization.forEach(([method, path, permission]) => {
+                const route = server.table().find(r => r.method === method && r.path === path);
+
+                assert.isOk(route, `${method.toUpperCase()} ${path} should be registered`);
+                assert.equal(
+                    route.settings.plugins.authorization.permission,
+                    permission,
+                    `${method.toUpperCase()} ${path} should require ${permission} permission`
+                );
+            });
+        });
+    });
+
     describe('GET /builds/{id}', () => {
         const id = 12345;
 
