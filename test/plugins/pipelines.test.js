@@ -1624,21 +1624,21 @@ describe('pipeline plugin test', () => {
             });
         });
 
-        it('returns 200 to unknown for an event that does not exist', () => {
+        it('returns 200 to only pipeline name for an event that does not exist', () => {
             eventFactoryMock.getPipelineTypeBuildEvents.resolves([]);
 
             return server.inject(`/pipelines/${id}/badge`).then(reply => {
                 assert.equal(reply.statusCode, 200);
-                assert.include(reply.payload, 'pipeline: unknown');
+                assert.include(reply.payload, 'foo/bar: unknown');
             });
         });
 
-        it('returns 200 to unknown for a build that does not exist', () => {
+        it('returns 200 to only pipeline name for a build that does not exist', () => {
             eventsMock[0].getBuilds.resolves([]);
 
             return server.inject(`/pipelines/${id}/badge`).then(reply => {
                 assert.equal(reply.statusCode, 200);
-                assert.include(reply.payload, 'pipeline: unknown');
+                assert.include(reply.payload, 'foo/bar: unknown');
             });
         });
 
@@ -1682,8 +1682,8 @@ describe('pipeline plugin test', () => {
             });
         });
 
-        it('returns 200 to unknown for a job that does not exist', () => {
-            jobFactoryMock.get.resolves(null);
+        it('returns 200 to unknown for a pipeline that does not exist', () => {
+            pipelineFactoryMock.get.resolves(null);
 
             return server.inject(`/pipelines/${id}/${jobName}/badge`).then(reply => {
                 assert.equal(reply.statusCode, 200);
@@ -1691,7 +1691,26 @@ describe('pipeline plugin test', () => {
             });
         });
 
-        it('returns 200 to unknown when the datastore returns an error', () => {
+        it('returns 200 to only pipeline name for a job that does not exist', () => {
+            jobFactoryMock.get.resolves(null);
+
+            return server.inject(`/pipelines/${id}/${jobName}/badge`).then(reply => {
+                assert.equal(reply.statusCode, 200);
+                assert.include(reply.payload, 'foo/bar-test: unknown');
+            });
+        });
+
+        it('returns 200 to unknown name when the datastore returns an error', () => {
+            server.app.ecosystem.badges = '{{subject}}*{{status}}*{{color}}';
+            pipelineFactoryMock.get.rejects(new Error('icantdothatdave'));
+
+            return server.inject(`/pipelines/${id}/${jobName}/badge`).then(reply => {
+                assert.equal(reply.statusCode, 200);
+                assert.include(reply.payload, 'job: unknown');
+            });
+        });
+
+        it('returns 200 to unknown name when the datastore returns an error', () => {
             server.app.ecosystem.badges = '{{subject}}*{{status}}*{{color}}';
             jobFactoryMock.get.rejects(new Error('icantdothatdave'));
 
