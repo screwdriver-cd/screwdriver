@@ -17,11 +17,6 @@ module.exports = config => ({
             strategies: ['token'],
             scope: ['build']
         },
-        plugins: {
-            authorization: {
-                permission: 'all'
-            }
-        },
 
         handler: async (request, h) => {
             const { jobFactory, pipelineFactory } = request.server.app;

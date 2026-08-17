@@ -310,12 +310,14 @@ describe('build plugin test', () => {
             ['get', '/builds/{id}/artifacts/{name*}', 'read'],
             ['post', '/builds', 'execute'],
             ['put', '/builds/{id}', 'execute'],
-            ['put', '/builds/{id}/steps/{name}', 'all'],
-            ['post', '/builds/{id}/token', 'all'],
             ['post', '/builds/{id}/artifacts/unzip', 'all']
         ];
+        const nonApiTokenRoutes = [
+            ['put', '/builds/{id}/steps/{name}'],
+            ['post', '/builds/{id}/token']
+        ];
 
-        it('sets the agreed permission on every authenticated build route', () => {
+        it('sets the agreed permission on every API Token-accessible build route', () => {
             routesRequiringAuthorization.forEach(([method, path, permission]) => {
                 const route = server.table().find(r => r.method === method && r.path === path);
 
@@ -325,6 +327,15 @@ describe('build plugin test', () => {
                     permission,
                     `${method.toUpperCase()} ${path} should require ${permission} permission`
                 );
+            });
+        });
+
+        it('does not set API Token permissions on Build or Temporal Token-only build routes', () => {
+            nonApiTokenRoutes.forEach(([method, path]) => {
+                const route = server.table().find(r => r.method === method && r.path === path);
+
+                assert.isOk(route, `${method.toUpperCase()} ${path} should be registered`);
+                assert.notProperty(route.settings.plugins, 'authorization');
             });
         });
     });
