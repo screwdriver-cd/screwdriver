@@ -35,9 +35,7 @@ module.exports = () => ({
             // Check Build ID impersonate
             if (request.params.buildId) {
                 if (!scope.includes('admin') || permission !== 'all') {
-                    return boom.forbidden(
-                        `User ${username} must be an admin with all permission to impersonate`
-                    );
+                    return boom.forbidden(`User ${username} must be an admin with all permission to impersonate`);
                 }
 
                 const build = await buildFactory.get(request.params.buildId);
