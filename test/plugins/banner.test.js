@@ -104,6 +104,44 @@ describe('banner plugin test', () => {
         assert.isOk(server.registrations.banners);
     });
 
+    describe('authorization settings for banner routes', () => {
+        const routesRequiringAuthorization = [
+            ['post', '/banners'],
+            ['put', '/banners/{id}'],
+            ['delete', '/banners/{id}']
+        ];
+        const publicRoutes = [
+            ['get', '/banners'],
+            ['get', '/banners/{id}']
+        ];
+
+        routesRequiringAuthorization.forEach(([method, path]) => {
+            it(`requires all permission for ${method.toUpperCase()} ${path}`, () => {
+                const route = server.table().find(r => r.method === method && r.path === path);
+
+                assert.isOk(route, `${method.toUpperCase()} ${path} should be registered`);
+                assert.equal(
+                    route.settings.plugins.authorization.permission,
+                    'all',
+                    `${method.toUpperCase()} ${path} should require all permission`
+                );
+            });
+        });
+
+        publicRoutes.forEach(([method, path]) => {
+            it(`does not require permission for ${method.toUpperCase()} ${path}`, () => {
+                const route = server.table().find(r => r.method === method && r.path === path);
+
+                assert.isOk(route, `${method.toUpperCase()} ${path} should be registered`);
+                assert.notProperty(
+                    route.settings.plugins,
+                    'authorization',
+                    `${method.toUpperCase()} ${path} should remain publicly accessible`
+                );
+            });
+        });
+    });
+
     describe('POST /banners', () => {
         let options;
         const username = 'jimgrund';
