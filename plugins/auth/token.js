@@ -29,13 +29,15 @@ module.exports = () => ({
         },
         handler: async (request, h) => {
             let profile = request.auth.credentials;
-            const { scope, token, username } = profile;
+            const { scope, token, username, permission = 'all' } = profile;
             const { buildFactory, jobFactory, pipelineFactory } = request.server.app;
 
             // Check Build ID impersonate
             if (request.params.buildId) {
-                if (!scope.includes('admin')) {
-                    return boom.forbidden(`User ${username} is not an admin and cannot impersonate`);
+                if (!scope.includes('admin') || permission !== 'all') {
+                    return boom.forbidden(
+                        `User ${username} must be an admin with all permission to impersonate`
+                    );
                 }
 
                 const build = await buildFactory.get(request.params.buildId);
