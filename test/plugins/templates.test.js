@@ -120,6 +120,48 @@ describe('template plugin test', () => {
         assert.isOk(server.registrations.templates);
     });
 
+    describe('authorization settings for template routes', () => {
+        const routesRequiringAuthorization = [
+            ['get', '/templates', 'read'],
+            ['get', '/templates/{name}', 'read'],
+            ['get', '/templates/{name}/{versionOrTag}', 'read'],
+            ['get', '/template/{id}', 'read'],
+            ['get', '/templates/{name}/tags', 'read'],
+            ['get', '/templates/{name}/metrics', 'read'],
+            ['get', '/templates/{name}/{versionOrTag}/usage/pipelines', 'read'],
+            ['delete', '/templates/{name}', 'all'],
+            ['delete', '/templates/{name}/versions/{version}', 'all'],
+            ['put', '/templates/{name}/trusted', 'all']
+        ];
+        const buildTokenOnlyRoutes = [
+            ['post', '/templates'],
+            ['put', '/templates/{templateName}/tags/{tagName}'],
+            ['delete', '/templates/{templateName}/tags/{tagName}']
+        ];
+
+        it('sets the agreed permission on every API Token-accessible template route', () => {
+            routesRequiringAuthorization.forEach(([method, path, permission]) => {
+                const route = server.table().find(r => r.method === method && r.path === path);
+
+                assert.isOk(route, `${method.toUpperCase()} ${path} should be registered`);
+                assert.equal(
+                    route.settings.plugins.authorization.permission,
+                    permission,
+                    `${method.toUpperCase()} ${path} should require ${permission} permission`
+                );
+            });
+        });
+
+        it('does not set API Token permissions on Build Token-only template routes', () => {
+            buildTokenOnlyRoutes.forEach(([method, path]) => {
+                const route = server.table().find(r => r.method === method && r.path === path);
+
+                assert.isOk(route, `${method.toUpperCase()} ${path} should be registered`);
+                assert.notProperty(route.settings.plugins, 'authorization');
+            });
+        });
+    });
+
     describe('GET /templates', () => {
         let options;
 

@@ -19,12 +19,22 @@ module.exports = () => ({
             strategies: ['token'],
             scope: ['admin', '!guest']
         },
+        plugins: {
+            authorization: {
+                permission: 'read'
+            }
+        },
 
         handler: async (request, h) => {
             const { username } = request.params;
             const { userFactory } = request.server.app;
             const { scmContext, includeUserToken } = request.query;
             const { credentials } = request.auth;
+            const { permission = 'all' } = credentials;
+
+            if (includeUserToken && permission !== 'all') {
+                throw boom.forbidden('All permission is required to request user token');
+            }
 
             const user = await userFactory.get({
                 username,
