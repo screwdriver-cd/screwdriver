@@ -131,15 +131,17 @@ describe('command plugin test', () => {
             ['get', '/commands/{namespace}/{name}', 'read'],
             ['get', '/commands/{namespace}/{name}/{versionOrTag}', 'read'],
             ['get', '/commands/{namespace}/{name}/tags', 'read'],
-            ['post', '/commands', 'all'],
-            ['put', '/commands/{namespace}/{name}/tags/{tagName}', 'all'],
-            ['delete', '/commands/{namespace}/{name}/tags/{tagName}', 'all'],
             ['delete', '/commands/{namespace}/{name}', 'all'],
             ['delete', '/commands/{namespace}/{name}/versions/{version}', 'all'],
             ['put', '/commands/{namespace}/{name}/trusted', 'all']
         ];
+        const buildTokenOnlyRoutes = [
+            ['post', '/commands'],
+            ['put', '/commands/{namespace}/{name}/tags/{tagName}'],
+            ['delete', '/commands/{namespace}/{name}/tags/{tagName}']
+        ];
 
-        it('sets the agreed permission on every authenticated command route', () => {
+        it('sets the agreed permission on every API Token-accessible command route', () => {
             routesRequiringAuthorization.forEach(([method, path, permission]) => {
                 const route = server.table().find(r => r.method === method && r.path === path);
 
@@ -149,6 +151,15 @@ describe('command plugin test', () => {
                     permission,
                     `${method.toUpperCase()} ${path} should require ${permission} permission`
                 );
+            });
+        });
+
+        it('does not set API Token permissions on Build Token-only command routes', () => {
+            buildTokenOnlyRoutes.forEach(([method, path]) => {
+                const route = server.table().find(r => r.method === method && r.path === path);
+
+                assert.isOk(route, `${method.toUpperCase()} ${path} should be registered`);
+                assert.notProperty(route.settings.plugins, 'authorization');
             });
         });
     });

@@ -129,15 +129,17 @@ describe('template plugin test', () => {
             ['get', '/templates/{name}/tags', 'read'],
             ['get', '/templates/{name}/metrics', 'read'],
             ['get', '/templates/{name}/{versionOrTag}/usage/pipelines', 'read'],
-            ['post', '/templates', 'all'],
-            ['put', '/templates/{templateName}/tags/{tagName}', 'all'],
-            ['delete', '/templates/{templateName}/tags/{tagName}', 'all'],
             ['delete', '/templates/{name}', 'all'],
             ['delete', '/templates/{name}/versions/{version}', 'all'],
             ['put', '/templates/{name}/trusted', 'all']
         ];
+        const buildTokenOnlyRoutes = [
+            ['post', '/templates'],
+            ['put', '/templates/{templateName}/tags/{tagName}'],
+            ['delete', '/templates/{templateName}/tags/{tagName}']
+        ];
 
-        it('sets the agreed permission on every authenticated template route', () => {
+        it('sets the agreed permission on every API Token-accessible template route', () => {
             routesRequiringAuthorization.forEach(([method, path, permission]) => {
                 const route = server.table().find(r => r.method === method && r.path === path);
 
@@ -147,6 +149,15 @@ describe('template plugin test', () => {
                     permission,
                     `${method.toUpperCase()} ${path} should require ${permission} permission`
                 );
+            });
+        });
+
+        it('does not set API Token permissions on Build Token-only template routes', () => {
+            buildTokenOnlyRoutes.forEach(([method, path]) => {
+                const route = server.table().find(r => r.method === method && r.path === path);
+
+                assert.isOk(route, `${method.toUpperCase()} ${path} should be registered`);
+                assert.notProperty(route.settings.plugins, 'authorization');
             });
         });
     });
