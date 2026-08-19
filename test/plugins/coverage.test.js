@@ -135,7 +135,7 @@ describe('coverage plugin test', () => {
             });
         });
 
-        it('returns 200 with projectKey and username and projectName', () => {
+        it('ignores caller-supplied username and projectName, forwarding the resolved pipeline name', () => {
             options.url =
                 '/coverage/token?projectKey=job:123&username=user-job-123&scope=job&projectName=d2lam/test:main';
 
@@ -146,13 +146,12 @@ describe('coverage plugin test', () => {
                     scope: 'job',
                     buildCredentials: credentials,
                     projectKey: 'job:123',
-                    projectName: 'd2lam/test:main',
-                    username: 'user-job-123'
+                    pipelineName: 'd2lam/test'
                 });
             });
         });
 
-        it('returns 200 with projectKey and username and projectName and selfSonarHost and selfSonarAdminToken', () => {
+        it('ignores caller-supplied username and projectName on the selfSonar path too', () => {
             options.url =
                 '/coverage/token?projectKey=job:123&username=user-job-123&scope=job&projectName=d2lam/test:main&selfSonarHost=http://mySonar&selfSonarAdminToken=faketoken';
 
@@ -163,9 +162,32 @@ describe('coverage plugin test', () => {
                     scope: 'job',
                     buildCredentials: credentials,
                     projectKey: 'job:123',
-                    projectName: 'd2lam/test:main',
-                    username: 'user-job-123'
+                    pipelineName: 'd2lam/test'
                 });
+            });
+        });
+
+        it('does not let a caller redirect the Git App binding to another repository', () => {
+            options.url = '/coverage/token?projectKey=job:123&scope=job&projectName=victim-org/victim-repo';
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 200);
+
+                const [tokenConfig] = mockCoveragePlugin.getAccessToken.firstCall.args;
+
+                assert.notProperty(tokenConfig, 'projectName');
+                assert.notProperty(tokenConfig, 'username');
+                assert.strictEqual(tokenConfig.pipelineName, 'd2lam/test');
+            });
+        });
+
+        it('resolves the pipeline name even when the caller supplies a usable projectName', () => {
+            options.url = '/coverage/token?scope=job&projectName=d2lam/test:main';
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 200);
+                assert.calledWith(pipelineFactoryMock.get, 333);
+                assert.calledWithMatch(mockCoveragePlugin.getAccessToken, { pipelineName: 'd2lam/test' });
             });
         });
 

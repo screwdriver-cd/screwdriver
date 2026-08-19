@@ -22,7 +22,10 @@ module.exports = config => ({
             const { jobFactory, pipelineFactory } = request.server.app;
             const buildCredentials = request.auth.credentials;
             const { jobId, pipelineId } = buildCredentials;
-            const { scope, projectKey, projectName, username, selfSonarHost, selfSonarAdminToken } = request.query;
+            const { scope, projectKey, selfSonarHost, selfSonarAdminToken } = request.query;
+            // `projectName` and `username` are deliberately not read from the query. The coverage plugin
+            // derives both from the pipeline name resolved below, so a build cannot point its Sonar
+            // project's Git App binding at another organization's repository. See PSECBUGS-115276.
             const tokenConfig = {
                 buildCredentials,
                 scope
@@ -30,14 +33,6 @@ module.exports = config => ({
 
             if (projectKey) {
                 tokenConfig.projectKey = projectKey;
-            }
-
-            if (projectName) {
-                tokenConfig.projectName = projectName;
-            }
-
-            if (username) {
-                tokenConfig.username = username;
             }
 
             // Get scope and job name
@@ -56,8 +51,8 @@ module.exports = config => ({
             }
             let pipeline;
 
-            // Get pipeline name
-            if (pipelineId && (!projectName || projectName.includes('undefined'))) {
+            // Get pipeline name; always resolved here so it can never be supplied by the caller
+            if (pipelineId) {
                 pipeline = await pipelineFactory.get(pipelineId);
 
                 if (!pipeline) {
@@ -90,12 +85,6 @@ module.exports = config => ({
 
             const data = await config.coveragePlugin.getAccessToken(tokenConfig);
             const { projectUrl } = config.coveragePlugin.getProjectData(tokenConfig);
-
-            if (!pipeline && pipelineId) {
-                pipeline = await pipelineFactory.get(pipelineId);
-
-                logger.info(`looking up again, pipeline:${pipelineId}, and found pipeline: ${pipeline}`);
-            }
 
             if (pipeline && projectUrl) {
                 try {
