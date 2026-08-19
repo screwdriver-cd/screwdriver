@@ -181,6 +181,30 @@ describe('event plugin test', () => {
         assert.isOk(server.registrations.events);
     });
 
+    describe('authorization settings for event routes', () => {
+        const routesRequiringAuthorization = [
+            ['get', '/events/{id}', 'read'],
+            ['get', '/events/{id}/builds', 'read'],
+            ['get', '/events/{id}/stageBuilds', 'read'],
+            ['get', '/events/{id}/metrics', 'read'],
+            ['post', '/events', 'execute'],
+            ['put', '/events/{id}/stop', 'execute']
+        ];
+
+        it('sets the agreed permission on every authenticated event route', () => {
+            routesRequiringAuthorization.forEach(([method, path, permission]) => {
+                const route = server.table().find(r => r.method === method && r.path === path);
+
+                assert.isOk(route, `${method.toUpperCase()} ${path} should be registered`);
+                assert.equal(
+                    route.settings.plugins.authorization.permission,
+                    permission,
+                    `${method.toUpperCase()} ${path} should require ${permission} permission`
+                );
+            });
+        });
+    });
+
     describe('GET /events/{id}', () => {
         const id = 12345;
 

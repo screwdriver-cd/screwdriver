@@ -85,6 +85,28 @@ describe('user plugin test', () => {
         assert.isOk(server.registrations.users);
     });
 
+    describe('authorization settings for user routes', () => {
+        const routesRequiringAuthorization = [
+            ['get', '/users/settings', 'read'],
+            ['put', '/users/settings', 'all'],
+            ['delete', '/users/settings', 'all'],
+            ['get', '/users/{username}', 'read']
+        ];
+
+        it('sets the agreed permission on every authenticated user route', () => {
+            routesRequiringAuthorization.forEach(([method, path, permission]) => {
+                const route = server.table().find(r => r.method === method && r.path === path);
+
+                assert.isOk(route, `${method.toUpperCase()} ${path} should be registered`);
+                assert.equal(
+                    route.settings.plugins.authorization.permission,
+                    permission,
+                    `${method.toUpperCase()} ${path} should require ${permission} permission`
+                );
+            });
+        });
+    });
+
     describe('GET /user/settings', () => {
         let options;
 
@@ -346,7 +368,8 @@ describe('user plugin test', () => {
                     credentials: {
                         username,
                         scmContext,
-                        scope: ['admin']
+                        scope: ['admin'],
+                        permission: 'read'
                     },
                     strategy: ['token']
                 }
@@ -375,6 +398,7 @@ describe('user plugin test', () => {
 
         it('returns 200 and the user matching the specified SCM username and context along with the user token', () => {
             options.url = `${options.url}&includeUserToken=true`;
+            options.auth.credentials.permission = 'all';
 
             return server.inject(options).then(reply => {
                 assert.calledOnce(userFactoryMock.get);
@@ -403,6 +427,35 @@ describe('user plugin test', () => {
                     },
                     token: 'someTokenSam',
                     userToken: 'some-user-token'
+                });
+            });
+        });
+
+        it('allows a legacy token without permission to request the user token', () => {
+            options.url = `${options.url}&includeUserToken=true`;
+            delete options.auth.credentials.permission;
+
+            return server.inject(options).then(reply => {
+                assert.calledOnce(userFactoryMock.get);
+                assert.calledOnce(generateProfileMock);
+                assert.calledOnce(generateTokenMock);
+                assert.equal(reply.statusCode, 200);
+                assert.equal(reply.result.userToken, userToken);
+            });
+        });
+
+        it('returns 403 when read permission requests the user token', () => {
+            options.url = `${options.url}&includeUserToken=true`;
+
+            return server.inject(options).then(reply => {
+                assert.callCount(userFactoryMock.get, 0);
+                assert.callCount(generateProfileMock, 0);
+                assert.callCount(generateTokenMock, 0);
+                assert.equal(reply.statusCode, 403);
+                assert.deepEqual(reply.result, {
+                    statusCode: 403,
+                    error: 'Forbidden',
+                    message: 'All permission is required to request user token'
                 });
             });
         });

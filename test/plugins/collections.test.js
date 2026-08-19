@@ -148,6 +148,31 @@ describe('collection plugin test', () => {
         assert.isOk(server.registrations.collections);
     });
 
+    describe('authorization settings for collection routes', () => {
+        const routesRequiringAuthorization = [
+            ['get', '/collections', 'read'],
+            ['get', '/collections/{id}', 'read'],
+            ['post', '/collections', 'all'],
+            ['put', '/collections/{id}', 'all'],
+            ['delete', '/collections/{id}', 'all'],
+            ['put', '/collections/{id}/pipelines', 'all'],
+            ['delete', '/collections/{id}/pipelines', 'all']
+        ];
+
+        it('sets the agreed permission on every authenticated collection route', () => {
+            routesRequiringAuthorization.forEach(([method, path, permission]) => {
+                const route = server.table().find(r => r.method === method && r.path === path);
+
+                assert.isOk(route, `${method.toUpperCase()} ${path} should be registered`);
+                assert.equal(
+                    route.settings.plugins.authorization.permission,
+                    permission,
+                    `${method.toUpperCase()} ${path} should require ${permission} permission`
+                );
+            });
+        });
+    });
+
     describe('POST /collections', () => {
         let options;
         const { name, description, pipelineIds } = testCollection;
