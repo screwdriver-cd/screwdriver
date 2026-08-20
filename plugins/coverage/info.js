@@ -11,6 +11,11 @@ module.exports = config => ({
             strategies: ['token'],
             scope: ['user', 'build']
         },
+        plugins: {
+            authorization: {
+                permission: 'read'
+            }
+        },
 
         handler: async (request, h) => {
             const data = await config.coveragePlugin.getInfo(request.query);

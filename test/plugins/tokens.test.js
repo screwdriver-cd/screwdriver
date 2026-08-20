@@ -105,6 +105,29 @@ describe('token plugin test', () => {
         assert.isOk(server.registrations.tokens);
     });
 
+    describe('authorization settings for token routes', () => {
+        const routesRequiringAuthorization = [
+            ['get', '/tokens', 'read'],
+            ['post', '/tokens', 'all'],
+            ['put', '/tokens/{id}', 'all'],
+            ['put', '/tokens/{id}/refresh', 'all'],
+            ['delete', '/tokens/{id}', 'all']
+        ];
+
+        it('sets the agreed permission on every authenticated token route', () => {
+            routesRequiringAuthorization.forEach(([method, path, permission]) => {
+                const route = server.table().find(r => r.method === method && r.path === path);
+
+                assert.isOk(route, `${method.toUpperCase()} ${path} should be registered`);
+                assert.equal(
+                    route.settings.plugins.authorization.permission,
+                    permission,
+                    `${method.toUpperCase()} ${path} should require ${permission} permission`
+                );
+            });
+        });
+    });
+
     describe('POST /tokens', () => {
         let options;
         const { name, description, expiresAt, options: tokenOptions } = testToken;

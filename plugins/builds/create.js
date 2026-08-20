@@ -19,6 +19,9 @@ module.exports = () => ({
             'hapi-swagger': {
                 security: [{ token: [] }],
                 deprecated: true
+            },
+            authorization: {
+                permission: 'execute'
             }
         },
         handler: async (request, h) => {

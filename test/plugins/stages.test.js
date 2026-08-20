@@ -80,6 +80,20 @@ describe('stage plugin test', () => {
         assert.isOk(server.registrations.stages);
     });
 
+    it('requires read permission for every route', () => {
+        const expectedRoutes = [
+            { method: 'get', path: '/stages/{id}' },
+            { method: 'get', path: '/stages/{id}/stageBuilds' }
+        ];
+
+        expectedRoutes.forEach(({ method, path }) => {
+            const route = server.table().find(r => r.method === method && r.path === path);
+
+            assert.isOk(route, `Route not found: ${method.toUpperCase()} ${path}`);
+            assert.equal(route.settings.plugins.authorization.permission, 'read');
+        });
+    });
+
     describe('GET /stages/{id}', () => {
         const id = 123;
         let options;

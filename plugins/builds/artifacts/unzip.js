@@ -16,6 +16,11 @@ module.exports = config => ({
             strategies: ['token'],
             scope: ['user', 'build']
         },
+        plugins: {
+            authorization: {
+                permission: 'all'
+            }
+        },
 
         handler: async (req, h) => {
             if (!req.server.app.unzipArtifacts) {

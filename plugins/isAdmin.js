@@ -21,6 +21,9 @@ const isAdminPlugin = {
                 plugins: {
                     'hapi-swagger': {
                         security: [{ token: [] }]
+                    },
+                    authorization: {
+                        permission: 'read'
                     }
                 },
                 handler: async (request, h) =>

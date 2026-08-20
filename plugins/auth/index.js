@@ -115,13 +115,13 @@ const authPlugin = {
                 throw boom.unauthorized();
             }
 
-            const credentials = request.auth.credentials;
+            const { credentials } = request.auth;
 
             if (!credentials.auth || credentials.auth.type !== 'api_token') {
                 return h.continue;
             }
 
-            const apiTokenId = credentials.auth.apiTokenId;
+            const { apiTokenId } = credentials.auth;
 
             if (!apiTokenId) {
                 throw boom.forbidden(`Your token is invalid`);

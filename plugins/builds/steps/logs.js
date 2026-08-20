@@ -289,6 +289,11 @@ module.exports = config => ({
             strategies: ['token', 'session'],
             scope: ['user', 'pipeline', 'build']
         },
+        plugins: {
+            authorization: {
+                permission: 'read'
+            }
+        },
 
         handler: (req, h) => {
             const { credentials } = req.auth;
