@@ -90,6 +90,11 @@ module.exports = () => ({
             strategies: ['token'],
             scope: ['build', 'pipeline', 'user', '!guest', 'temporal']
         },
+        plugins: {
+            authorization: {
+                permission: 'execute'
+            }
+        },
 
         handler: async (request, h) => {
             const { buildFactory } = request.server.app;

@@ -133,6 +133,29 @@ describe('buildCluster plugin test', () => {
         assert.isOk(server.registrations.buildClusters);
     });
 
+    describe('authorization settings for build cluster routes', () => {
+        const routesRequiringAuthorization = [
+            ['get', '/buildclusters', 'read'],
+            ['get', '/buildclusters/{name}', 'read'],
+            ['post', '/buildclusters', 'all'],
+            ['put', '/buildclusters/{name}', 'all'],
+            ['delete', '/buildclusters/{name}', 'all']
+        ];
+
+        it('sets the agreed permission on every authenticated build cluster route', () => {
+            routesRequiringAuthorization.forEach(([method, path, permission]) => {
+                const route = server.table().find(r => r.method === method && r.path === path);
+
+                assert.isOk(route, `${method.toUpperCase()} ${path} should be registered`);
+                assert.equal(
+                    route.settings.plugins.authorization.permission,
+                    permission,
+                    `${method.toUpperCase()} ${path} should require ${permission} permission`
+                );
+            });
+        });
+    });
+
     describe('GET /buildclusters', () => {
         let options;
 

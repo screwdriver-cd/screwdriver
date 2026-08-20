@@ -29,6 +29,11 @@ module.exports = config => ({
             strategies: ['session', 'token'],
             scope: ['user', 'build', 'pipeline']
         },
+        plugins: {
+            authorization: {
+                permission: 'read'
+            }
+        },
 
         handler: async (req, h) => {
             const artifact = req.params.name;
