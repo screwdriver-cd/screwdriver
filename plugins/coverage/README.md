@@ -27,7 +27,12 @@ server.register({
 ### Routes
 
 #### Returns an access token to talk to coverage server
-`GET /coverage/token?scope=job&projectKey=job:123&projectName=d2lam/mytest&username=user-job-123`
+`GET /coverage/token?projectKey=job:123`
+
+`scope`, `projectName`, and `username` are not accepted as query parameters — all three are always resolved
+server-side from the build's own JWT-verified identity. `projectKey` is accepted only if it names a project
+the calling build is authorized for (its own pipeline, its own job, or its PR parent job); anything else is
+rejected with a `403`.
 
 #### Get an object with coverage info
 

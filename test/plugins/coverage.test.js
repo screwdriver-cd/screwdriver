@@ -135,7 +135,7 @@ describe('coverage plugin test', () => {
             });
         });
 
-        it('ignores caller-supplied username and projectName, forwarding the resolved pipeline name', () => {
+        it('ignores caller-supplied username, projectName, and scope, forwarding the resolved pipeline name and annotation-derived scope', () => {
             options.url =
                 '/coverage/token?projectKey=job:123&username=user-job-123&scope=job&projectName=d2lam/test:main';
 
@@ -143,7 +143,8 @@ describe('coverage plugin test', () => {
                 assert.equal(reply.statusCode, 200);
                 assert.deepEqual(reply.result, 'faketoken');
                 assert.calledWith(mockCoveragePlugin.getAccessToken, {
-                    scope: 'job',
+                    scope: 'pipeline',
+                    jobName: 'main',
                     buildCredentials: credentials,
                     projectKey: 'job:123',
                     pipelineName: 'd2lam/test'
@@ -151,7 +152,7 @@ describe('coverage plugin test', () => {
             });
         });
 
-        it('ignores caller-supplied username and projectName on the selfSonar path too', () => {
+        it('ignores caller-supplied username, projectName, and scope on the selfSonar path too', () => {
             options.url =
                 '/coverage/token?projectKey=job:123&username=user-job-123&scope=job&projectName=d2lam/test:main&selfSonarHost=http://mySonar&selfSonarAdminToken=faketoken';
 
@@ -159,7 +160,8 @@ describe('coverage plugin test', () => {
                 assert.equal(reply.statusCode, 200);
                 assert.deepEqual(reply.result, 'faketoken');
                 assert.calledWith(mockCoveragePlugin.getAccessToken, {
-                    scope: 'job',
+                    scope: 'pipeline',
+                    jobName: 'main',
                     buildCredentials: credentials,
                     projectKey: 'job:123',
                     pipelineName: 'd2lam/test'
@@ -210,14 +212,15 @@ describe('coverage plugin test', () => {
             });
         });
 
-        it('returns 200 with coverage scope query param', () => {
+        it("ignores a scope query param and uses the job's own annotation instead", () => {
             options.url = '/coverage/token?scope=job';
 
             return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 200);
                 assert.deepEqual(reply.result, 'faketoken');
                 assert.calledWith(mockCoveragePlugin.getAccessToken, {
-                    scope: 'job',
+                    scope: 'pipeline',
+                    jobName: 'main',
                     pipelineName: 'd2lam/test',
                     buildCredentials: credentials
                 });
@@ -241,7 +244,7 @@ describe('coverage plugin test', () => {
             });
         });
 
-        it('returns 200 with coverage scope query param for PR', () => {
+        it("ignores a scope query param for a PR job, using the job's own (unset) annotation instead", () => {
             jobFactoryMock.get.resolves({
                 permutations: [{}],
                 name: 'PR-234:main',
@@ -256,7 +259,8 @@ describe('coverage plugin test', () => {
                 assert.equal(reply.statusCode, 200);
                 assert.deepEqual(reply.result, 'faketoken');
                 assert.calledWith(mockCoveragePlugin.getAccessToken, {
-                    scope: 'job',
+                    scope: null,
+                    jobName: 'PR-234:main',
                     pipelineName: 'd2lam/test',
                     buildCredentials: {
                         jobId: 555,

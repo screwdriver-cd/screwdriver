@@ -21,22 +21,21 @@ module.exports = config => ({
         handler: async (request, h) => {
             const { jobFactory, pipelineFactory } = request.server.app;
             const buildCredentials = request.auth.credentials;
-            const { jobId, pipelineId } = buildCredentials;
-            const { scope, projectKey, selfSonarHost, selfSonarAdminToken } = request.query;
-            // `projectName` and `username` are deliberately not read from the query. The coverage plugin
-            // derives both from the pipeline name resolved below, so a build cannot point its Sonar
-            // project's Git App binding at another organization's repository. See PSECBUGS-115276.
+            const { jobId, pipelineId, prParentJobId } = buildCredentials;
+            const { projectKey, selfSonarHost, selfSonarAdminToken } = request.query;
+            // `scope`, `projectName`, and `username` are deliberately not read from the query. The coverage
+            // plugin derives all three from records resolved below via the build's own JWT-verified ids, so
+            // a build cannot override which Sonar project or scope its token/Git App binding applies to.
             const tokenConfig = {
-                buildCredentials,
-                scope
+                buildCredentials
             };
 
             if (projectKey) {
                 tokenConfig.projectKey = projectKey;
             }
 
-            // Get scope and job name
-            if (jobId && !scope) {
+            // Get scope and job name; always resolved here so neither can be supplied by the caller
+            if (jobId) {
                 const job = await jobFactory.get(jobId);
 
                 if (!job) {
@@ -84,7 +83,19 @@ module.exports = config => ({
             }
 
             const data = await config.coveragePlugin.getAccessToken(tokenConfig);
-            const { projectUrl } = config.coveragePlugin.getProjectData(tokenConfig);
+            // projectKey is deliberately not forwarded here: getAccessToken above only actually uses a
+            // caller-supplied projectKey when it's both authorized and scope-consistent, silently ignoring
+            // it otherwise, so re-deriving from the same scope/jobName/pipelineName inputs is what keeps
+            // this badge URL consistent with the project the minted token is actually scoped to.
+            const { projectUrl } = config.coveragePlugin.getProjectData({
+                enterpriseEnabled: config.coveragePlugin.config.sonarEnterprise,
+                jobId,
+                jobName: tokenConfig.jobName,
+                pipelineId,
+                pipelineName: tokenConfig.pipelineName,
+                prParentJobId,
+                scope: tokenConfig.scope
+            });
 
             if (pipeline && projectUrl) {
                 try {
