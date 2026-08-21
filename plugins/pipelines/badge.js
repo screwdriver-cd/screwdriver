@@ -22,24 +22,24 @@ module.exports = config => ({
             const { pipelineFactory, eventFactory } = request.server.app;
             const pipelineId = request.params.id;
             const { statusColor } = config;
-            const badgeConfig = {
-                statusColor
-            };
             const contentType = 'image/svg+xml;charset=utf-8';
+            let label;
 
             try {
                 // Get pipeline
                 const pipeline = await pipelineFactory.get(pipelineId);
 
                 if (!pipeline) {
-                    return h.response(getPipelineBadge(badgeConfig)).header('Content-Type', contentType);
+                    return h.response(getPipelineBadge({ statusColor })).header('Content-Type', contentType);
                 }
+
+                label = pipeline.name;
 
                 // Get latest pipeline events
                 const latestEvents = await eventFactory.getPipelineTypeBuildEvents(pipelineId);
 
                 if (!latestEvents || Object.keys(latestEvents).length === 0) {
-                    return h.response(getPipelineBadge(badgeConfig)).header('Content-Type', contentType);
+                    return h.response(getPipelineBadge({ statusColor, label })).header('Content-Type', contentType);
                 }
 
                 // Only care about latest
@@ -47,26 +47,19 @@ module.exports = config => ({
                 const builds = await lastEvent.getBuilds({ readOnly: true, sortBy: 'id', sort: 'descending' });
 
                 if (!builds || builds.length < 1) {
-                    return h.response(getPipelineBadge(badgeConfig)).header('Content-Type', contentType);
+                    return h.response(getPipelineBadge({ statusColor, label })).header('Content-Type', contentType);
                 }
 
                 // Convert build statuses
                 const buildsStatus = builds.map(build => build.status.toLowerCase());
 
                 return h
-                    .response(
-                        getPipelineBadge(
-                            Object.assign(badgeConfig, {
-                                buildsStatus,
-                                label: pipeline.name
-                            })
-                        )
-                    )
+                    .response(getPipelineBadge({ statusColor, label, buildsStatus }))
                     .header('Content-Type', contentType);
             } catch (err) {
                 logger.error(`Failed to get badge for pipeline:${pipelineId}: ${err.message}`);
 
-                return h.response(getPipelineBadge(badgeConfig));
+                return h.response(getPipelineBadge({ statusColor, label }));
             }
         },
         validate: {

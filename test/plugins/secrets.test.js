@@ -119,6 +119,28 @@ describe('secret plugin test', () => {
         assert.isOk(server.registrations.secrets);
     });
 
+    describe('authorization settings for secret routes', () => {
+        const routesRequiringAuthorization = [
+            ['get', '/secrets/{id}', 'read'],
+            ['post', '/secrets', 'all'],
+            ['put', '/secrets/{id}', 'all'],
+            ['delete', '/secrets/{id}', 'all']
+        ];
+
+        it('sets the agreed permission on every authenticated secret route', () => {
+            routesRequiringAuthorization.forEach(([method, path, permission]) => {
+                const route = server.table().find(r => r.method === method && r.path === path);
+
+                assert.isOk(route, `${method.toUpperCase()} ${path} should be registered`);
+                assert.equal(
+                    route.settings.plugins.authorization.permission,
+                    permission,
+                    `${method.toUpperCase()} ${path} should require ${permission} permission`
+                );
+            });
+        });
+    });
+
     describe('POST /secrets', () => {
         let options;
         const scmUri = 'github.com:12345:branchName';

@@ -1781,7 +1781,7 @@ describe('auth plugin test', () => {
                 });
             });
 
-            it('returns admin impersonated build token', () =>
+            it('returns admin impersonated build token with all permission', () =>
                 server
                     .inject({
                         url: '/auth/token/474ee9ee179b0ecf0bc27408079a0b15eda4c99d',
@@ -1789,7 +1789,8 @@ describe('auth plugin test', () => {
                             credentials: {
                                 username: 'batman',
                                 scmContext,
-                                scope: ['user', 'admin']
+                                scope: ['user', 'admin'],
+                                permission: 'all'
                             },
                             strategy: ['token']
                         }
@@ -1807,6 +1808,43 @@ describe('auth plugin test', () => {
                                 type: 'temporary'
                             }
                         });
+                    }));
+
+            it('returns admin impersonated build token for a legacy JWT without permission', () =>
+                server
+                    .inject({
+                        url: '/auth/token/474ee9ee179b0ecf0bc27408079a0b15eda4c99d',
+                        auth: {
+                            credentials: {
+                                username: 'batman',
+                                scmContext,
+                                scope: ['user', 'admin']
+                            },
+                            strategy: ['token']
+                        }
+                    })
+                    .then(reply => {
+                        assert.equal(reply.statusCode, 200, 'Login route should be available');
+                        assert.ok(reply.result.token, 'Token not returned');
+                    }));
+
+            it('returns forbidden for an admin without all permission attempting to impersonate', () =>
+                server
+                    .inject({
+                        url: '/auth/token/474ee9ee179b0ecf0bc27408079a0b15eda4c99d',
+                        auth: {
+                            credentials: {
+                                username: 'batman',
+                                scmContext,
+                                scope: ['user', 'admin'],
+                                permission: 'read'
+                            },
+                            strategy: ['token']
+                        }
+                    })
+                    .then(reply => {
+                        assert.equal(reply.statusCode, 403, 'Login route should be unavailable');
+                        assert.notOk(reply.result.token, 'Token should not be returned');
                     }));
 
             it('returns forbidden for non-admin attempting to impersonate', () =>

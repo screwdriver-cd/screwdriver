@@ -17,6 +17,11 @@ module.exports = () => ({
             strategies: ['token'],
             scope: ['user', 'build', '!guest']
         },
+        plugins: {
+            authorization: {
+                permission: 'read'
+            }
+        },
 
         handler: async (request, h) => {
             const { secretFactory } = request.server.app;

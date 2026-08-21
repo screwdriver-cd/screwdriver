@@ -97,6 +97,13 @@ describe('isAdmin plugin test', () => {
         assert.isOk(server.registrations.isAdmin);
     });
 
+    it('requires read permission', () => {
+        const route = server.table().find(r => r.method === 'get' && r.path === '/isAdmin');
+
+        assert.isOk(route);
+        assert.equal(route.settings.plugins.authorization.permission, 'read');
+    });
+
     describe('GET /isAdmin?pipelineId=', () => {
         let options;
 
