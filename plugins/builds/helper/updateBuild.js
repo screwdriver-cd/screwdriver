@@ -6,7 +6,7 @@ const merge = require('lodash.mergewith');
 const isEmpty = require('lodash.isempty');
 const { PR_JOB_NAME, PR_STAGE_NAME, STAGE_TEARDOWN_PATTERN } = require('screwdriver-data-schema').config.regex;
 const { getFullStageJobName } = require('../../helper');
-const { locker } = require('../../lock');
+const locker = require('../../lock');
 const { updateVirtualBuildSuccess, emitBuildStatusEvent, isFixedBuild } = require('../triggers/helpers');
 const TERMINAL_STATUSES = ['FAILURE', 'ABORTED', 'UNSTABLE', 'COLLAPSED'];
 const FINISHED_STATUSES = ['SUCCESS', ...TERMINAL_STATUSES];
@@ -421,11 +421,7 @@ async function updateBuildAndTriggerDownstreamJobs(config, build, server, userna
     const eventResource = `event:${event.id}`;
 
     if (isEndBuildStatus) {
-        try {
-            eventLock = await locker.lock(eventResource);
-        } catch (err) {
-            eventLock = null;
-        }
+        eventLock = await locker.lock(eventResource);
 
         const latestEvent = await eventFactory.get(build.eventId);
 
@@ -435,11 +431,7 @@ async function updateBuildAndTriggerDownstreamJobs(config, build, server, userna
     const [newBuild, newEvent] = await Promise.all([build.update(), event.update(), stopFrozen]);
 
     if (isEndBuildStatus) {
-        try {
-            await locker.unlock(eventLock, eventResource);
-        } catch (err) {
-            // ignore unlock errors for parity with lock helper behavior
-        }
+        await locker.unlock(eventLock, eventResource);
     }
 
     if (desiredStatus) {
@@ -459,8 +451,12 @@ async function updateBuildAndTriggerDownstreamJobs(config, build, server, userna
     let stageBuild;
     const isStageTeardown = STAGE_TEARDOWN_PATTERN.test(job.name);
     let stageBuildHasFailure = false;
+    let stageLock;
+    let stageResource;
 
     if (stage) {
+        stageResource = `event:${event.id}:stage:${stage.id}`;
+        stageLock = await locker.lock(stageResource);
         stageBuild = await stageBuildFactory.get({
             stageId: stage.id,
             eventId: newEvent.id
@@ -533,6 +529,9 @@ async function updateBuildAndTriggerDownstreamJobs(config, build, server, userna
                 }
             }
         }
+    }
+    if (stageResource) {
+        await locker.unlock(stageLock, stageResource);
     }
 
     // update event status
