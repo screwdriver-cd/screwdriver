@@ -3450,8 +3450,8 @@ describe('build plugin test', () => {
                         return server.inject(options).then(() => {
                             const { lock, unlock } = lockMock;
 
-                            assert.calledOnce(lock);
-                            assert.calledOnce(unlock);
+                            assert.calledTwice(lock);
+                            assert.calledTwice(unlock);
                         });
                     });
 
@@ -3462,8 +3462,8 @@ describe('build plugin test', () => {
                         return server.inject(options).then(() => {
                             const { lock, unlock } = lockMock;
 
-                            assert.calledOnce(lock);
-                            assert.calledOnce(unlock);
+                            assert.calledTwice(lock);
+                            assert.calledTwice(unlock);
                         });
                     });
                 });
@@ -6653,7 +6653,7 @@ describe('build plugin test', () => {
                         return newServer.inject(options).then(() => {
                             const { lock, unlock } = lockMock;
 
-                            assert.calledTwice(lock);
+                            assert.calledThrice(lock);
                             assert.called(unlock);
                         });
                     });
@@ -6665,7 +6665,7 @@ describe('build plugin test', () => {
                         return newServer.inject(options).then(() => {
                             const { lock, unlock } = lockMock;
 
-                            assert.calledTwice(lock);
+                            assert.calledThrice(lock);
                             assert.called(unlock);
                         });
                     });

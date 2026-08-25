@@ -421,7 +421,11 @@ async function updateBuildAndTriggerDownstreamJobs(config, build, server, userna
     const eventResource = `event:${event.id}`;
 
     if (isEndBuildStatus) {
-        eventLock = await locker.lock(eventResource);
+        try {
+            eventLock = await locker.lock(eventResource);
+        } catch (err) {
+            eventLock = null;
+        }
 
         const latestEvent = await eventFactory.get(build.eventId);
 
@@ -431,7 +435,11 @@ async function updateBuildAndTriggerDownstreamJobs(config, build, server, userna
     const [newBuild, newEvent] = await Promise.all([build.update(), event.update(), stopFrozen]);
 
     if (isEndBuildStatus) {
-        await locker.unlock(eventLock, eventResource);
+        try {
+            await locker.unlock(eventLock, eventResource);
+        } catch (err) {
+            // ignore unlock errors for parity with lock helper behavior
+        }
     }
 
     if (desiredStatus) {
@@ -456,7 +464,11 @@ async function updateBuildAndTriggerDownstreamJobs(config, build, server, userna
 
     if (stage) {
         stageResource = `event:${event.id}:stage:${stage.id}`;
-        stageLock = await locker.lock(stageResource);
+        try {
+            stageLock = await locker.lock(stageResource);
+        } catch (err) {
+            stageLock = null;
+        }
         stageBuild = await stageBuildFactory.get({
             stageId: stage.id,
             eventId: newEvent.id
@@ -531,7 +543,11 @@ async function updateBuildAndTriggerDownstreamJobs(config, build, server, userna
         }
     }
     if (stageResource) {
-        await locker.unlock(stageLock, stageResource);
+        try {
+            await locker.unlock(stageLock, stageResource);
+        } catch (err) {
+            // ignore unlock errors for parity with lock helper behavior
+        }
     }
 
     // update event status
