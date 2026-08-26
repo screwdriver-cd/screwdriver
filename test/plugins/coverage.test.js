@@ -220,6 +220,23 @@ describe('coverage plugin test', () => {
             });
         });
 
+        it('resolves the badge projectUrl from explicit ids instead of the raw tokenConfig', () => {
+            // Regression: tokenConfig has no top-level jobId/pipelineId (only buildCredentials.jobId does),
+            // so passing tokenConfig straight through used to make getProjectData derive pipeline:undefined.
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 200);
+                assert.calledWith(mockCoveragePlugin.getProjectData, {
+                    enterpriseEnabled: false,
+                    jobId: 123,
+                    jobName: 'main',
+                    pipelineId: 333,
+                    pipelineName: 'd2lam/test',
+                    prParentJobId: undefined,
+                    scope: 'pipeline'
+                });
+            });
+        });
+
         it('returns 200 with default scope', () => {
             jobFactoryMock.get.resolves({
                 permutations: [{}],

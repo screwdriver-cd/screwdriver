@@ -21,7 +21,7 @@ module.exports = config => ({
         handler: async (request, h) => {
             const { jobFactory, pipelineFactory } = request.server.app;
             const buildCredentials = request.auth.credentials;
-            const { jobId, pipelineId } = buildCredentials;
+            const { jobId, pipelineId, prParentJobId } = buildCredentials;
             const { projectKey, selfSonarHost, selfSonarAdminToken } = request.query;
             // `scope`, `projectName`, and `username` are deliberately not read from the query. The coverage
             // plugin derives all three from records resolved below via the build's own JWT-verified ids, so
@@ -90,7 +90,18 @@ module.exports = config => ({
             }
 
             const data = await config.coveragePlugin.getAccessToken(tokenConfig);
-            const { projectUrl } = config.coveragePlugin.getProjectData(tokenConfig);
+            // Pass explicit fields rather than tokenConfig: tokenConfig has no top-level jobId/pipelineId
+            // (both only live inside buildCredentials), so getProjectData was deriving pipeline:undefined
+            // here and writing a dead badge URL to pipeline.badges on every request.
+            const { projectUrl } = config.coveragePlugin.getProjectData({
+                enterpriseEnabled: config.coveragePlugin.config.sonarEnterprise,
+                jobId,
+                jobName: tokenConfig.jobName,
+                pipelineId,
+                pipelineName: tokenConfig.pipelineName,
+                prParentJobId,
+                scope: tokenConfig.scope
+            });
 
             if (pipeline && projectUrl) {
                 try {
