@@ -21,7 +21,7 @@ module.exports = config => ({
         handler: async (request, h) => {
             const { jobFactory, pipelineFactory } = request.server.app;
             const buildCredentials = request.auth.credentials;
-            const { jobId, pipelineId, prParentJobId } = buildCredentials;
+            const { jobId, pipelineId } = buildCredentials;
             const { projectKey, selfSonarHost, selfSonarAdminToken } = request.query;
             // `scope`, `projectName`, and `username` are deliberately not read from the query. The coverage
             // plugin derives all three from records resolved below via the build's own JWT-verified ids, so
@@ -83,19 +83,7 @@ module.exports = config => ({
             }
 
             const data = await config.coveragePlugin.getAccessToken(tokenConfig);
-            // projectKey is deliberately not forwarded here: getAccessToken above only actually uses a
-            // caller-supplied projectKey when it's both authorized and scope-consistent, silently ignoring
-            // it otherwise, so re-deriving from the same scope/jobName/pipelineName inputs is what keeps
-            // this badge URL consistent with the project the minted token is actually scoped to.
-            const { projectUrl } = config.coveragePlugin.getProjectData({
-                enterpriseEnabled: config.coveragePlugin.config.sonarEnterprise,
-                jobId,
-                jobName: tokenConfig.jobName,
-                pipelineId,
-                pipelineName: tokenConfig.pipelineName,
-                prParentJobId,
-                scope: tokenConfig.scope
-            });
+            const { projectUrl } = config.coveragePlugin.getProjectData(tokenConfig);
 
             if (pipeline && projectUrl) {
                 try {

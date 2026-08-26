@@ -30,9 +30,13 @@ server.register({
 `GET /coverage/token?projectKey=job:123`
 
 `scope`, `projectName`, and `username` are not accepted as query parameters — all three are always resolved
-server-side from the build's own JWT-verified identity. `projectKey` is accepted only if it names a project
-the calling build is authorized for (its own pipeline, its own job, or its PR parent job); anything else is
-rejected with a `403`.
+server-side from the build's own JWT-verified identity. `projectKey` is rejected with a `403` unless it
+names a project the calling build is authorized for (its own pipeline, its own job, or its PR parent job)
+**and** matches the build's own resolved coverage scope.
+
+> **Deployment order:** requires `screwdriver-coverage-sonar` ≥6.0.0
+> ([coverage-sonar#80](https://github.com/screwdriver-cd/coverage-sonar/pull/80)). This API change must be
+> deployed *before* that dependency is bumped — see that PR's README for why.
 
 #### Get an object with coverage info
 
