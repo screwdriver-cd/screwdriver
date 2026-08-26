@@ -43,6 +43,13 @@ module.exports = config => ({
                 }
 
                 tokenConfig.jobName = job.name;
+                // Invariant this rejection below relies on: screwdriver-cd/launcher's coverage/info call
+                // (launch.go, GetCoverageInfo) reads this exact field/index -
+                // job.Permutations[0].Annotations.CoverageScope - and always sends it as `scope`, empty
+                // string when absent, never omitted (screwdriver.go's CoverageURL has no projectKey param
+                // at all). So the scope screwdriver-coverage-sonar resolved when it minted
+                // SD_SONAR_PROJECT_KEY and the annotation re-read here cannot disagree for a real build,
+                // short of a pipeline sync rewriting this annotation between build start and this request.
                 tokenConfig.scope =
                     job.permutations[0] && job.permutations[0].annotations
                         ? job.permutations[0].annotations[COVERAGE_SCOPE_ANNOTATION]
