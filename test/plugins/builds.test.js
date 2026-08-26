@@ -3450,8 +3450,8 @@ describe('build plugin test', () => {
                         return server.inject(options).then(() => {
                             const { lock, unlock } = lockMock;
 
-                            assert.calledOnce(lock);
-                            assert.calledOnce(unlock);
+                            assert.calledTwice(lock);
+                            assert.calledTwice(unlock);
                         });
                     });
 
@@ -3462,8 +3462,8 @@ describe('build plugin test', () => {
                         return server.inject(options).then(() => {
                             const { lock, unlock } = lockMock;
 
-                            assert.calledOnce(lock);
-                            assert.calledOnce(unlock);
+                            assert.calledTwice(lock);
+                            assert.calledTwice(unlock);
                         });
                     });
                 });
@@ -6453,6 +6453,116 @@ describe('build plugin test', () => {
                     });
                 });
 
+                it('update stageBuild statuses at the same time', async () => {
+                    const failureOptions = hoek.clone(options);
+                    const successOptions = hoek.clone(options);
+                    const stageResource = 'event:8888:stage:1';
+                    const stageBuildStore = { status: 'RUNNING' };
+                    const stageBuildUpdate = sinon.stub().callsFake(function updateStageBuild() {
+                        stageBuildStore.status = this.status;
+
+                        return Promise.resolve(this);
+                    });
+                    const waitingStageLocks = [];
+                    let stageLockHeld = false;
+
+                    failureOptions.payload.status = 'FAILURE';
+                    successOptions.payload.status = 'SUCCESS';
+                    successOptions.url = '/builds/12346';
+                    successOptions.auth.credentials.username = 12346;
+
+                    lockMock.lock = sinon.stub().callsFake(resource => {
+                        if (resource !== stageResource) {
+                            return Promise.resolve(`${resource}:lock`);
+                        }
+
+                        if (!stageLockHeld) {
+                            stageLockHeld = true;
+
+                            return Promise.resolve('stage-lock');
+                        }
+
+                        return new Promise(resolve => {
+                            waitingStageLocks.push(() => {
+                                stageLockHeld = true;
+                                resolve('stage-lock-waiter');
+                            });
+                        });
+                    });
+                    lockMock.unlock = sinon.stub().callsFake((lock, resource) => {
+                        if (resource === stageResource) {
+                            stageLockHeld = false;
+
+                            const nextWaiter = waitingStageLocks.shift();
+
+                            if (nextWaiter) {
+                                nextWaiter();
+                            }
+                        }
+
+                        return Promise.resolve(lock);
+                    });
+
+                    eventMock.workflowGraph = testWorkflowGraphWithStages;
+                    eventFactoryMock.get.resolves(eventMock);
+                    stageFactoryMock.get.resolves(stageAlphaMock);
+                    stageBuildFactoryMock.get.callsFake(async () => ({
+                        id: 1,
+                        stageId: 1,
+                        status: stageBuildStore.status,
+                        update: stageBuildUpdate
+                    }));
+
+                    const makeBuild = ({ buildId, jobName }) => {
+                        const build = getBuildMock({
+                            ...testBuild,
+                            id: buildId,
+                            eventId: '8888',
+                            status: 'RUNNING'
+                        });
+                        const buildJob = {
+                            id: buildId,
+                            name: jobName,
+                            pipelineId,
+                            permutations: [
+                                {
+                                    settings: {
+                                        email: 'foo@bar.com'
+                                    }
+                                }
+                            ],
+                            state: 'ENABLED',
+                            pipeline: sinon.stub().resolves(pipelineMock)(),
+                            getLatestBuild: sinon.stub().resolves(build)
+                        };
+
+                        build.update.resolves(build);
+                        build.job = sinon.stub().resolves(buildJob)();
+
+                        return build;
+                    };
+
+                    const failureBuild = makeBuild({ buildId: 12345, jobName: 'alpha-deploy' });
+                    const successBuild = makeBuild({ buildId: 12346, jobName: 'alpha-test' });
+
+                    buildFactoryMock.get.withArgs(12345).resolves(failureBuild);
+                    buildFactoryMock.get.withArgs(12346).resolves(successBuild);
+
+                    const [failureReply, successReply] = await Promise.all([
+                        newServer.inject(failureOptions),
+                        newServer.inject(successOptions)
+                    ]);
+                    const stageLockCalls = lockMock.lock.getCalls().filter(call => call.args[0] === stageResource);
+
+                    assert.equal(failureReply.statusCode, 200);
+                    assert.equal(successReply.statusCode, 200);
+                    assert.lengthOf(stageLockCalls, 2);
+                    assert.calledTwice(stageBuildFactoryMock.get);
+                    assert.calledOnce(stageBuildUpdate);
+                    assert.equal(stageBuildStore.status, 'FAILURE');
+                    assert.calledWith(lockMock.unlock, sinon.match.string, stageResource);
+                });
+
                 it('update stageBuild status if next job is stage teardown and parent has some failures', () => {
                     const localOptions = hoek.clone(options);
                     const stageBuildMock = {
@@ -6543,7 +6653,7 @@ describe('build plugin test', () => {
                         return newServer.inject(options).then(() => {
                             const { lock, unlock } = lockMock;
 
-                            assert.calledTwice(lock);
+                            assert.calledThrice(lock);
                             assert.called(unlock);
                         });
                     });
@@ -6555,7 +6665,7 @@ describe('build plugin test', () => {
                         return newServer.inject(options).then(() => {
                             const { lock, unlock } = lockMock;
 
-                            assert.calledTwice(lock);
+                            assert.calledThrice(lock);
                             assert.called(unlock);
                         });
                     });
