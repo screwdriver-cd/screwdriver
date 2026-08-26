@@ -6,7 +6,7 @@ const merge = require('lodash.mergewith');
 const isEmpty = require('lodash.isempty');
 const { PR_JOB_NAME, PR_STAGE_NAME, STAGE_TEARDOWN_PATTERN } = require('screwdriver-data-schema').config.regex;
 const { getFullStageJobName } = require('../../helper');
-const { locker } = require('../../lock');
+const locker = require('../../lock');
 const { updateVirtualBuildSuccess, emitBuildStatusEvent, isFixedBuild } = require('../triggers/helpers');
 const TERMINAL_STATUSES = ['FAILURE', 'ABORTED', 'UNSTABLE', 'COLLAPSED'];
 const FINISHED_STATUSES = ['SUCCESS', ...TERMINAL_STATUSES];
@@ -459,8 +459,16 @@ async function updateBuildAndTriggerDownstreamJobs(config, build, server, userna
     let stageBuild;
     const isStageTeardown = STAGE_TEARDOWN_PATTERN.test(job.name);
     let stageBuildHasFailure = false;
+    let stageLock;
+    let stageResource;
 
     if (stage) {
+        stageResource = `event:${event.id}:stage:${stage.id}`;
+        try {
+            stageLock = await locker.lock(stageResource);
+        } catch (err) {
+            stageLock = null;
+        }
         stageBuild = await stageBuildFactory.get({
             stageId: stage.id,
             eventId: newEvent.id
@@ -532,6 +540,13 @@ async function updateBuildAndTriggerDownstreamJobs(config, build, server, userna
                     await stageTeardownBuild.start();
                 }
             }
+        }
+    }
+    if (stageResource) {
+        try {
+            await locker.unlock(stageLock, stageResource);
+        } catch (err) {
+            // ignore unlock errors for parity with lock helper behavior
         }
     }
 
