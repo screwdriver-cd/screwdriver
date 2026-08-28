@@ -83,10 +83,18 @@ module.exports = config => ({
                             const directoryArray = manifestArray.filter(f => f.startsWith(`./${artifact}/`));
                             let totalSize = 0;
 
+                            // Manifest entries are build controlled, so encode them the same way
+                            // single file requests are encoded. Appending them verbatim lets
+                            // `..` segments be resolved away when the URL is normalized, which
+                            // would point the request at another build's artifacts.
+                            const fileUrl = file =>
+                                `${baseUrl}/${encodeURIComponent(file.replace(/^\.\//, ''))}`
+                                + `?token=${token}&type=download`;
+
                             // Check file sizes by fetching metadata
                             for (const file of directoryArray) {
                                 if (file) {
-                                    const fileMetaResponse = await request.head(`${baseUrl}/${file}?token=${token}&type=download`);
+                                    const fileMetaResponse = await request.head(fileUrl(file));
                                     const fileSize = parseInt(fileMetaResponse.headers['content-length'], 10);
 
                                     // Accumulate total size
@@ -120,7 +128,7 @@ module.exports = config => ({
                             // Fetch and append the directory files
                             for (const file of directoryArray) {
                                 if (file) {
-                                    const fileStream = request.stream(`${baseUrl}/${file}?token=${token}&type=download`);
+                                    const fileStream = request.stream(fileUrl(file));
 
                                     // Handle errors from file streaming
                                     fileStream.on('error', (err) => {
