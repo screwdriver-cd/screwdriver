@@ -92,7 +92,12 @@ module.exports = config => ({
                     try {
                         for (const file of manifestArray) {
                             if (file) {
-                                const fileStream = request.stream(`${baseUrl}/${file}?token=${token}&type=download`);
+                                // Manifest entries are build controlled, so encode them before
+                                // appending. Verbatim entries let `..` segments be resolved away
+                                // when the URL is normalized, which would point the request at
+                                // another build's artifacts.
+                                const encodedFile = encodeURIComponent(file.replace(/^\.\//, ''));
+                                const fileStream = request.stream(`${baseUrl}/${encodedFile}?token=${token}&type=download`);
 
                                 fileStream.on('error', (err) => {
                                     logger.error(`Error downloading file: ${file}`, err);
