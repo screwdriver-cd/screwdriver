@@ -10,6 +10,7 @@ const keyRoute = require('./key');
 const loginRoute = require('./login');
 const logoutRoute = require('./logout');
 const tokenRoute = require('./token');
+const logger = require('screwdriver-logger');
 
 const DEFAULT_TIMEOUT = 2 * 60; // 2h in minutes
 const ALGORITHM = 'RS256';
@@ -124,16 +125,19 @@ const authPlugin = {
             const { apiTokenId } = credentials.auth;
 
             if (!apiTokenId) {
+                logger.info(`[API Token Access] Invalid API Token.`);
                 throw boom.forbidden(`Your token is invalid`);
             }
 
             const token = await tokenFactory.get({ id: apiTokenId });
 
             if (!token) {
+                logger.info(`[API Token Access] Invalid API Token.`);
                 throw boom.forbidden(`Your token is invalid`);
             }
 
             if (token.expiresAt && new Date(token.expiresAt) < new Date()) {
+                logger.info(`[API Token Access][TokenId:${apiTokenId}] Expired Token Access.`);
                 throw boom.forbidden(`Your token is expired: token id ${apiTokenId}`);
             }
 
@@ -146,9 +150,14 @@ const authPlugin = {
                 throw boom.badImplementation(`Invalid required permission: "${requiredPermission}"`);
             }
 
+            const endpoint = request.route.path;
+
             if (!actualPermissionLevel || actualPermissionLevel < requiredPermissionLevel) {
+                logger.info(`[API Token Access][TokenId:${apiTokenId}][${endpoint}] Invalid permission Token Access. This endpoint requires "${requiredPermission}" permission. This token has "${actualPermission}"`);
                 throw boom.forbidden(`This endpoint requires "${requiredPermission}" permission`);
             }
+
+            logger.info(`[API Token Access][TokenId:${apiTokenId}][${endpoint}] Success API Token access.`);
 
             return h.continue;
         });
