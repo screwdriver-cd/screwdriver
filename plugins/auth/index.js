@@ -4,13 +4,13 @@ const boom = require('@hapi/boom');
 const joi = require('joi');
 const jwt = require('jsonwebtoken');
 const { v4: uuidv4 } = require('uuid');
+const logger = require('screwdriver-logger');
 const contextsRoute = require('./contexts');
 const crumbRoute = require('./crumb');
 const keyRoute = require('./key');
 const loginRoute = require('./login');
 const logoutRoute = require('./logout');
 const tokenRoute = require('./token');
-const logger = require('screwdriver-logger');
 
 const DEFAULT_TIMEOUT = 2 * 60; // 2h in minutes
 const ALGORITHM = 'RS256';
@@ -153,7 +153,9 @@ const authPlugin = {
             const endpoint = request.route.path;
 
             if (!actualPermissionLevel || actualPermissionLevel < requiredPermissionLevel) {
-                logger.info(`[API Token Access][TokenId:${apiTokenId}][${endpoint}] Invalid permission Token Access. This endpoint requires "${requiredPermission}" permission. This token has "${actualPermission}"`);
+                logger.info(
+                    `[API Token Access][TokenId:${apiTokenId}][${endpoint}] Invalid permission Token Access. This endpoint requires "${requiredPermission}" permission. This token has "${actualPermission}"`
+                );
                 throw boom.forbidden(`This endpoint requires "${requiredPermission}" permission`);
             }
 
