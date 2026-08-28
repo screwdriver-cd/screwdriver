@@ -8303,6 +8303,31 @@ describe('build plugin test', () => {
                 assert.equal(reply.result.message, 'An internal server error occurred');
             });
         });
+
+        it('does not fetch another build artifact', () => {
+            const traversalManifest = './../../../builds/99999/ARTIFACTS/secret.txt';
+            const encodedPath = '/v1/builds/12345/ARTIFACTS/..%2F..%2F..%2Fbuilds%2F99999%2FARTIFACTS%2Fsecret.txt';
+
+            nock.disableNetConnect();
+            nock.cleanAll();
+            nock.enableNetConnect();
+            // Would only be reached if the manifest entry escaped this build's artifact space
+            const otherBuildScope = nock(logBaseUrl)
+                .persist()
+                .get(/\/v1\/builds\/99999\//)
+                .reply(200, 'TOP-SECRET');
+
+            nock(logBaseUrl).get('/v1/builds/12345/ARTIFACTS/manifest.txt?token=sign').reply(200, traversalManifest);
+            const sameBuildScope = nock(logBaseUrl)
+                .defaultReplyHeaders(expectedHeaders)
+                .get(`${encodedPath}?token=sign&type=download`)
+                .reply(200, 'not-a-secret');
+
+            return server.inject(options).then(() => {
+                assert.isTrue(sameBuildScope.isDone(), 'request stayed within the requested build');
+                assert.isNotEmpty(otherBuildScope.pendingMocks(), 'another build was requested');
+            });
+        });
     });
 
     describe('GET /builds/{id}/artifacts/{artifact}', () => {
@@ -8426,6 +8451,43 @@ describe('build plugin test', () => {
             });
         });
 
+        it('does not fetch another build artifact for a directory download', () => {
+            const traversalManifest = './artifacts/../../../../builds/99999/ARTIFACTS/secret.txt';
+            const encodedPath =
+                '/v1/builds/12345/ARTIFACTS/artifacts%2F..%2F..%2F..%2F..%2Fbuilds%2F99999%2FARTIFACTS%2Fsecret.txt';
+
+            nock.disableNetConnect();
+            nock.cleanAll();
+            nock.enableNetConnect();
+            // Would only be reached if the manifest entry escaped this build's artifact space
+            const otherBuildScope = nock(logBaseUrl)
+                .persist()
+                .defaultReplyHeaders({
+                    'content-length': 10
+                })
+                .head(/\/v1\/builds\/99999\//)
+                .reply(200)
+                .get(/\/v1\/builds\/99999\//)
+                .reply(200, 'TOP-SECRET');
+
+            nock(logBaseUrl).get('/v1/builds/12345/ARTIFACTS/manifest.txt?token=sign').reply(200, traversalManifest);
+            const sameBuildScope = nock(logBaseUrl)
+                .defaultReplyHeaders({
+                    'content-length': 10
+                })
+                .head(`${encodedPath}?token=sign&type=download`)
+                .reply(200)
+                .get(`${encodedPath}?token=sign&type=download`)
+                .reply(200, 'not-a-secret');
+
+            options.url = `/builds/${id}/artifacts/./artifacts?type=download&dir=true`;
+
+            return server.inject(options).then(() => {
+                assert.isTrue(sameBuildScope.isDone(), 'request stayed within the requested build');
+                assert.isNotEmpty(otherBuildScope.pendingMocks(), 'another build was requested');
+            });
+        });
+
         it('returns 200 for a large artifact download request for directory', async () => {
             const expectedHeaders = {
                 'content-type': 'application/zip',
@@ -8450,7 +8512,7 @@ describe('build plugin test', () => {
                 .reply(200, './artifacts/sample-mp4-file.mp4');
             // Nock intercept to simulate large file download
             nock(logBaseUrl)
-                .get('/v1/builds/12345/ARTIFACTS/./artifacts/sample-mp4-file.mp4?token=sign&type=download')
+                .get('/v1/builds/12345/ARTIFACTS/artifacts%2Fsample-mp4-file.mp4?token=sign&type=download')
                 .delay(5000)
                 .reply(200, largeFileContent, {
                     'Content-Type': 'application/octet-stream',
@@ -8522,7 +8584,7 @@ describe('build plugin test', () => {
                 .get('/v1/builds/12345/ARTIFACTS/manifest.txt?token=sign')
                 .reply(200, './artifacts/sample-mp4-file.mp4');
             nock(logBaseUrl)
-                .get('/v1/builds/12345/ARTIFACTS/./artifacts/sample-mp4-file.mp4?token=sign&type=download')
+                .get('/v1/builds/12345/ARTIFACTS/artifacts%2Fsample-mp4-file.mp4?token=sign&type=download')
                 .reply(500);
 
             options.url = `/builds/${id}/artifacts/./artifacts?type=download&dir=true`;
