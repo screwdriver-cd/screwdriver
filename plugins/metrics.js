@@ -18,9 +18,12 @@ module.exports = {
             path: '/metrics',
             handler: async (_, h) => h.response(await getSummary()),
             config: {
+                auth: {
+                    mode: 'required'
+                },
                 plugins: {
                     'hapi-rate-limit': {
-                        enabled: false
+                        enabled: true
                     }
                 },
                 description: 'application metrics',
