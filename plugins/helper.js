@@ -55,6 +55,10 @@ async function getUserPermissions({ user, scmUri, level = 'admin', isAdmin = fal
     try {
         permissions = await user.getPermissions(scmUri);
     } catch (err) {
+        if (err.statusCode === 404) {
+            throw boom.notFound(err);
+        }
+
         permissions = null;
     }
 
