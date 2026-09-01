@@ -69,6 +69,10 @@ Example payload:
 
 `PUT /tokens/{id}/refresh`
 
+**Arguments**
+
+* `expiresAt` - An optional expiration date for the refreshed token.
+
 #### Remove a token
 
 `DELETE /tokens/{id}`

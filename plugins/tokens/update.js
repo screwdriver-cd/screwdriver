@@ -50,8 +50,20 @@ module.exports = () => ({
                             throw boom.conflict(`Token with name ${match.name} already exists`);
                         }
 
+                        let payloadOptions;
+                        if (request.payload && request.payload.options) {
+                            payloadOptions = request.payload.options;
+                        }
+
                         Object.keys(request.payload).forEach(key => {
-                            token[key] = request.payload[key];
+                            if (key === 'options') {
+                                token.options = {
+                                    ...token.options,
+                                    ...payloadOptions
+                                };
+                            } else {
+                                token[key] = request.payload[key];
+                            }
                         });
 
                         return token.update().then(() => h.response(token.toJson()).code(200));
