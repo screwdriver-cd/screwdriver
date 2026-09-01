@@ -22,26 +22,20 @@ module.exports = config => ({
             const { jobFactory, pipelineFactory } = request.server.app;
             const buildCredentials = request.auth.credentials;
             const { jobId, pipelineId } = buildCredentials;
-            const { scope, projectKey, projectName, username, selfSonarHost, selfSonarAdminToken } = request.query;
+            const { projectKey, selfSonarHost, selfSonarAdminToken } = request.query;
+            // `scope`, `projectName`, and `username` are deliberately not read from the query. The coverage
+            // plugin derives all three from records resolved below via the build's own JWT-verified ids, so
+            // a build cannot override which Sonar project or scope its token/Git App binding applies to.
             const tokenConfig = {
-                buildCredentials,
-                scope
+                buildCredentials
             };
 
             if (projectKey) {
                 tokenConfig.projectKey = projectKey;
             }
 
-            if (projectName) {
-                tokenConfig.projectName = projectName;
-            }
-
-            if (username) {
-                tokenConfig.username = username;
-            }
-
-            // Get scope and job name
-            if (jobId && !scope) {
+            // Get scope and job name; always resolved here so neither can be supplied by the caller
+            if (jobId) {
                 const job = await jobFactory.get(jobId);
 
                 if (!job) {
@@ -49,6 +43,13 @@ module.exports = config => ({
                 }
 
                 tokenConfig.jobName = job.name;
+                // Invariant this rejection below relies on: screwdriver-cd/launcher's coverage/info call
+                // (launch.go, GetCoverageInfo) reads this exact field/index -
+                // job.Permutations[0].Annotations.CoverageScope - and always sends it as `scope`, empty
+                // string when absent, never omitted (screwdriver.go's CoverageURL has no projectKey param
+                // at all). So the scope screwdriver-coverage-sonar resolved when it minted
+                // SD_SONAR_PROJECT_KEY and the annotation re-read here cannot disagree for a real build,
+                // short of a pipeline sync rewriting this annotation between build start and this request.
                 tokenConfig.scope =
                     job.permutations[0] && job.permutations[0].annotations
                         ? job.permutations[0].annotations[COVERAGE_SCOPE_ANNOTATION]
@@ -56,8 +57,8 @@ module.exports = config => ({
             }
             let pipeline;
 
-            // Get pipeline name
-            if (pipelineId && (!projectName || projectName.includes('undefined'))) {
+            // Get pipeline name; always resolved here so it can never be supplied by the caller
+            if (pipelineId) {
                 pipeline = await pipelineFactory.get(pipelineId);
 
                 if (!pipeline) {
@@ -90,12 +91,6 @@ module.exports = config => ({
 
             const data = await config.coveragePlugin.getAccessToken(tokenConfig);
             const { projectUrl } = config.coveragePlugin.getProjectData(tokenConfig);
-
-            if (!pipeline && pipelineId) {
-                pipeline = await pipelineFactory.get(pipelineId);
-
-                logger.info(`looking up again, pipeline:${pipelineId}, and found pipeline: ${pipeline}`);
-            }
 
             if (pipeline && projectUrl) {
                 try {
