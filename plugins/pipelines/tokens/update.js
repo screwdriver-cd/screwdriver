@@ -66,15 +66,20 @@ module.exports = () => ({
                     }
 
                     let payloadOptions;
+
                     if (request.payload && request.payload.options) {
                         payloadOptions = request.payload.options;
                     }
 
                     Object.keys(request.payload).forEach(key => {
                         if (key === 'options') {
+                            const hasResourceUpdates =
+                                payloadOptions.resources && Object.keys(payloadOptions.resources).length > 0;
+
                             token.options = {
                                 ...token.options,
-                                ...payloadOptions
+                                ...payloadOptions,
+                                resources: hasResourceUpdates ? payloadOptions.resources : token.options.resources
                             };
                         } else {
                             token[key] = request.payload[key];
