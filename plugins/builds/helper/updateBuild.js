@@ -459,11 +459,11 @@ async function updateBuildAndTriggerDownstreamJobs(config, build, server, userna
     let stageBuild;
     const isStageTeardown = STAGE_TEARDOWN_PATTERN.test(job.name);
     let stageBuildHasFailure = false;
-    let stageLock;
-    let stageResource;
 
     if (stage) {
-        stageResource = `event:${event.id}:stage:${stage.id}`;
+        const stageResource = `event:${event.id}:stage:${stage.id}`;
+        let stageLock;
+
         try {
             stageLock = await locker.lock(stageResource);
         } catch (err) {
@@ -476,6 +476,11 @@ async function updateBuildAndTriggerDownstreamJobs(config, build, server, userna
 
         stageBuild = await updateStageBuildStatus({ stageBuild, newStatus: newBuild.status, job });
 
+        try {
+            await locker.unlock(stageLock, stageResource);
+        } catch (err) {
+            // ignore unlock errors for parity with lock helper behavior
+        }
         stageBuildHasFailure = TERMINAL_STATUSES.includes(stageBuild.status);
     }
 
@@ -497,6 +502,15 @@ async function updateBuildAndTriggerDownstreamJobs(config, build, server, userna
     // (if stage teardown build exists, and stageBuild.status is negative,
     // and there are no active stage builds, and teardown build is not started)
     if (stage && FINISHED_STATUSES.includes(newBuild.status) && !isStageTeardown) {
+        const stageResource = `event:${event.id}:stage:${stage.id}`;
+        let stageLock;
+
+        try {
+            stageLock = await locker.lock(stageResource);
+        } catch (err) {
+            stageLock = null;
+        }
+
         const stageTeardownName = getFullStageJobName({ stageName: stage.name, jobName: 'teardown' });
         const stageTeardownJob = await jobFactory.get({ pipelineId: pipeline.id, name: stageTeardownName });
         let stageTeardownBuild = await buildFactory.get({ eventId: newEvent.id, jobId: stageTeardownJob.id });
@@ -541,8 +555,7 @@ async function updateBuildAndTriggerDownstreamJobs(config, build, server, userna
                 }
             }
         }
-    }
-    if (stageResource) {
+
         try {
             await locker.unlock(stageLock, stageResource);
         } catch (err) {

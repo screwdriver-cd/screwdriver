@@ -6556,7 +6556,7 @@ describe('build plugin test', () => {
 
                     assert.equal(failureReply.statusCode, 200);
                     assert.equal(successReply.statusCode, 200);
-                    assert.lengthOf(stageLockCalls, 2);
+                    assert.lengthOf(stageLockCalls, 4);
                     assert.calledTwice(stageBuildFactoryMock.get);
                     assert.calledOnce(stageBuildUpdate);
                     assert.equal(stageBuildStore.status, 'FAILURE');
