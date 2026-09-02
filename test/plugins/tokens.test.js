@@ -409,6 +409,49 @@ describe('token plugin test', () => {
             });
         });
 
+        it('preserves existing resources when options resources are empty', () => {
+            const existingOptions = {
+                permission: 'read',
+                resources: {
+                    pipelines: [123]
+                }
+            };
+
+            tokenMock.options = existingOptions;
+            tokenMock.toJson.returns({ ...testToken, options: existingOptions });
+            options.payload = {
+                options: {
+                    permission: 'write',
+                    resources: {}
+                }
+            };
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 200);
+                assert.deepEqual(tokenMock.options, {
+                    permission: 'write',
+                    resources: existingOptions.resources
+                });
+                assert.calledOnce(tokenMock.update);
+            });
+        });
+
+        it('initializes options when updating a token without existing options', () => {
+            tokenMock.options = undefined;
+            tokenMock.toJson.returns({ ...testToken, options: { permission: 'write', resources: {} } });
+            options.payload = {
+                options: {
+                    permission: 'write'
+                }
+            };
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 200);
+                assert.deepEqual(tokenMock.options, { permission: 'write', resources: {} });
+                assert.calledOnce(tokenMock.update);
+            });
+        });
+
         it('returns 403 when the user does not own the token', () => {
             userFactoryMock.get.withArgs({ username, scmContext }).resolves({
                 id: testToken.userId + 1
