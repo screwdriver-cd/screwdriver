@@ -62,6 +62,10 @@ module.exports = () => ({
                 throw boom.forbidden('Pipeline does not own token');
             }
 
+            if (request.payload && request.payload.expiresAt !== undefined) {
+                token.expiresAt = request.payload.expiresAt;
+            }
+
             logger.info(
                 `[Audit] user ${username}:${scmContext} refreshes the token name:${token.name} for pipelineId:${pipelineId}.`
             );
@@ -73,7 +77,14 @@ module.exports = () => ({
             params: joi.object({
                 pipelineId: pipelineIdSchema,
                 tokenId: tokenIdSchema
-            })
+            }),
+            payload: joi
+                .object({
+                    expiresAt: schema.models.token.update.extract('expiresAt')
+                })
+                .unknown(true)
+                .allow(null)
+                .default({})
         }
     }
 });
