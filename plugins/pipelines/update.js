@@ -178,6 +178,8 @@ module.exports = () => ({
             } catch (err) {
                 if (isScrewdriverAdmin) {
                     oldPermissions = { admin: false };
+                } else if (err.statusCode === 404) {
+                    throw boom.notFound(err);
                 } else {
                     throw boom.forbidden(
                         `User ${user.getFullDisplayName()} does not have admin permission for this repo`
