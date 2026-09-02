@@ -345,6 +345,70 @@ describe('token plugin test', () => {
             });
         });
 
+        it('updates only the permission and preserves existing resources', () => {
+            const resources = {
+                pipelines: [123],
+                privatePipeline: true,
+                organizations: ['example']
+            };
+            const expectedOptions = {
+                ...testToken.options,
+                resources,
+                permission: 'write'
+            };
+
+            tokenMock.options = {
+                ...testToken.options,
+                resources
+            };
+            tokenMock.toJson.returns({ ...testToken, options: expectedOptions });
+            options.payload = {
+                options: {
+                    permission: 'write'
+                }
+            };
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 200);
+                assert.deepEqual(tokenMock.options, expectedOptions);
+                assert.deepEqual(reply.result.options, expectedOptions);
+                assert.calledOnce(tokenMock.update);
+            });
+        });
+
+        it('merges token options when updating multiple options', () => {
+            const existingOptions = {
+                permission: 'read',
+                resources: {
+                    pipelines: [123]
+                }
+            };
+            const expectedOptions = {
+                permission: 'write',
+                resources: {
+                    organizations: ['example']
+                }
+            };
+
+            tokenMock.options = existingOptions;
+            tokenMock.toJson.returns({ ...testToken, options: expectedOptions });
+            options.payload = {
+                options: {
+                    permission: 'write',
+                    resources: {
+                        organizations: ['example']
+                    }
+                }
+            };
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 200);
+                assert.deepEqual(tokenMock.options, expectedOptions);
+                assert.deepEqual(reply.result.options, expectedOptions);
+                assert.calledOnce(tokenMock.update);
+            });
+        });
+
         it('returns 403 when the user does not own the token', () => {
             userFactoryMock.get.withArgs({ username, scmContext }).resolves({
                 id: testToken.userId + 1
@@ -409,6 +473,18 @@ describe('token plugin test', () => {
                 assert.equal(reply.statusCode, 200);
                 assert.calledOnce(tokenMock.refresh);
                 assert.deepEqual(reply.result, expected);
+            });
+        });
+
+        it('updates expiresAt when refreshing with an expiration date', () => {
+            const expiresAt = '2030-01-01T00:00:00.000Z';
+
+            options.payload = { expiresAt };
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 200);
+                assert.equal(tokenMock.expiresAt, expiresAt);
+                assert.calledOnce(tokenMock.refresh);
             });
         });
 

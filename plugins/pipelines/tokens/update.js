@@ -65,8 +65,25 @@ module.exports = () => ({
                         throw boom.conflict(`Token ${match.name} already exists`);
                     }
 
+                    let payloadOptions;
+
+                    if (request.payload && request.payload.options) {
+                        payloadOptions = request.payload.options;
+                    }
+
                     Object.keys(request.payload).forEach(key => {
-                        token[key] = request.payload[key];
+                        if (key === 'options') {
+                            const hasResourceUpdates =
+                                payloadOptions.resources && Object.keys(payloadOptions.resources).length > 0;
+
+                            token.options = {
+                                ...token.options,
+                                ...payloadOptions,
+                                resources: hasResourceUpdates ? payloadOptions.resources : token.options.resources
+                            };
+                        } else {
+                            token[key] = request.payload[key];
+                        }
                     });
 
                     return token.update().then(() => h.response(token.toJson()).code(200));

@@ -35,7 +35,13 @@ module.exports = () => ({
                     }
 
                     return canAccess(credentials, token, request.server.app)
-                        .then(() => token.refresh())
+                        .then(() => {
+                            if (request.payload && request.payload.expiresAt !== undefined) {
+                                token.expiresAt = request.payload.expiresAt;
+                            }
+
+                            return token.refresh();
+                        })
                         .then(() => h.response(token.toJson()).code(200));
                 })
                 .catch(err => {
@@ -45,7 +51,14 @@ module.exports = () => ({
         validate: {
             params: joi.object({
                 id: idSchema
-            })
+            }),
+            payload: joi
+                .object({
+                    expiresAt: schema.models.token.update.extract('expiresAt')
+                })
+                .unknown(true)
+                .allow(null)
+                .default({})
         }
     }
 });

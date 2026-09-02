@@ -4469,6 +4469,39 @@ describe('pipeline plugin test', () => {
                 assert.equal(reply.statusCode, 200);
             }));
 
+        it('merges token options when updating multiple options', () => {
+            const existingOptions = {
+                permission: 'read',
+                resources: {
+                    pipelines: [123]
+                }
+            };
+            const expectedOptions = {
+                permission: 'write',
+                resources: {
+                    organizations: ['example']
+                }
+            };
+
+            tokenMock.options = existingOptions;
+            tokenMock.toJson.returns({ ...testTokens, options: expectedOptions });
+            options.payload = {
+                options: {
+                    permission: 'write',
+                    resources: {
+                        organizations: ['example']
+                    }
+                }
+            };
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 200);
+                assert.deepEqual(tokenMock.options, expectedOptions);
+                assert.deepEqual(reply.result.options, expectedOptions);
+                assert.calledOnce(tokenMock.update);
+            });
+        });
+
         it('returns 403 when user does not have admin permission', () => {
             const error = {
                 statusCode: 403,
@@ -4616,6 +4649,19 @@ describe('pipeline plugin test', () => {
             return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 200);
                 assert.equal(reply.result, refreshedToken);
+            });
+        });
+
+        it('updates expiresAt when refreshing with an expiration date', () => {
+            const expiresAt = '2030-01-01T00:00:00.000Z';
+
+            options.payload = { expiresAt };
+            tokenMock.refresh.resolves(getTokenMocks({ ...testTokens, value: 'refreshed' }));
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 200);
+                assert.equal(tokenMock.expiresAt, expiresAt);
+                assert.calledOnce(tokenMock.refresh);
             });
         });
 
