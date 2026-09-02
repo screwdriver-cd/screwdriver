@@ -2381,6 +2381,18 @@ describe('pipeline plugin test', () => {
             });
         });
 
+        it('returns 404 when the repository is not found', () => {
+            const error = new Error('Not Found');
+
+            error.statusCode = 404;
+
+            userMock.getPermissions.withArgs(scmUri).rejects(error);
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 404);
+            });
+        });
+
         it('returns 404 for updating a pipeline that does not exist', () => {
             pipelineFactoryMock.get.withArgs(id).resolves(null);
 
@@ -3482,6 +3494,19 @@ describe('pipeline plugin test', () => {
             return server.inject(options).then(reply => {
                 assert.notCalled(updatedPipelineMock.addWebhooks);
                 assert.equal(reply.statusCode, 403);
+            });
+        });
+
+        it('returns 404 when get permission throws NotFound error', () => {
+            const error = new Error('Not Found');
+
+            error.statusCode = 404;
+
+            userMock.getPermissions.withArgs(oldScmUri).rejects(error);
+
+            return server.inject(options).then(reply => {
+                assert.notCalled(updatedPipelineMock.addWebhooks);
+                assert.equal(reply.statusCode, 404);
             });
         });
 
