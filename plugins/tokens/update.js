@@ -50,21 +50,18 @@ module.exports = () => ({
                             throw boom.conflict(`Token with name ${match.name} already exists`);
                         }
 
-                        let payloadOptions;
-
-                        if (request.payload && request.payload.options) {
-                            payloadOptions = request.payload.options;
-                        }
-
                         Object.keys(request.payload).forEach(key => {
                             if (key === 'options') {
-                                const hasResourceUpdates =
-                                    payloadOptions.resources && Object.keys(payloadOptions.resources).length > 0;
+                                const payloadOptions = request.payload.options || {};
+                                const tokenOptions = token.options || {};
+                                const hasResourceUpdates = Object.keys(payloadOptions.resources || {}).length > 0;
 
                                 token.options = {
-                                    ...token.options,
+                                    ...tokenOptions,
                                     ...payloadOptions,
-                                    resources: hasResourceUpdates ? payloadOptions.resources : token.options.resources
+                                    resources: hasResourceUpdates
+                                        ? payloadOptions.resources
+                                        : tokenOptions.resources || {}
                                 };
                             } else {
                                 token[key] = request.payload[key];
