@@ -60,6 +60,8 @@ describe('DELETE /pipelines/1234/caches', () => {
     let buildClusterFactoryMock;
     let pipelineFactoryMock;
     let userFactoryMock;
+    let jobFactoryMock;
+    let eventFactoryMock;
     let pipelineMock;
     let userMock;
     let scmMock;
@@ -89,6 +91,12 @@ describe('DELETE /pipelines/1234/caches', () => {
             }
         };
         userFactoryMock = {
+            get: sinon.stub()
+        };
+        jobFactoryMock = {
+            get: sinon.stub()
+        };
+        eventFactoryMock = {
             get: sinon.stub()
         };
         scope = 'jobs';
@@ -125,6 +133,8 @@ describe('DELETE /pipelines/1234/caches', () => {
         server.app = {
             pipelineFactory: pipelineFactoryMock,
             userFactory: userFactoryMock,
+            jobFactory: jobFactoryMock,
+            eventFactory: eventFactoryMock,
             buildClusterFactory: buildClusterFactoryMock,
             ecosystem: {
                 store: 'foo.foo',
@@ -174,6 +184,10 @@ describe('DELETE /pipelines/1234/caches', () => {
         userMock = getUserMock({ username, scmContext });
         userMock.getPermissions.withArgs(scmUri).resolves({ push: true });
         userFactoryMock.get.withArgs({ username, scmContext }).resolves(userMock);
+
+        // By default the cache resource belongs to the pipeline in the URL
+        jobFactoryMock.get.withArgs(cacheId).resolves({ id: cacheId, pipelineId: id });
+        eventFactoryMock.get.withArgs(cacheId).resolves({ id: cacheId, pipelineId: id });
     });
 
     afterEach(() => {
@@ -242,6 +256,64 @@ describe('DELETE /pipelines/1234/caches', () => {
 
             return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 404);
+            });
+        });
+
+        it('returns 403 when the job cache belongs to a different pipeline', () => {
+            jobFactoryMock.get.withArgs(cacheId).resolves({ id: cacheId, pipelineId: 9999 });
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 403);
+                assert.notCalled(mockRequestRetry);
+            });
+        });
+
+        it('returns 403 when the job cache does not exist', () => {
+            jobFactoryMock.get.withArgs(cacheId).resolves(null);
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 403);
+                assert.notCalled(mockRequestRetry);
+            });
+        });
+
+        it('returns 403 when the event cache belongs to a different pipeline', () => {
+            options.url = `/pipelines/${id}/caches?scope=events&cacheId=${cacheId}`;
+            eventFactoryMock.get.withArgs(cacheId).resolves({ id: cacheId, pipelineId: 9999 });
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 403);
+                assert.notCalled(mockRequestRetry);
+            });
+        });
+
+        it('returns 403 when the pipeline cache id does not match the pipeline', () => {
+            options.url = `/pipelines/${id}/caches?scope=pipelines&cacheId=9999`;
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 403);
+                assert.notCalled(mockRequestRetry);
+            });
+        });
+
+        it('successfully deletes an event cache belonging to the pipeline', () => {
+            options.url = `/pipelines/${id}/caches?scope=events&cacheId=${cacheId}`;
+            eventFactoryMock.get.withArgs(cacheId).resolves({ id: cacheId, pipelineId: id });
+            mockRequestRetry.resolves({ statusCode: 204 });
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 204);
+                assert.calledOnce(mockRequestRetry);
+            });
+        });
+
+        it('successfully deletes a pipeline cache matching the pipeline', () => {
+            options.url = `/pipelines/${id}/caches?scope=pipelines&cacheId=${id}`;
+            mockRequestRetry.resolves({ statusCode: 204 });
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 204);
+                assert.calledOnce(mockRequestRetry);
             });
         });
     });

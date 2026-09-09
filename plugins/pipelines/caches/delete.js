@@ -28,9 +28,10 @@ module.exports = () => ({
         },
 
         handler: async (request, h) => {
-            const { pipelineFactory, userFactory } = request.server.app;
+            const { pipelineFactory, userFactory, jobFactory, eventFactory } = request.server.app;
             const { username, scmContext } = request.auth.credentials;
             const pipelineId = request.params.id;
+            const { scope, cacheId } = request.query;
             const { isValidToken } = request.server.plugins.pipelines;
 
             if (!isValidToken(pipelineId, request.auth.credentials)) {
@@ -54,6 +55,25 @@ module.exports = () => ({
 
             // Check the user's permission
             await getUserPermissions({ user, scmUri, level: 'push' });
+
+            // Ensure the cache resource (scope/cacheId) actually belongs to this pipeline.
+            // The push permission above only authorizes {id}; without this check a caller could
+            // delete another pipeline's cache by passing an unrelated cacheId.
+            let resourcePipelineId = cacheId;
+
+            if (scope === 'jobs') {
+                const job = await jobFactory.get(cacheId);
+
+                resourcePipelineId = job && job.pipelineId;
+            } else if (scope === 'events') {
+                const event = await eventFactory.get(cacheId);
+
+                resourcePipelineId = event && event.pipelineId;
+            }
+
+            if (resourcePipelineId !== pipelineId) {
+                throw boom.forbidden(`Cache ${scope}:${cacheId} does not belong to pipeline ${pipelineId}`);
+            }
 
             const res = await api.invoke(request);
             const statusCode = res.statusCode === 200 ? 204 : res.statusCode;
