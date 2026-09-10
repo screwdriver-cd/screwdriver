@@ -65,6 +65,7 @@ const newAuthTestServer = async () => {
     server.app = {
         tokenFactory: tokenFactoryMock
     };
+    // ignore handler for each routes
     server.ext('onPreHandler', (request, h) => {
         return h
             .response({

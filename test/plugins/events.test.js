@@ -60,1997 +60,448 @@ const getEventMock = event => {
     return decorated;
 };
 
-describe('event plugin test', () => {
-    describe('authorization settings for routes', () => {
-        let server;
-        let readJwt;
-        let executeJwt;
-        let writeJwt;
-        let allJwt;
-        let oauthJwt;
-        let invalidJwt;
+describe('authorization settings test for event routes', () => {
+    let server;
+    let readJwt;
+    let executeJwt;
+    let writeJwt;
+    let allJwt;
+    let oauthJwt;
+    let invalidJwt;
 
-        beforeEach(async () => {
-            /* eslint-disable global-require */
-            const plugin = require('../../plugins/events');
-            /* eslint-enable global-require */
+    beforeEach(async () => {
+        /* eslint-disable global-require */
+        const plugin = require('../../plugins/events');
+        /* eslint-enable global-require */
 
-            server = await newAuthTestServer();
+        server = await newAuthTestServer();
 
-            await server.register({ plugin });
+        await server.register({ plugin });
 
-            readJwt = server.generateTestJwt({ permission: 'read' });
-            executeJwt = server.generateTestJwt({ permission: 'execute' });
-            writeJwt = server.generateTestJwt({ permission: 'write' });
-            allJwt = server.generateTestJwt({ permission: 'all' });
-            oauthJwt = server.generateTestJwt({ type: 'oauth' });
-            invalidJwt = server.generateTestJwt({ permission: 'invalid' });
-        });
-
-        afterEach(() => {
-            server = null;
-        });
-
-        it('GET /events/{id} requires read permission', async () => {
-            const route = { method: 'GET', url: '/events/123' };
-
-            const noAuthResult = await serverInject(server, route);
-            const invalidJwtResult = await serverInject(server, route, invalidJwt);
-            const readJwtResult = await serverInject(server, route, readJwt);
-            const executeJwtResult = await serverInject(server, route, executeJwt);
-            const writeJwtResult = await serverInject(server, route, writeJwt);
-            const allJwtResult = await serverInject(server, route, allJwt);
-            const oAuthJwtResult = await serverInject(server, route, oauthJwt);
-
-            assert.equal(noAuthResult.statusCode, 401);
-            assert.equal(invalidJwtResult.statusCode, 403);
-            assert.equal(readJwtResult.statusCode, 200);
-            assert.equal(executeJwtResult.statusCode, 200);
-            assert.equal(writeJwtResult.statusCode, 200);
-            assert.equal(allJwtResult.statusCode, 200);
-            assert.equal(oAuthJwtResult.statusCode, 200);
-        });
-
-        it('GET /events/{id}/builds requires read permission', async () => {
-            const route = { method: 'GET', url: '/events/123/builds' };
-
-            const noAuthResult = await serverInject(server, route);
-            const invalidJwtResult = await serverInject(server, route, invalidJwt);
-            const readJwtResult = await serverInject(server, route, readJwt);
-            const executeJwtResult = await serverInject(server, route, executeJwt);
-            const writeJwtResult = await serverInject(server, route, writeJwt);
-            const allJwtResult = await serverInject(server, route, allJwt);
-            const oAuthJwtResult = await serverInject(server, route, oauthJwt);
-
-            assert.equal(noAuthResult.statusCode, 401);
-            assert.equal(invalidJwtResult.statusCode, 403);
-            assert.equal(readJwtResult.statusCode, 200);
-            assert.equal(executeJwtResult.statusCode, 200);
-            assert.equal(writeJwtResult.statusCode, 200);
-            assert.equal(allJwtResult.statusCode, 200);
-            assert.equal(oAuthJwtResult.statusCode, 200);
-        });
-
-        it('GET /events/{id}/stageBuilds requires read permission', async () => {
-            const route = { method: 'GET', url: '/events/123/stageBuilds' };
-
-            const noAuthResult = await serverInject(server, route);
-            const invalidJwtResult = await serverInject(server, route, invalidJwt);
-            const readJwtResult = await serverInject(server, route, readJwt);
-            const executeJwtResult = await serverInject(server, route, executeJwt);
-            const writeJwtResult = await serverInject(server, route, writeJwt);
-            const allJwtResult = await serverInject(server, route, allJwt);
-            const oAuthJwtResult = await serverInject(server, route, oauthJwt);
-
-            assert.equal(noAuthResult.statusCode, 401);
-            assert.equal(invalidJwtResult.statusCode, 403);
-            assert.equal(readJwtResult.statusCode, 200);
-            assert.equal(executeJwtResult.statusCode, 200);
-            assert.equal(writeJwtResult.statusCode, 200);
-            assert.equal(allJwtResult.statusCode, 200);
-            assert.equal(oAuthJwtResult.statusCode, 200);
-        });
-
-        it('GET /events/{id}/metrics requires read permission', async () => {
-            const route = { method: 'GET', url: '/events/123/metrics' };
-
-            const noAuthResult = await serverInject(server, route);
-            const invalidJwtResult = await serverInject(server, route, invalidJwt);
-            const readJwtResult = await serverInject(server, route, readJwt);
-            const executeJwtResult = await serverInject(server, route, executeJwt);
-            const writeJwtResult = await serverInject(server, route, writeJwt);
-            const allJwtResult = await serverInject(server, route, allJwt);
-            const oAuthJwtResult = await serverInject(server, route, oauthJwt);
-
-            assert.equal(noAuthResult.statusCode, 401);
-            assert.equal(invalidJwtResult.statusCode, 403);
-            assert.equal(readJwtResult.statusCode, 200);
-            assert.equal(executeJwtResult.statusCode, 200);
-            assert.equal(writeJwtResult.statusCode, 200);
-            assert.equal(allJwtResult.statusCode, 200);
-            assert.equal(oAuthJwtResult.statusCode, 200);
-        });
-
-        it('POST /events requires execute permission', async () => {
-            const route = { method: 'POST', url: '/events' };
-
-            const noAuthResult = await serverInject(server, route);
-            const invalidJwtResult = await serverInject(server, route, invalidJwt);
-            const readJwtResult = await serverInject(server, route, readJwt);
-            const executeJwtResult = await serverInject(server, route, executeJwt);
-            const writeJwtResult = await serverInject(server, route, writeJwt);
-            const allJwtResult = await serverInject(server, route, allJwt);
-            const oAuthJwtResult = await serverInject(server, route, oauthJwt);
-
-            assert.equal(noAuthResult.statusCode, 401);
-            assert.equal(invalidJwtResult.statusCode, 403);
-            assert.equal(readJwtResult.statusCode, 403);
-            assert.equal(executeJwtResult.statusCode, 200);
-            assert.equal(writeJwtResult.statusCode, 200);
-            assert.equal(allJwtResult.statusCode, 200);
-            assert.equal(oAuthJwtResult.statusCode, 200);
-        });
-
-        it('PUT /events/{id}/stop requires execute permission', async () => {
-            const route = { method: 'PUT', url: '/events/123/stop' };
-
-            const noAuthResult = await serverInject(server, route);
-            const invalidJwtResult = await serverInject(server, route, invalidJwt);
-            const readJwtResult = await serverInject(server, route, readJwt);
-            const executeJwtResult = await serverInject(server, route, executeJwt);
-            const writeJwtResult = await serverInject(server, route, writeJwt);
-            const allJwtResult = await serverInject(server, route, allJwt);
-            const oAuthJwtResult = await serverInject(server, route, oauthJwt);
-
-            assert.equal(noAuthResult.statusCode, 401);
-            assert.equal(invalidJwtResult.statusCode, 403);
-            assert.equal(readJwtResult.statusCode, 403);
-            assert.equal(executeJwtResult.statusCode, 200);
-            assert.equal(writeJwtResult.statusCode, 200);
-            assert.equal(allJwtResult.statusCode, 200);
-            assert.equal(oAuthJwtResult.statusCode, 200);
-        });
+        readJwt = server.generateTestJwt({ permission: 'read' });
+        executeJwt = server.generateTestJwt({ permission: 'execute' });
+        writeJwt = server.generateTestJwt({ permission: 'write' });
+        allJwt = server.generateTestJwt({ permission: 'all' });
+        oauthJwt = server.generateTestJwt({ type: 'oauth' });
+        invalidJwt = server.generateTestJwt({ permission: 'invalid' });
     });
 
-    describe('request test', () => {
-        let bannerMock;
-        let screwdriverAdminDetailsMock;
-        let eventFactoryMock;
-        let pipelineFactoryMock;
-        let userFactoryMock;
-        let buildFactoryMock;
-        let jobFactoryMock;
-        let bannerFactoryMock;
-        let plugin;
-        let server;
-        let testEvent;
-
-        const commitSha = testBuild.sha;
-        const anotherCommitSha = 'b5bed0b64e2e9ec8a9970b8d070df7570376c498';
-
-        before(() => {
-            sinon.stub(badgeMaker, 'makeBadge').callsFake(format => `${format.label}: ${format.message}`);
-        });
-
-        beforeEach(async () => {
-            testEvent = hoek.clone(testEventBase);
-            screwdriverAdminDetailsMock = sinon.stub().returns({ isAdmin: true });
-            eventFactoryMock = {
-                get: sinon.stub(),
-                create: sinon.stub(),
-                scm: {
-                    getCommitSha: sinon.stub().resolves(commitSha),
-                    getPrInfo: sinon.stub().resolves({
-                        sha: commitSha,
-                        ref: 'prref',
-                        prSource: 'branch',
-                        url: 'https://github.com/screwdriver-cd/ui/pull/292',
-                        username: 'myself'
-                    }),
-                    getChangedFiles: sinon.stub().resolves(['screwdriver.yaml'])
-                }
-            };
-            pipelineFactoryMock = {
-                get: sinon.stub(),
-                scm: {
-                    getReadOnlyInfo: sinon.stub().returns({ readOnlyEnabled: false })
-                }
-            };
-            userFactoryMock = {
-                get: sinon.stub(),
-                getFullDisplayName: sinon.stub().returns('Memys Elfandi')
-            };
-            buildFactoryMock = {
-                uiUri: 'http://foo.bar',
-                get: sinon.stub(),
-                create: sinon.stub()
-            };
-            jobFactoryMock = {
-                get: sinon.stub(),
-                list: sinon.stub()
-            };
-            bannerFactoryMock = {
-                scm: {
-                    getDisplayName: sinon.stub().returns()
-                }
-            };
-            bannerMock = {
-                name: 'banners',
-                register: s => {
-                    s.expose('screwdriverAdminDetails', screwdriverAdminDetailsMock);
-                }
-            };
-
-            /* eslint-disable global-require */
-            plugin = require('../../plugins/events');
-            /* eslint-enable global-require */
-
-            server = new hapi.Server({
-                port: 1234
-            });
-            server.app = {
-                pipelineFactory: pipelineFactoryMock,
-                userFactory: userFactoryMock,
-                eventFactory: eventFactoryMock,
-                buildFactory: buildFactoryMock,
-                jobFactory: jobFactoryMock,
-                bannerFactory: bannerFactoryMock
-            };
-
-            server.auth.scheme('custom', () => ({
-                authenticate: (request, h) =>
-                    h.authenticated({
-                        credentials: {
-                            scope: ['user']
-                        }
-                    })
-            }));
-            server.auth.strategy('token', 'custom');
-            server.auth.strategy('session', 'custom');
-
-            await server.register([
-                { plugin: bannerMock },
-                { plugin },
-                {
-                    // eslint-disable-next-line global-require
-                    plugin: require('../../plugins/pipelines')
-                },
-                {
-                    // eslint-disable-next-line global-require
-                    plugin: require('../../plugins/builds')
-                }
-            ]);
-        });
-
-        afterEach(() => {
-            server = null;
-        });
-
-        after(() => {
-            sinon.restore();
-        });
-
-        it('registers the plugin', () => {
-            assert.isOk(server.registrations.events);
-        });
-
-        describe('GET /events/{id}', () => {
-            const id = 12345;
-
-            it('exposes a route for getting a event', () => {
-                eventFactoryMock.get.withArgs(id).resolves(getEventMock(testEvent));
-
-                return server.inject('/events/12345').then(reply => {
-                    assert.equal(reply.statusCode, 200);
-                    assert.deepEqual(reply.result, testEvent);
-                });
-            });
-
-            it('returns 404 when event does not exist', () => {
-                const error = {
-                    statusCode: 404,
-                    error: 'Not Found',
-                    message: 'Event does not exist'
-                };
-
-                eventFactoryMock.get.withArgs(id).resolves(null);
-
-                return server.inject('/events/12345').then(reply => {
-                    assert.equal(reply.statusCode, 404);
-                    assert.deepEqual(reply.result, error);
-                });
-            });
-
-            it('returns errors when datastore returns an error', () => {
-                eventFactoryMock.get.withArgs(id).rejects(new Error('blah'));
-
-                return server.inject('/events/12345').then(reply => {
-                    assert.equal(reply.statusCode, 500);
-                });
-            });
-        });
-
-        describe('GET /events/{id}/builds', () => {
-            const id = 12345;
-            let options;
-            let event;
-            let builds;
-
-            beforeEach(() => {
-                options = {
-                    method: 'GET',
-                    url: `/events/${id}/builds`
-                };
-
-                event = getEventMock(testEvent);
-                builds = getBuildMocks(testBuilds);
-
-                eventFactoryMock.get.withArgs(id).resolves(event);
-                event.getBuilds.resolves(builds);
-            });
-
-            it('returns 404 if event does not exist', () => {
-                eventFactoryMock.get.withArgs(id).resolves(null);
-
-                return server.inject(options).then(reply => {
-                    assert.equal(reply.statusCode, 404);
-                });
-            });
-
-            it('returns 200 for getting builds', () =>
-                server.inject(options).then(reply => {
-                    assert.equal(reply.statusCode, 200);
-                    assert.calledWith(event.getBuilds);
-                    assert.deepEqual(reply.result, testBuilds);
-                }));
-
-            it('returns 200 for getting builds with query params', () => {
-                options.url = `/events/${id}/builds?fetchSteps=false&readOnly=true`;
-
-                return server.inject(options).then(reply => {
-                    assert.equal(reply.statusCode, 200);
-                    assert.calledWith(event.getBuilds, { readOnly: true });
-                    assert.deepEqual(reply.result, testBuilds);
-                });
-            });
-        });
-
-        describe('GET /events/{id}/stageBuilds', () => {
-            const id = 12345;
-            let options;
-            let event;
-            let stageBuilds;
-
-            beforeEach(() => {
-                options = {
-                    method: 'GET',
-                    url: `/events/${id}/stageBuilds`
-                };
-
-                event = getEventMock(testEvent);
-                stageBuilds = getStageBuildMocks(testStageBuilds);
-
-                eventFactoryMock.get.withArgs(id).resolves(event);
-                event.getStageBuilds.resolves(stageBuilds);
-            });
-
-            it('returns 404 if event does not exist', () => {
-                eventFactoryMock.get.withArgs(id).resolves(null);
-
-                return server.inject(options).then(reply => {
-                    assert.equal(reply.statusCode, 404);
-                });
-            });
-
-            it('returns 200 for getting stage builds', () =>
-                server.inject(options).then(reply => {
-                    assert.equal(reply.statusCode, 200);
-                    assert.calledWith(event.getStageBuilds);
-                    assert.deepEqual(reply.result, testStageBuilds);
-                }));
-
-            it('returns 500 when the datastore returns an error', () => {
-                event.getStageBuilds.rejects(new Error('icantdothatdave'));
-
-                return server.inject(options).then(reply => {
-                    assert.equal(reply.statusCode, 500);
-                });
-            });
-        });
-
-        describe('POST /events', () => {
-            const parentEventId = 12345;
-            let options;
-            let eventConfig;
-            let expectedLocation;
-            let scmConfig;
-            let userMock;
-            let pipelineMock;
-            let eventMock;
-            let meta;
-            const username = 'myself';
-            const userId = 777;
-            const parentBuildId = 12345;
-            const pipelineId = 123;
-            const scmContext = 'github:github.com';
-            const scmRepo = {
-                branch: 'branch',
-                url: 'https://github.com/org/repo/tree/branch',
-                name: 'org/repo'
-            };
-            const scmUri = 'github.com:12345:branchName';
-            const checkoutUrl = 'git@github.com:screwdriver-cd/data-model.git#master';
-            const parentBuilds = { 123: { eventId: 8888, jobs: { main: 12345 } } };
-            const prInfo = {
-                sha: commitSha,
-                ref: 'prref',
-                prSource: 'branch',
-                url: 'https://github.com/screwdriver-cd/ui/pull/292',
-                username: 'myself'
-            };
-
-            beforeEach(() => {
-                userMock = {
-                    id: userId,
-                    username,
-                    getPermissions: sinon.stub().resolves({ push: true }),
-                    unsealToken: sinon.stub().resolves('iamtoken'),
-                    getFullDisplayName: sinon.stub().returns('Memys Elfandi')
-                };
-                pipelineMock = {
-                    id: pipelineId,
-                    state: 'ACTIVE',
-                    checkoutUrl,
-                    scmContext: 'github:github.com',
-                    scmRepo,
-                    update: sinon.stub().resolves(),
-                    admins: { foo: true, bar: true },
-                    adminUserIds: [888, 999],
-                    admin: Promise.resolve({
-                        username: 'foo',
-                        unsealToken: sinon.stub().resolves('token')
-                    }),
-                    scmUri,
-                    chainPR: false,
-                    annotations: {
-                        'screwdriver.cd/restrictPR': 'none'
-                    },
-                    workflowGraph: {
-                        nodes: [
-                            { name: '~pr' },
-                            { name: '~commit' },
-                            { name: 'main', id: 1234 },
-                            { name: 'publish' },
-                            { name: 'beta' }
-                        ],
-                        edges: [
-                            { src: '~commit', dest: 'main' },
-                            { src: 'main', dest: 'publish' },
-                            { src: 'publish', dest: 'beta' }
-                        ]
-                    }
-                };
-                pipelineMock.toJson = sinon.stub().returns(pipelineMock);
-                scmConfig = {
-                    prNum: null,
-                    scmContext: 'github:github.com',
-                    scmUri,
-                    scmRepo,
-                    token: 'iamtoken'
-                };
-                meta = {
-                    foo: 'bar',
-                    one: 1
-                };
-
-                options = {
-                    method: 'POST',
-                    url: '/events',
-                    payload: {
-                        parentBuildId,
-                        pipelineId,
-                        startFrom: '~commit',
-                        meta,
-                        startAction: 'START_FROM_LATEST_COMMIT'
-                    },
-                    auth: {
-                        credentials: {
-                            scope: ['user'],
-                            username,
-                            scmContext
-                        },
-                        strategy: ['token']
-                    }
-                };
-                eventConfig = {
-                    parentBuildId,
-                    pipelineId,
-                    scmContext,
-                    startFrom: '~commit',
-                    sha: commitSha,
-                    type: 'pipeline',
-                    username,
-                    meta
-                };
-
-                eventMock = getEventMock(testEvent);
-                eventFactoryMock.get.withArgs(eventMock.id).resolves(eventMock);
-
-                eventMock.builds = [];
-                eventFactoryMock.create.resolves(eventMock);
-                userFactoryMock.get.resolves(userMock);
-                pipelineFactoryMock.get.resolves(pipelineMock);
-            });
-
-            it('returns 201 when it successfully creates restart event with buildId passed in', () => {
-                options.payload = {
-                    buildId: 1234,
-                    meta,
-                    startAction: 'RESTART_FROM_BUILD'
-                };
-                buildFactoryMock.get.resolves({
-                    id: 1234,
-                    jobId: 222,
-                    parentBuildId,
-                    eventId: 888,
-                    parentBuilds
-                });
-                jobFactoryMock.get.resolves({
-                    pipelineId,
-                    name: 'main'
-                });
-                eventConfig.startFrom = 'main';
-                eventConfig.workflowGraph = getEventMock(testEvent).workflowGraph;
-                eventConfig.sha = getEventMock(testEvent).sha;
-                eventConfig.parentEventId = 888;
-                eventConfig.groupEventId = 888;
-                eventConfig.baseBranch = 'master';
-                eventConfig.parentBuilds = parentBuilds;
-                eventFactoryMock.get.resolves(getEventMock(testEvent));
-
-                return server.inject(options).then(reply => {
-                    expectedLocation = {
-                        host: reply.request.headers.host,
-                        port: reply.request.headers.port,
-                        protocol: reply.request.server.info.protocol,
-                        pathname: `${options.url}/12345`
-                    };
-                    assert.calledWith(buildFactoryMock.get, 1234);
-                    assert.calledWith(jobFactoryMock.get, 222);
-                    assert.calledWith(userMock.getPermissions, scmUri, scmContext, scmRepo);
-                    assert.calledWith(eventFactoryMock.create, eventConfig);
-                    assert.strictEqual(reply.headers.location, urlLib.format(expectedLocation));
-                    assert.notCalled(eventFactoryMock.scm.getPrInfo);
-                    assert.equal(reply.statusCode, 201);
-                });
-            });
-
-            it('returns 201 when it successfully creates restart event with branch specific triggered parent event', () => {
-                options.payload.startFrom = 'main';
-                options.payload.startAction = 'RESTART_FROM_EVENT';
-                options.payload.parentEventId = 888;
-                options.payload.groupEventId = 888;
-                delete options.payload.parentBuildId;
-                jobFactoryMock.get.resolves({
-                    pipelineId,
-                    name: 'main'
-                });
-                eventConfig.startFrom = 'main';
-                eventConfig.workflowGraph = getEventMock(testEvent).workflowGraph;
-                eventConfig.sha = getEventMock(testEvent).sha;
-                eventConfig.parentEventId = 888;
-                eventConfig.groupEventId = 888;
-                eventConfig.baseBranch = 'test';
-                delete eventConfig.parentBuildId;
-                testEvent.baseBranch = 'test';
-                eventFactoryMock.get.resolves(getEventMock(testEvent));
-
-                return server.inject(options).then(reply => {
-                    expectedLocation = {
-                        host: reply.request.headers.host,
-                        port: reply.request.headers.port,
-                        protocol: reply.request.server.info.protocol,
-                        pathname: `${options.url}/12345`
-                    };
-                    assert.calledWith(userMock.getPermissions, scmUri, scmContext, scmRepo);
-                    assert.calledWith(eventFactoryMock.create, eventConfig);
-                    assert.strictEqual(reply.headers.location, urlLib.format(expectedLocation));
-                    assert.notCalled(eventFactoryMock.scm.getPrInfo);
-                    assert.equal(reply.statusCode, 201);
-                });
-            });
-
-            it('returns 201 when it successfully creates a new event with branch specific triggered parent event', () => {
-                options.payload.startFrom = 'main';
-                options.payload.startAction = 'START_FROM_EVENT';
-                options.payload.parentEventId = 888;
-                options.payload.groupEventId = 888;
-                delete options.payload.parentBuildId;
-                jobFactoryMock.get.resolves({
-                    pipelineId,
-                    name: 'main'
-                });
-                eventConfig.startFrom = 'main';
-                eventConfig.workflowGraph = getEventMock(testEvent).workflowGraph;
-                eventConfig.sha = getEventMock(testEvent).sha;
-                eventConfig.groupEventId = 888;
-                eventConfig.baseBranch = 'test';
-                delete eventConfig.parentBuildId;
-                delete eventConfig.groupEventId;
-                testEvent.baseBranch = 'test';
-                eventFactoryMock.get.resolves(getEventMock(testEvent));
-
-                return server.inject(options).then(reply => {
-                    expectedLocation = {
-                        host: reply.request.headers.host,
-                        port: reply.request.headers.port,
-                        protocol: reply.request.server.info.protocol,
-                        pathname: `${options.url}/12345`
-                    };
-                    assert.calledWith(userMock.getPermissions, scmUri, scmContext, scmRepo);
-                    assert.calledWith(eventFactoryMock.create, eventConfig);
-                    assert.strictEqual(reply.headers.location, urlLib.format(expectedLocation));
-                    assert.notCalled(eventFactoryMock.scm.getPrInfo);
-                    assert.equal(reply.statusCode, 201);
-                });
-            });
-
-            it('returns 201 when it successfully creates an event with causeMessage and scheduler creator passed in', () => {
-                delete options.payload.parentBuildId;
-                delete eventConfig.parentBuildId;
-                eventConfig.causeMessage = 'Started by periodic build scheduler';
-                eventConfig.creator = { name: 'Screwdriver scheduler', username: 'sd:scheduler' };
-                eventConfig.meta = {};
-                options.payload = {
-                    pipelineId,
-                    startFrom: '~commit',
-                    causeMessage: 'Started by periodic build scheduler',
-                    creator: {
-                        name: 'Screwdriver scheduler',
-                        username: 'sd:scheduler'
-                    },
-                    startAction: 'START_FROM_LATEST_COMMIT'
-                };
-
-                return server.inject(options).then(reply => {
-                    expectedLocation = {
-                        host: reply.request.headers.host,
-                        port: reply.request.headers.port,
-                        protocol: reply.request.server.info.protocol,
-                        pathname: `${options.url}/12345`
-                    };
-                    assert.equal(reply.statusCode, 201);
-                    assert.calledWith(userMock.getPermissions, scmUri, scmContext, scmRepo);
-                    assert.calledWith(eventFactoryMock.create, eventConfig);
-                    assert.strictEqual(reply.headers.location, urlLib.format(expectedLocation));
-                    assert.calledWith(eventFactoryMock.scm.getCommitSha, scmConfig);
-                    assert.notCalled(eventFactoryMock.scm.getPrInfo);
-                });
-            });
-
-            it('returns 201 when it successfully creates an event with creator passed in not overwrite username', () => {
-                delete options.payload.parentBuildId;
-                delete eventConfig.parentBuildId;
-                eventConfig.causeMessage = 'Manually Started by foobar';
-                eventConfig.creator = { name: 'foo bar', username: 'myself' };
-                eventConfig.meta = {};
-                options.payload = {
-                    pipelineId,
-                    startFrom: '~commit',
-                    causeMessage: 'Manually Started by foobar',
-                    creator: {
-                        name: 'foo bar',
-                        username: 'foobar'
-                    },
-                    startAction: 'START_FROM_LATEST_COMMIT'
-                };
-
-                return server.inject(options).then(reply => {
-                    expectedLocation = {
-                        host: reply.request.headers.host,
-                        port: reply.request.headers.port,
-                        protocol: reply.request.server.info.protocol,
-                        pathname: `${options.url}/12345`
-                    };
-                    assert.equal(reply.statusCode, 201);
-                    assert.calledWith(userMock.getPermissions, scmUri, scmContext, scmRepo);
-                    assert.calledWith(eventFactoryMock.create, eventConfig);
-                    assert.strictEqual(reply.headers.location, urlLib.format(expectedLocation));
-                    assert.calledWith(eventFactoryMock.scm.getCommitSha, scmConfig);
-                    assert.notCalled(eventFactoryMock.scm.getPrInfo);
-                });
-            });
-
-            it('returns 201 when it successfully creates an event', () =>
-                server.inject(options).then(reply => {
-                    expectedLocation = {
-                        host: reply.request.headers.host,
-                        port: reply.request.headers.port,
-                        protocol: reply.request.server.info.protocol,
-                        pathname: `${options.url}/12345`
-                    };
-                    assert.equal(reply.statusCode, 201);
-                    assert.calledWith(userMock.getPermissions, scmUri, scmContext, scmRepo);
-                    assert.calledWith(eventFactoryMock.create, eventConfig);
-                    assert.strictEqual(reply.headers.location, urlLib.format(expectedLocation));
-                    assert.calledWith(eventFactoryMock.scm.getCommitSha, scmConfig);
-                    assert.notCalled(eventFactoryMock.scm.getPrInfo);
-                }));
-
-            it('returns 201 when it successfully creates an event without parentBuildId', () => {
-                delete options.payload.parentBuildId;
-                delete eventConfig.parentBuildId;
-
-                return server.inject(options).then(reply => {
-                    expectedLocation = {
-                        host: reply.request.headers.host,
-                        port: reply.request.headers.port,
-                        protocol: reply.request.server.info.protocol,
-                        pathname: `${options.url}/12345`
-                    };
-                    assert.equal(reply.statusCode, 201);
-                    assert.calledWith(userMock.getPermissions, scmUri, scmContext, scmRepo);
-                    assert.calledWith(eventFactoryMock.create, eventConfig);
-                    assert.strictEqual(reply.headers.location, urlLib.format(expectedLocation));
-                    assert.calledWith(eventFactoryMock.scm.getCommitSha, scmConfig);
-                    assert.notCalled(eventFactoryMock.scm.getPrInfo);
-                });
-            });
-
-            it('returns 201 when it skips execution of virtual builds and trigger downstream builds', () => {
-                delete options.payload.parentBuildId;
-                delete eventConfig.parentBuildId;
-
-                eventMock.builds = [getBuildMocks(testBuilds)[0], getBuildMocks(testBuilds)[1]];
-                eventMock.builds.forEach(b => {
-                    b.eventId = eventMock.id;
-                });
-                eventMock.getBuilds = sinon.stub().returns(testBuilds);
-                eventMock.workflowGraph.nodes[2].virtual = true;
-
-                const virtualBuildMock = eventMock.builds[0];
-                const nonVirtualBuildMock = eventMock.builds[1];
-
-                virtualBuildMock.status = 'CREATED';
-                nonVirtualBuildMock.status = 'CREATED';
-                nonVirtualBuildMock.jobId = 1235;
-
-                const virtualJobMock = {
-                    id: virtualBuildMock.jobId,
-                    pipelineId,
-                    name: 'main',
-                    pipeline: pipelineMock,
-                    permutations: [
-                        {
-                            settings: {
-                                email: 'foo@bar.com'
-                            }
-                        }
-                    ],
-                    getLatestBuild: sinon.stub().resolves(virtualBuildMock)
-                };
-
-                jobFactoryMock.get.withArgs(virtualJobMock.id).resolves(virtualJobMock);
-
-                virtualBuildMock.job = virtualJobMock;
-                virtualBuildMock.update = sinon.stub().resolves(virtualBuildMock);
-
-                eventMock.update = sinon.stub().resolves(eventMock);
-
-                server.events = {
-                    emit: sinon.stub().resolves(null)
-                };
-
-                jobFactoryMock.get.withArgs(virtualJobMock.id).resolves(virtualJobMock);
-                eventFactoryMock.get.withArgs({ id: eventMock.id }).resolves(eventMock);
-
-                const jobPublishMock = {
-                    id: nonVirtualBuildMock.jobId,
-                    pipelineId,
-                    name: 'publish',
-                    state: 'ENABLED',
-                    parsePRJobName: sinon.stub().returns('publish'),
-                    permutations: [
-                        {
-                            settings: {
-                                email: 'foo@bar.com'
-                            }
-                        }
-                    ]
-                };
-
-                jobFactoryMock.get.withArgs(jobPublishMock.id).resolves(jobPublishMock);
-                jobFactoryMock.get.withArgs({ pipelineId, name: 'publish' }).resolves(jobPublishMock);
-                jobFactoryMock.list
-                    .withArgs({ params: { id: [eventMock.builds[0].jobId, eventMock.builds[1].jobId] } })
-                    .resolves([virtualJobMock, jobPublishMock]);
-                buildFactoryMock.get.withArgs({ eventId: eventMock.id, jobId: jobPublishMock.id }).returns(null);
-
-                return server.inject(options).then(reply => {
-                    expectedLocation = {
-                        host: reply.request.headers.host,
-                        port: reply.request.headers.port,
-                        protocol: reply.request.server.info.protocol,
-                        pathname: `${options.url}/12345`
-                    };
-                    assert.equal(reply.statusCode, 201);
-                    assert.calledWith(userMock.getPermissions, scmUri, scmContext, scmRepo);
-                    assert.calledWith(eventFactoryMock.create, eventConfig);
-                    assert.strictEqual(reply.headers.location, urlLib.format(expectedLocation));
-                    assert.calledWith(eventFactoryMock.scm.getCommitSha, scmConfig);
-                    assert.notCalled(eventFactoryMock.scm.getPrInfo);
-
-                    assert.equal(virtualBuildMock.status, 'SUCCESS');
-                    assert.calledOnce(virtualBuildMock.update);
-                    assert.calledOnce(buildFactoryMock.create);
-                    assert.calledWith(buildFactoryMock.create, sinon.match({ jobId: jobPublishMock.id }));
-
-                    assert.equal(eventMock.status, 'IN_PROGRESS');
-                });
-            });
-
-            it('returns 201 and does not skip virtual builds when they have blockedBy', () => {
-                delete options.payload.parentBuildId;
-                delete eventConfig.parentBuildId;
-
-                eventMock.builds = [getBuildMocks(testBuilds)[0], getBuildMocks(testBuilds)[1]];
-                eventMock.builds.forEach(b => {
-                    b.eventId = eventMock.id;
-                });
-                eventMock.getBuilds = sinon.stub().returns(testBuilds);
-                eventMock.workflowGraph.nodes[2].virtual = true;
-
-                const virtualBuildMock = eventMock.builds[0];
-                const nonVirtualBuildMock = eventMock.builds[1];
-
-                virtualBuildMock.status = 'QUEUED';
-                nonVirtualBuildMock.status = 'QUEUED';
-                nonVirtualBuildMock.jobId = 1235;
-
-                const virtualJobMock = {
-                    id: virtualBuildMock.jobId,
-                    pipelineId,
-                    name: 'main',
-                    pipeline: pipelineMock,
-                    permutations: [
-                        {
-                            blockedBy: ['main'],
-                            settings: {
-                                email: 'foo@bar.com'
-                            }
-                        }
-                    ],
-                    getLatestBuild: sinon.stub().resolves(virtualBuildMock)
-                };
-
-                jobFactoryMock.get.withArgs(virtualJobMock.id).resolves(virtualJobMock);
-
-                virtualBuildMock.job = virtualJobMock;
-                virtualBuildMock.update = sinon.stub().resolves(virtualBuildMock);
-
-                eventMock.update = sinon.stub().resolves(eventMock);
-
-                server.events = {
-                    emit: sinon.stub().resolves(null)
-                };
-
-                jobFactoryMock.get.withArgs(virtualJobMock.id).resolves(virtualJobMock);
-                eventFactoryMock.get.withArgs({ id: eventMock.id }).resolves(eventMock);
-
-                const jobPublishMock = {
-                    id: nonVirtualBuildMock.jobId,
-                    pipelineId,
-                    name: 'publish',
-                    state: 'ENABLED',
-                    parsePRJobName: sinon.stub().returns('publish'),
-                    permutations: [
-                        {
-                            settings: {
-                                email: 'foo@bar.com'
-                            }
-                        }
-                    ]
-                };
-
-                jobFactoryMock.get.withArgs(jobPublishMock.id).resolves(jobPublishMock);
-                jobFactoryMock.get.withArgs({ pipelineId, name: 'publish' }).resolves(jobPublishMock);
-                jobFactoryMock.list
-                    .withArgs({ params: { id: [eventMock.builds[0].jobId, eventMock.builds[1].jobId] } })
-                    .resolves([virtualJobMock, jobPublishMock]);
-                buildFactoryMock.get.withArgs({ eventId: eventMock.id, jobId: jobPublishMock.id }).returns(null);
-
-                return server.inject(options).then(reply => {
-                    expectedLocation = {
-                        host: reply.request.headers.host,
-                        port: reply.request.headers.port,
-                        protocol: reply.request.server.info.protocol,
-                        pathname: `${options.url}/12345`
-                    };
-                    assert.equal(reply.statusCode, 201);
-                    assert.calledWith(userMock.getPermissions, scmUri, scmContext, scmRepo);
-                    assert.calledWith(eventFactoryMock.create, eventConfig);
-                    assert.strictEqual(reply.headers.location, urlLib.format(expectedLocation));
-                    assert.calledWith(eventFactoryMock.scm.getCommitSha, scmConfig);
-                    assert.notCalled(eventFactoryMock.scm.getPrInfo);
-
-                    // virtual job should not be auto-skipped when blockedBy is present
-                    assert.equal(virtualBuildMock.status, 'QUEUED');
-                    assert.notCalled(virtualBuildMock.update);
-                    assert.notCalled(buildFactoryMock.create);
-                });
-            });
-
-            it('returns 201 when it skips execution of virtual builds for PR event', () => {
-                delete options.payload.parentBuildId;
-                delete eventConfig.parentBuildId;
-
-                eventMock.builds = [getBuildMocks(testBuilds)[0], getBuildMocks(testBuilds)[1]];
-                eventMock.builds.forEach(b => {
-                    b.eventId = eventMock.id;
-                });
-                eventMock.getBuilds = sinon.stub().returns(testBuilds);
-                eventMock.workflowGraph.nodes[2].virtual = true;
-
-                const virtualBuildMock = eventMock.builds[0];
-                const nonVirtualBuildMock = eventMock.builds[1];
-
-                virtualBuildMock.status = 'CREATED';
-                nonVirtualBuildMock.status = 'CREATED';
-                nonVirtualBuildMock.jobId = 1235;
-
-                const virtualJobMock = {
-                    id: virtualBuildMock.jobId,
-                    pipelineId,
-                    name: 'PR-1:main',
-                    pipeline: pipelineMock,
-                    permutations: [
-                        {
-                            settings: {
-                                email: 'foo@bar.com'
-                            }
-                        }
-                    ],
-                    getLatestBuild: sinon.stub().resolves(virtualBuildMock)
-                };
-
-                jobFactoryMock.get.withArgs(virtualJobMock.id).resolves(virtualJobMock);
-
-                virtualBuildMock.job = virtualJobMock;
-                virtualBuildMock.update = sinon.stub().resolves(virtualBuildMock);
-
-                eventMock.update = sinon.stub().resolves(eventMock);
-
-                server.events = {
-                    emit: sinon.stub().resolves(null)
-                };
-
-                jobFactoryMock.get.withArgs(virtualJobMock.id).resolves(virtualJobMock);
-                eventFactoryMock.get.withArgs({ id: eventMock.id }).resolves(eventMock);
-
-                const jobPublishMock = {
-                    id: nonVirtualBuildMock.jobId,
-                    pipelineId,
-                    name: 'PR-1:publish',
-                    state: 'ENABLED',
-                    parsePRJobName: sinon.stub().returns('publish'),
-                    permutations: [
-                        {
-                            settings: {
-                                email: 'foo@bar.com'
-                            }
-                        }
-                    ]
-                };
-
-                jobFactoryMock.get.withArgs(jobPublishMock.id).resolves(jobPublishMock);
-                jobFactoryMock.get.withArgs({ pipelineId, name: 'publish' }).resolves(jobPublishMock);
-                jobFactoryMock.list
-                    .withArgs({ params: { id: [eventMock.builds[0].jobId, eventMock.builds[1].jobId] } })
-                    .resolves([virtualJobMock, jobPublishMock]);
-                buildFactoryMock.get.withArgs({ eventId: eventMock.id, jobId: jobPublishMock.id }).returns(null);
-
-                return server.inject(options).then(reply => {
-                    expectedLocation = {
-                        host: reply.request.headers.host,
-                        port: reply.request.headers.port,
-                        protocol: reply.request.server.info.protocol,
-                        pathname: `${options.url}/12345`
-                    };
-                    assert.equal(reply.statusCode, 201);
-                    assert.calledWith(userMock.getPermissions, scmUri, scmContext, scmRepo);
-                    assert.calledWith(eventFactoryMock.create, eventConfig);
-                    assert.strictEqual(reply.headers.location, urlLib.format(expectedLocation));
-                    assert.calledWith(eventFactoryMock.scm.getCommitSha, scmConfig);
-                    assert.notCalled(eventFactoryMock.scm.getPrInfo);
-
-                    assert.equal(virtualBuildMock.status, 'SUCCESS');
-                    assert.calledOnce(virtualBuildMock.update);
-
-                    assert.equal(eventMock.status, 'IN_PROGRESS');
-                });
-            });
-
-            it('returns 201 when it successfully creates an restart event with parent event', () => {
-                eventConfig.parentEventId = parentEventId;
-                eventConfig.workflowGraph = getEventMock(testEvent).workflowGraph;
-                eventConfig.sha = getEventMock(testEvent).sha;
-                eventConfig.baseBranch = 'master';
-                options.payload.parentEventId = parentEventId;
-                options.payload.startAction = 'RESTART_FROM_EVENT';
-
-                return server.inject(options).then(reply => {
-                    expectedLocation = {
-                        host: reply.request.headers.host,
-                        port: reply.request.headers.port,
-                        protocol: reply.request.server.info.protocol,
-                        pathname: `${options.url}/12345`
-                    };
-                    assert.equal(reply.statusCode, 201);
-                    assert.calledWith(userMock.getPermissions, scmUri, scmContext, scmRepo);
-                    assert.calledWith(eventFactoryMock.create, eventConfig);
-                    assert.strictEqual(reply.headers.location, urlLib.format(expectedLocation));
-                    assert.notCalled(eventFactoryMock.scm.getPrInfo);
-                });
-            });
-
-            it('returns 201 when it successfully creates a new event with parent event', () => {
-                eventConfig.workflowGraph = getEventMock(testEvent).workflowGraph;
-                eventConfig.sha = getEventMock(testEvent).sha;
-                eventConfig.baseBranch = 'master';
-                options.payload.parentEventId = parentEventId;
-                options.payload.startAction = 'START_FROM_EVENT';
-
-                return server.inject(options).then(reply => {
-                    expectedLocation = {
-                        host: reply.request.headers.host,
-                        port: reply.request.headers.port,
-                        protocol: reply.request.server.info.protocol,
-                        pathname: `${options.url}/12345`
-                    };
-                    assert.equal(reply.statusCode, 201);
-                    assert.calledWith(userMock.getPermissions, scmUri, scmContext, scmRepo);
-                    assert.calledWith(eventFactoryMock.create, eventConfig);
-                    assert.strictEqual(reply.headers.location, urlLib.format(expectedLocation));
-                    assert.notCalled(eventFactoryMock.scm.getPrInfo);
-                });
-            });
-
-            it('returns 201 when it successfully creates an event with parent builds', () => {
-                options.payload = {
-                    buildId: 1234,
-                    meta,
-                    parentBuilds,
-                    startAction: 'RESTART_FROM_BUILD'
-                };
-                buildFactoryMock.get.resolves({
-                    id: 1234,
-                    jobId: 222,
-                    parentBuildId,
-                    eventId: 888
-                });
-                jobFactoryMock.get.resolves({
-                    pipelineId,
-                    name: 'main'
-                });
-                eventConfig.parentBuilds = parentBuilds;
-                eventConfig.startFrom = 'main';
-                eventConfig.workflowGraph = getEventMock(testEvent).workflowGraph;
-                eventConfig.sha = getEventMock(testEvent).sha;
-                eventConfig.parentEventId = 888;
-                eventConfig.groupEventId = 888;
-                eventConfig.baseBranch = 'master';
-                eventFactoryMock.get.resolves(getEventMock(testEvent));
-
-                return server.inject(options).then(reply => {
-                    expectedLocation = {
-                        host: reply.request.headers.host,
-                        port: reply.request.headers.port,
-                        protocol: reply.request.server.info.protocol,
-                        pathname: `${options.url}/12345`
-                    };
-                    assert.calledWith(buildFactoryMock.get, 1234);
-                    assert.calledWith(jobFactoryMock.get, 222);
-                    assert.calledWith(userMock.getPermissions, scmUri, scmContext, scmRepo);
-                    assert.calledWith(eventFactoryMock.create, eventConfig);
-                    assert.strictEqual(reply.headers.location, urlLib.format(expectedLocation));
-                    assert.notCalled(eventFactoryMock.scm.getPrInfo);
-                    assert.equal(reply.statusCode, 201);
-                });
-            });
-
-            it('returns 201 when it successfully creates an event with groupEventId', () => {
-                options.payload = {
-                    buildId: 1234,
-                    meta,
-                    parentBuilds,
-                    groupEventId: 2,
-                    startAction: 'RESTART_FROM_BUILD'
-                };
-                buildFactoryMock.get.resolves({
-                    id: 1234,
-                    jobId: 222,
-                    parentBuildId,
-                    eventId: 888
-                });
-                jobFactoryMock.get.resolves({
-                    pipelineId,
-                    name: 'main'
-                });
-                eventConfig.parentBuilds = parentBuilds;
-                eventConfig.startFrom = 'main';
-                eventConfig.workflowGraph = getEventMock(testEvent).workflowGraph;
-                eventConfig.sha = getEventMock(testEvent).sha;
-                eventConfig.parentEventId = 888;
-                eventConfig.groupEventId = 2;
-                eventConfig.baseBranch = 'master';
-                eventFactoryMock.get.resolves(getEventMock(testEvent));
-
-                return server.inject(options).then(reply => {
-                    expectedLocation = {
-                        host: reply.request.headers.host,
-                        port: reply.request.headers.port,
-                        protocol: reply.request.server.info.protocol,
-                        pathname: `${options.url}/12345`
-                    };
-                    assert.calledWith(buildFactoryMock.get, 1234);
-                    assert.calledWith(jobFactoryMock.get, 222);
-                    assert.calledWith(userMock.getPermissions, scmUri, scmContext, scmRepo);
-                    assert.calledWith(eventFactoryMock.create, eventConfig);
-                    assert.strictEqual(reply.headers.location, urlLib.format(expectedLocation));
-                    assert.notCalled(eventFactoryMock.scm.getPrInfo);
-                    assert.equal(reply.statusCode, 201);
-                });
-            });
-
-            it('returns 400 bad request error when startFrom is stage teardown and parent event is not specified', () => {
-                options.payload.startFrom = 'stage@integration:teardown';
-
-                return server.inject(options).then(reply => {
-                    assert.equal(reply.statusCode, 400);
-                });
-            });
-
-            it('returns 201 when it successfully creates an event with parent event and the startFrom is a stage teardown', () => {
-                eventConfig.parentEventId = parentEventId;
-                eventConfig.workflowGraph = getEventMock(testEvent).workflowGraph;
-                eventConfig.sha = getEventMock(testEvent).sha;
-                eventConfig.baseBranch = 'master';
-                eventConfig.startFrom = 'stage@integration:teardown';
-                options.payload.parentEventId = parentEventId;
-                options.payload.startFrom = 'stage@integration:teardown';
-                options.payload.startAction = 'RESTART_FROM_EVENT';
-
-                return server.inject(options).then(reply => {
-                    expectedLocation = {
-                        host: reply.request.headers.host,
-                        port: reply.request.headers.port,
-                        protocol: reply.request.server.info.protocol,
-                        pathname: `${options.url}/12345`
-                    };
-                    assert.equal(reply.statusCode, 201);
-                    assert.calledWith(eventFactoryMock.create, eventConfig);
-                    assert.strictEqual(reply.headers.location, urlLib.format(expectedLocation));
-                    assert.notCalled(eventFactoryMock.scm.getPrInfo);
-                });
-            });
-
-            it('returns 201 when it successfully creates a new event with parent event and the startFrom is a stage teardown', () => {
-                eventConfig.workflowGraph = getEventMock(testEvent).workflowGraph;
-                eventConfig.sha = getEventMock(testEvent).sha;
-                eventConfig.baseBranch = 'master';
-                eventConfig.startFrom = 'stage@integration:teardown';
-                options.payload.parentEventId = parentEventId;
-                options.payload.startFrom = 'stage@integration:teardown';
-                options.payload.startAction = 'START_FROM_EVENT';
-
-                return server.inject(options).then(reply => {
-                    expectedLocation = {
-                        host: reply.request.headers.host,
-                        port: reply.request.headers.port,
-                        protocol: reply.request.server.info.protocol,
-                        pathname: `${options.url}/12345`
-                    };
-                    assert.equal(reply.statusCode, 201);
-                    assert.calledWith(eventFactoryMock.create, eventConfig);
-                    assert.strictEqual(reply.headers.location, urlLib.format(expectedLocation));
-                    assert.notCalled(eventFactoryMock.scm.getPrInfo);
-                });
-            });
-
-            it('returns 201 when it successfully creates restarted event with parent event and the startFrom is not a stage teardown', () => {
-                eventConfig.parentEventId = parentEventId;
-                eventConfig.workflowGraph = getEventMock(testEvent).workflowGraph;
-                eventConfig.sha = getEventMock(testEvent).sha;
-                eventConfig.baseBranch = 'master';
-                options.payload.parentEventId = parentEventId;
-                options.payload.startAction = 'RESTART_FROM_EVENT';
-
-                return server.inject(options).then(reply => {
-                    expectedLocation = {
-                        host: reply.request.headers.host,
-                        port: reply.request.headers.port,
-                        protocol: reply.request.server.info.protocol,
-                        pathname: `${options.url}/12345`
-                    };
-                    assert.equal(reply.statusCode, 201);
-                    assert.calledWith(eventFactoryMock.create, eventConfig);
-                    assert.strictEqual(reply.headers.location, urlLib.format(expectedLocation));
-                    assert.notCalled(eventFactoryMock.scm.getPrInfo);
-                });
-            });
-
-            it('returns 201 when it successfully creates a new event with parent event and the startFrom is not a stage teardown', () => {
-                eventConfig.workflowGraph = getEventMock(testEvent).workflowGraph;
-                eventConfig.sha = getEventMock(testEvent).sha;
-                eventConfig.baseBranch = 'master';
-                options.payload.parentEventId = parentEventId;
-                options.payload.startAction = 'START_FROM_EVENT';
-
-                return server.inject(options).then(reply => {
-                    expectedLocation = {
-                        host: reply.request.headers.host,
-                        port: reply.request.headers.port,
-                        protocol: reply.request.server.info.protocol,
-                        pathname: `${options.url}/12345`
-                    };
-                    assert.equal(reply.statusCode, 201);
-                    assert.calledWith(eventFactoryMock.create, eventConfig);
-                    assert.strictEqual(reply.headers.location, urlLib.format(expectedLocation));
-                    assert.notCalled(eventFactoryMock.scm.getPrInfo);
-                });
-            });
-
-            it('returns 201 when it creates restarted event with parent event for child pipeline', () => {
-                eventConfig.parentEventId = parentEventId;
-                eventConfig.workflowGraph = getEventMock(testEvent).workflowGraph;
-                eventConfig.sha = getEventMock(testEvent).sha;
-                eventConfig.baseBranch = 'master';
-                testEvent.configPipelineSha = 'configPipelineSha';
-                testEvent.meta = {
-                    parameters: {
-                        user: { value: 'adong' }
-                    },
-                    foo: 'bar',
-                    one: 1
-                };
-                eventConfig.configPipelineSha = 'configPipelineSha';
-                eventConfig.meta = {
-                    parameters: {
-                        user: { value: 'adong' }
-                    },
-                    foo: 'bar',
-                    one: 1
-                };
-                options.payload.parentEventId = parentEventId;
-                options.payload.startAction = 'RESTART_FROM_EVENT';
-                delete options.payload.meta;
-                eventFactoryMock.get.withArgs(parentEventId).resolves(getEventMock(testEvent));
-
-                return server.inject(options).then(reply => {
-                    expectedLocation = {
-                        host: reply.request.headers.host,
-                        port: reply.request.headers.port,
-                        protocol: reply.request.server.info.protocol,
-                        pathname: `${options.url}/12345`
-                    };
-                    assert.equal(reply.statusCode, 201);
-                    assert.calledWith(userMock.getPermissions, scmUri, scmContext, scmRepo);
-                    assert.calledWith(eventFactoryMock.create, eventConfig);
-                    assert.strictEqual(reply.headers.location, urlLib.format(expectedLocation));
-                    assert.notCalled(eventFactoryMock.scm.getPrInfo);
-                    delete testEvent.configPipelineSha;
-                });
-            });
-
-            it('returns 201 when it creates a new event with parent event for child pipeline', () => {
-                // This test case ensures that when "Start" is called with a parent event specified,
-                // the parent event's metadata is not inherited.
-                eventConfig.workflowGraph = getEventMock(testEvent).workflowGraph;
-                eventConfig.sha = getEventMock(testEvent).sha;
-                eventConfig.baseBranch = 'master';
-                testEvent.configPipelineSha = 'configPipelineSha';
-                testEvent.meta = {
-                    parameters: {
-                        user: { value: 'adong' }
-                    },
-                    foo: 'bar',
-                    one: 1
-                };
-                eventConfig.configPipelineSha = 'configPipelineSha';
-                eventConfig.meta = {};
-                options.payload.parentEventId = parentEventId;
-                options.payload.startAction = 'START_FROM_EVENT';
-                delete options.payload.meta;
-                eventFactoryMock.get.withArgs(parentEventId).resolves(getEventMock(testEvent));
-
-                return server.inject(options).then(reply => {
-                    expectedLocation = {
-                        host: reply.request.headers.host,
-                        port: reply.request.headers.port,
-                        protocol: reply.request.server.info.protocol,
-                        pathname: `${options.url}/12345`
-                    };
-                    assert.equal(reply.statusCode, 201);
-                    assert.calledWith(userMock.getPermissions, scmUri, scmContext, scmRepo);
-                    assert.calledWith(eventFactoryMock.create, eventConfig);
-                    assert.strictEqual(reply.headers.location, urlLib.format(expectedLocation));
-                    assert.notCalled(eventFactoryMock.scm.getPrInfo);
-                    delete testEvent.configPipelineSha;
-                });
-            });
-
-            it('returns 201 when it creates restarted event with custom parameters and parent event', () => {
-                eventConfig.parentEventId = parentEventId;
-                eventConfig.workflowGraph = getEventMock(testEvent).workflowGraph;
-                eventConfig.sha = getEventMock(testEvent).sha;
-                eventConfig.baseBranch = 'master';
-                testEvent.configPipelineSha = 'configPipelineSha';
-                testEvent.meta = {
-                    parameters: {
-                        user: { value: 'adong' }
-                    }
-                };
-                eventConfig.configPipelineSha = 'configPipelineSha';
-                eventConfig.meta.parameters = {
-                    user: { value: 'klu' }
-                };
-                options.payload.parentEventId = parentEventId;
-                options.payload.meta.parameters = {
-                    user: { value: 'klu' }
-                };
-                options.payload.startAction = 'RESTART_FROM_EVENT';
-                eventFactoryMock.get.withArgs(parentEventId).resolves(getEventMock(testEvent));
-
-                return server.inject(options).then(reply => {
-                    expectedLocation = {
-                        host: reply.request.headers.host,
-                        port: reply.request.headers.port,
-                        protocol: reply.request.server.info.protocol,
-                        pathname: `${options.url}/12345`
-                    };
-                    assert.equal(reply.statusCode, 201);
-                    assert.calledWith(userMock.getPermissions, scmUri, scmContext, scmRepo);
-                    assert.calledWith(eventFactoryMock.create, eventConfig);
-                    assert.strictEqual(reply.headers.location, urlLib.format(expectedLocation));
-                    assert.notCalled(eventFactoryMock.scm.getPrInfo);
-                    delete testEvent.configPipelineSha;
-                });
-            });
-
-            it('returns 201 when it creates a new event with custom parameters and parent event', () => {
-                eventConfig.workflowGraph = getEventMock(testEvent).workflowGraph;
-                eventConfig.sha = getEventMock(testEvent).sha;
-                eventConfig.baseBranch = 'master';
-                testEvent.configPipelineSha = 'configPipelineSha';
-                testEvent.meta = {
-                    parameters: {
-                        user: { value: 'adong' }
-                    }
-                };
-                eventConfig.configPipelineSha = 'configPipelineSha';
-                eventConfig.meta.parameters = {
-                    user: { value: 'klu' }
-                };
-                options.payload.parentEventId = parentEventId;
-                options.payload.meta.parameters = {
-                    user: { value: 'klu' }
-                };
-                options.payload.startAction = 'START_FROM_EVENT';
-                eventFactoryMock.get.withArgs(parentEventId).resolves(getEventMock(testEvent));
-
-                return server.inject(options).then(reply => {
-                    expectedLocation = {
-                        host: reply.request.headers.host,
-                        port: reply.request.headers.port,
-                        protocol: reply.request.server.info.protocol,
-                        pathname: `${options.url}/12345`
-                    };
-                    assert.equal(reply.statusCode, 201);
-                    assert.calledWith(userMock.getPermissions, scmUri, scmContext, scmRepo);
-                    assert.calledWith(eventFactoryMock.create, eventConfig);
-                    assert.strictEqual(reply.headers.location, urlLib.format(expectedLocation));
-                    assert.notCalled(eventFactoryMock.scm.getPrInfo);
-                    delete testEvent.configPipelineSha;
-                });
-            });
-
-            it('returns 201 when it creates restarted event with parent event which has meta', () => {
-                eventConfig.parentEventId = parentEventId;
-                eventConfig.workflowGraph = getEventMock(testEvent).workflowGraph;
-                eventConfig.sha = getEventMock(testEvent).sha;
-                eventConfig.baseBranch = 'master';
-                testEvent.configPipelineSha = 'configPipelineSha';
-                testEvent.meta = meta;
-                eventConfig.configPipelineSha = 'configPipelineSha';
-                eventConfig.meta = meta;
-                options.payload.parentEventId = parentEventId;
-                options.payload.startAction = 'RESTART_FROM_EVENT';
-                eventFactoryMock.get.withArgs(parentEventId).resolves(getEventMock(testEvent));
-
-                return server.inject(options).then(reply => {
-                    expectedLocation = {
-                        host: reply.request.headers.host,
-                        port: reply.request.headers.port,
-                        protocol: reply.request.server.info.protocol,
-                        pathname: `${options.url}/12345`
-                    };
-                    assert.equal(reply.statusCode, 201);
-                    assert.calledWith(userMock.getPermissions, scmUri, scmContext, scmRepo);
-                    assert.calledWith(eventFactoryMock.create, eventConfig);
-                    assert.strictEqual(reply.headers.location, urlLib.format(expectedLocation));
-                    assert.notCalled(eventFactoryMock.scm.getPrInfo);
-                    delete testEvent.configPipelineSha;
-                });
-            });
-
-            it('returns 201 when it creates a new event with parent event which has meta', () => {
-                eventConfig.workflowGraph = getEventMock(testEvent).workflowGraph;
-                eventConfig.sha = getEventMock(testEvent).sha;
-                eventConfig.baseBranch = 'master';
-                testEvent.configPipelineSha = 'configPipelineSha';
-                testEvent.meta = meta;
-                eventConfig.configPipelineSha = 'configPipelineSha';
-                eventConfig.meta = meta;
-                options.payload.startAction = 'START_FROM_EVENT';
-                options.payload.parentEventId = parentEventId;
-                eventFactoryMock.get.withArgs(parentEventId).resolves(getEventMock(testEvent));
-
-                return server.inject(options).then(reply => {
-                    expectedLocation = {
-                        host: reply.request.headers.host,
-                        port: reply.request.headers.port,
-                        protocol: reply.request.server.info.protocol,
-                        pathname: `${options.url}/12345`
-                    };
-                    assert.equal(reply.statusCode, 201);
-                    assert.calledWith(userMock.getPermissions, scmUri, scmContext, scmRepo);
-                    assert.calledWith(eventFactoryMock.create, eventConfig);
-                    assert.strictEqual(reply.headers.location, urlLib.format(expectedLocation));
-                    assert.notCalled(eventFactoryMock.scm.getPrInfo);
-                    delete testEvent.configPipelineSha;
-                });
-            });
-
-            it('returns 201 when it creates restarted event with custom parameters and parent event which has meta', () => {
-                eventConfig.parentEventId = parentEventId;
-                eventConfig.workflowGraph = getEventMock(testEvent).workflowGraph;
-                eventConfig.sha = getEventMock(testEvent).sha;
-                eventConfig.baseBranch = 'master';
-                testEvent.configPipelineSha = 'configPipelineSha';
-                testEvent.meta = {
-                    parameters: {
-                        user: { value: 'adong' }
-                    },
-                    foo: 'bar',
-                    one: 1
-                };
-                eventConfig.configPipelineSha = 'configPipelineSha';
-                eventConfig.meta = {
-                    parameters: {
-                        user: { value: 'klu' }
-                    },
-                    foo: 'bar',
-                    one: 1
-                };
-                options.payload.parentEventId = parentEventId;
-                options.payload.startAction = 'RESTART_FROM_EVENT';
-                options.payload.meta = {
-                    parameters: {
-                        user: { value: 'klu' }
-                    }
-                };
-                eventFactoryMock.get.withArgs(parentEventId).resolves(getEventMock(testEvent));
-
-                return server.inject(options).then(reply => {
-                    expectedLocation = {
-                        host: reply.request.headers.host,
-                        port: reply.request.headers.port,
-                        protocol: reply.request.server.info.protocol,
-                        pathname: `${options.url}/12345`
-                    };
-                    assert.equal(reply.statusCode, 201);
-                    assert.calledWith(userMock.getPermissions, scmUri, scmContext, scmRepo);
-                    assert.calledWith(eventFactoryMock.create, eventConfig);
-                    assert.strictEqual(reply.headers.location, urlLib.format(expectedLocation));
-                    assert.notCalled(eventFactoryMock.scm.getPrInfo);
-                    delete testEvent.configPipelineSha;
-                });
-            });
-
-            it('returns 201 when it creates new event with custom parameters and parent event which has meta', () => {
-                // This test case ensures that when "Start" is called with a parent event specified,
-                // the parent event's metadata is not inherited.
-                eventConfig.workflowGraph = getEventMock(testEvent).workflowGraph;
-                eventConfig.sha = getEventMock(testEvent).sha;
-                eventConfig.baseBranch = 'master';
-                testEvent.configPipelineSha = 'configPipelineSha';
-                testEvent.meta = {
-                    parameters: {
-                        user: { value: 'adong' }
-                    },
-                    foo: 'bar',
-                    one: 1
-                };
-                eventConfig.configPipelineSha = 'configPipelineSha';
-                eventConfig.meta = {
-                    parameters: {
-                        user: { value: 'klu' }
-                    }
-                };
-                options.payload.parentEventId = parentEventId;
-                options.payload.startAction = 'START_FROM_EVENT';
-                options.payload.meta = {
-                    parameters: {
-                        user: { value: 'klu' }
-                    }
-                };
-                eventFactoryMock.get.withArgs(parentEventId).resolves(getEventMock(testEvent));
-
-                return server.inject(options).then(reply => {
-                    expectedLocation = {
-                        host: reply.request.headers.host,
-                        port: reply.request.headers.port,
-                        protocol: reply.request.server.info.protocol,
-                        pathname: `${options.url}/12345`
-                    };
-                    assert.equal(reply.statusCode, 201);
-                    assert.calledWith(userMock.getPermissions, scmUri, scmContext, scmRepo);
-                    assert.calledWith(eventFactoryMock.create, eventConfig);
-                    assert.strictEqual(reply.headers.location, urlLib.format(expectedLocation));
-                    assert.notCalled(eventFactoryMock.scm.getPrInfo);
-                    delete testEvent.configPipelineSha;
-                });
-            });
-
-            it('returns 201 when it successfully creates a PR event', () => {
-                eventConfig.startFrom = 'PR-1:main';
-                eventConfig.prNum = '1';
-                eventConfig.type = 'pr';
-                eventConfig.chainPR = false;
-                eventConfig.prInfo = prInfo;
-                eventConfig.changedFiles = ['screwdriver.yaml'];
-                ({ ref: eventConfig.prRef, prSource: eventConfig.prSource } = prInfo);
-                options.payload.startFrom = 'PR-1:main';
-
-                return server.inject(options).then(reply => {
-                    assert.equal(reply.statusCode, 201);
-                    assert.calledWith(userMock.getPermissions, scmUri, scmContext, scmRepo);
-                    assert.calledWith(eventFactoryMock.create, eventConfig);
-                    assert.calledOnce(eventFactoryMock.scm.getCommitSha);
-                    assert.calledOnce(eventFactoryMock.scm.getPrInfo);
-                    assert.calledWith(eventFactoryMock.scm.getPrInfo, { ...scmConfig, prNum: eventConfig.prNum });
-                    assert.calledOnce(eventFactoryMock.scm.getChangedFiles);
-                });
-            });
-
-            it('returns 201 when it successfully creates a PR event using latest commit sha even when a different sha is specified in the payload', () => {
-                options.payload.startFrom = 'PR-1:main';
-                options.payload.sha = anotherCommitSha;
-
-                eventConfig.startFrom = 'PR-1:main';
-                eventConfig.prNum = '1';
-                eventConfig.type = 'pr';
-                eventConfig.chainPR = false;
-                eventConfig.prInfo = prInfo;
-                eventConfig.changedFiles = ['screwdriver.yaml'];
-                ({ ref: eventConfig.prRef, prSource: eventConfig.prSource } = prInfo);
-
-                return server.inject(options).then(reply => {
-                    assert.equal(reply.statusCode, 201);
-                    assert.calledWith(userMock.getPermissions, scmUri, scmContext, scmRepo);
-                    assert.calledWith(eventFactoryMock.create, eventConfig);
-                    assert.calledOnce(eventFactoryMock.scm.getCommitSha);
-                    assert.calledOnce(eventFactoryMock.scm.getPrInfo);
-                    assert.calledWith(eventFactoryMock.scm.getPrInfo, { ...scmConfig, prNum: eventConfig.prNum });
-                    assert.calledOnce(eventFactoryMock.scm.getChangedFiles);
-                });
-            });
-
-            it('returns 201 when it successfully creates a PR event for given prNum', () => {
-                eventConfig.startFrom = 'PR-1:main';
-                eventConfig.prNum = '1';
-                eventConfig.type = 'pr';
-                eventConfig.chainPR = false;
-                eventConfig.prInfo = prInfo;
-                ({ ref: eventConfig.prRef, prSource: eventConfig.prSource } = prInfo);
-                eventFactoryMock.scm.getChangedFiles.resolves([]);
-                options.payload.startFrom = 'PR-1:main';
-                options.payload.prNum = '1';
-
-                return server.inject(options).then(reply => {
-                    assert.equal(reply.statusCode, 201);
-                    assert.calledWith(userMock.getPermissions, scmUri, scmContext, scmRepo);
-                    assert.calledWith(eventFactoryMock.create, eventConfig);
-                    assert.calledOnce(eventFactoryMock.scm.getCommitSha);
-                    assert.calledOnce(eventFactoryMock.scm.getPrInfo);
-                    assert.calledWith(eventFactoryMock.scm.getPrInfo, {
-                        ...scmConfig,
-                        prNum: Number(options.payload.prNum)
-                    });
-                    assert.calledOnce(eventFactoryMock.scm.getChangedFiles);
-                });
-            });
-
-            it('returns 201 when it successfully creates a PR event when PR author only has permission to run PR', () => {
-                eventConfig.startFrom = 'PR-1:main';
-                eventConfig.prNum = '1';
-                eventConfig.type = 'pr';
-                eventConfig.chainPR = false;
-                eventConfig.prInfo = prInfo;
-                ({ ref: eventConfig.prRef, prSource: eventConfig.prSource } = prInfo);
-                eventConfig.changedFiles = ['screwdriver.yaml'];
-                options.payload.startFrom = 'PR-1:main';
-                userMock.getPermissions.resolves({ push: false });
-
-                return server.inject(options).then(reply => {
-                    assert.equal(reply.statusCode, 201);
-                    assert.calledWith(userMock.getPermissions, scmUri, scmContext, scmRepo);
-                    assert.calledWith(eventFactoryMock.create, eventConfig);
-                    assert.calledOnce(eventFactoryMock.scm.getCommitSha);
-                    assert.calledOnce(eventFactoryMock.scm.getPrInfo);
-                    assert.calledWith(eventFactoryMock.scm.getPrInfo, { ...scmConfig, prNum: eventConfig.prNum });
-                    assert.calledOnce(eventFactoryMock.scm.getChangedFiles);
-                });
-            });
-
-            it('returns 404 when it fails to get the pipeline', () => {
-                pipelineFactoryMock.get.resolves(null);
-
-                return server.inject(options).then(reply => {
-                    assert.equal(reply.statusCode, 404);
-                });
-            });
-
-            it('returns 400 when it the pipeline is inactive', () => {
-                const error = {
-                    statusCode: 400,
-                    error: 'Bad Request',
-                    message: 'Cannot create an event for a(n) INACTIVE pipeline'
-                };
-                const pipeline = { ...pipelineMock };
-
-                pipeline.state = 'INACTIVE';
-
-                pipelineFactoryMock.get.resolves(pipeline);
-
-                return server.inject(options).then(reply => {
-                    assert.deepEqual(reply.result, error);
-                });
-            });
-
-            it('returns 400 when it the pipeline is being deleted', () => {
-                const error = {
-                    statusCode: 400,
-                    error: 'Bad Request',
-                    message: 'Cannot create an event for a(n) DELETING pipeline'
-                };
-                const pipeline = { ...pipelineMock };
-
-                pipeline.state = 'DELETING';
-
-                pipelineFactoryMock.get.resolves(pipeline);
-
-                return server.inject(options).then(reply => {
-                    assert.deepEqual(reply.result, error);
-                });
-            });
-
-            it('returns 404 when it fails to get prInfo', () => {
-                const error = {
-                    statusCode: 404,
-                    error: 'Not Found',
-                    message: 'Failed to getPrInfo'
-                };
-
-                const testError = new Error('Failed to getPrInfo');
-
-                testError.statusCode = 404;
-
-                eventConfig.prNum = '1';
-                options.payload.startFrom = 'PR-1:main';
-
-                eventFactoryMock.scm.getPrInfo.rejects(testError);
-
-                return server.inject(options).then(reply => {
-                    assert.equal(reply.statusCode, 404);
-                    assert.deepEqual(reply.result, error);
-                });
-            });
-
-            it('returns 404 when it fails to get the pipeline', () => {
-                pipelineFactoryMock.get.resolves(null);
-
-                return server.inject(options).then(reply => {
-                    assert.equal(reply.statusCode, 404);
-                });
-            });
-
-            it(
-                'returns 403 when it fails to creates a PR event when ' +
-                    'PR author only has permission to run PR and restrictPR is on',
-                () => {
-                    options.payload.startFrom = 'PR-1:main';
-                    userMock.getPermissions.resolves({ push: false });
-                    pipelineMock.annotations['screwdriver.cd/restrictPR'] = 'fork';
-
-                    return server.inject(options).then(reply => {
-                        assert.equal(reply.statusCode, 403);
-                    });
-                }
-            );
-
-            it('returns 500 when it fails to get user permission', () => {
-                const err = new Error();
-
-                userMock.getPermissions.rejects(err);
-
-                return server.inject(options).then(reply => {
-                    assert.equal(reply.statusCode, 500);
-                });
-            });
-
-            it('returns 403 when user does not have permission for public repository', () => {
-                const err = new Error('Error message');
-
-                err.statusCode = 403;
-                userMock.getPermissions.rejects(err);
-
-                return server.inject(options).then(reply => {
-                    assert.equal(reply.statusCode, err.statusCode);
-                    assert.strictEqual(reply.result.message, err.message);
-                });
-            });
-
-            it('returns 404 when user does not have permission for private repository', () => {
-                const err = new Error('Error message');
-
-                err.statusCode = 403;
-                userMock.getPermissions.rejects(err);
-                pipelineMock.scmRepo = { private: true };
-
-                return server.inject(options).then(reply => {
-                    assert.equal(reply.statusCode, 404);
-                });
-            });
-
-            it('returns 201 when it successfully creates restarted PR event with parent event', () => {
-                eventConfig.parentEventId = parentEventId;
-                eventConfig.sha = commitSha;
-                eventConfig.startFrom = 'PR-1:main';
-                eventConfig.prNum = '1';
-                eventConfig.type = 'pr';
-                eventConfig.chainPR = false;
-                options.payload.startFrom = 'PR-1:main';
-                options.payload.startAction = 'RESTART_FROM_EVENT';
-                options.payload.parentEventId = parentEventId;
-                eventConfig.prInfo = prInfo;
-                ({ ref: eventConfig.prRef, prSource: eventConfig.prSource } = prInfo);
-                eventConfig.changedFiles = ['screwdriver.yaml'];
-                eventConfig.baseBranch = 'master';
-                eventConfig.meta.parameters = {
-                    user: { value: 'adong' }
-                };
-
-                return server.inject(options).then(reply => {
-                    expectedLocation = {
-                        host: reply.request.headers.host,
-                        port: reply.request.headers.port,
-                        protocol: reply.request.server.info.protocol,
-                        pathname: `${options.url}/12345`
-                    };
-                    assert.equal(reply.statusCode, 201);
-                    assert.calledWith(userMock.getPermissions, scmUri, scmContext, scmRepo);
-                    assert.calledWith(eventFactoryMock.create, eventConfig);
-                    assert.strictEqual(reply.headers.location, urlLib.format(expectedLocation));
-                    assert.calledOnce(eventFactoryMock.scm.getCommitSha);
-                    assert.calledOnce(eventFactoryMock.scm.getPrInfo);
-                    assert.calledWith(eventFactoryMock.scm.getPrInfo, { ...scmConfig, prNum: eventConfig.prNum });
-                    assert.calledOnce(eventFactoryMock.scm.getChangedFiles);
-                });
-            });
-
-            it('returns 201 when it successfully creates a new PR event with parent event', () => {
-                eventConfig.sha = commitSha;
-                eventConfig.startFrom = 'PR-1:main';
-                eventConfig.prNum = '1';
-                eventConfig.type = 'pr';
-                eventConfig.chainPR = false;
-                options.payload.startFrom = 'PR-1:main';
-                options.payload.startAction = 'START_FROM_EVENT';
-                options.payload.parentEventId = parentEventId;
-                eventConfig.prInfo = prInfo;
-                ({ ref: eventConfig.prRef, prSource: eventConfig.prSource } = prInfo);
-                eventConfig.changedFiles = ['screwdriver.yaml'];
-                eventConfig.baseBranch = 'master';
-                eventConfig.meta.parameters = {
-                    user: { value: 'adong' }
-                };
-
-                return server.inject(options).then(reply => {
-                    expectedLocation = {
-                        host: reply.request.headers.host,
-                        port: reply.request.headers.port,
-                        protocol: reply.request.server.info.protocol,
-                        pathname: `${options.url}/12345`
-                    };
-                    assert.equal(reply.statusCode, 201);
-                    assert.calledWith(userMock.getPermissions, scmUri, scmContext, scmRepo);
-                    assert.calledWith(eventFactoryMock.create, eventConfig);
-                    assert.strictEqual(reply.headers.location, urlLib.format(expectedLocation));
-                    assert.calledOnce(eventFactoryMock.scm.getCommitSha);
-                    assert.calledOnce(eventFactoryMock.scm.getPrInfo);
-                    assert.calledWith(eventFactoryMock.scm.getPrInfo, { ...scmConfig, prNum: eventConfig.prNum });
-                    assert.calledOnce(eventFactoryMock.scm.getChangedFiles);
-                });
-            });
-
-            it('returns 201 when it successfully creates an event with pipeline token', () => {
-                options.auth.credentials = {
-                    scope: ['pipeline'],
-                    username,
-                    scmContext,
-                    pipelineId
-                };
-
-                eventConfig.creator = { name: 'Pipeline Access Token', username: 'myself' };
-
-                return server.inject(options).then(reply => {
-                    expectedLocation = {
-                        host: reply.request.headers.host,
-                        port: reply.request.headers.port,
-                        protocol: reply.request.server.info.protocol,
-                        pathname: `${options.url}/12345`
-                    };
-                    assert.equal(reply.statusCode, 201);
-                    assert.calledWith(userMock.getPermissions, scmUri, scmContext, scmRepo);
-                    assert.calledWith(eventFactoryMock.create, eventConfig);
-                    assert.strictEqual(reply.headers.location, urlLib.format(expectedLocation));
-                    assert.calledWith(eventFactoryMock.scm.getCommitSha, scmConfig);
-                    assert.notCalled(eventFactoryMock.scm.getPrInfo);
-                });
-            });
-
-            it('returns 201 when it successfully creates an event and updates admins with good permissions for PR', () => {
-                delete pipelineMock.admins.myself;
-
-                eventConfig.startFrom = 'PR-1:main';
-                eventConfig.prNum = '1';
-                eventConfig.type = 'pr';
-                eventConfig.chainPR = false;
-                eventConfig.prInfo = prInfo;
-                ({ ref: eventConfig.prRef, prSource: eventConfig.prSource } = prInfo);
-                eventConfig.changedFiles = ['screwdriver.yaml'];
-                options.payload.startFrom = 'PR-1:main';
-
-                return server.inject(options).then(reply => {
-                    assert.equal(reply.statusCode, 201);
-                    assert.calledWith(userMock.getPermissions, scmUri, scmContext, scmRepo);
-                    assert.calledWith(eventFactoryMock.create, eventConfig);
-                    assert.calledOnce(eventFactoryMock.scm.getCommitSha);
-                    assert.calledOnce(eventFactoryMock.scm.getPrInfo);
-                    assert.calledWith(eventFactoryMock.scm.getPrInfo, { ...scmConfig, prNum: eventConfig.prNum });
-                    assert.calledOnce(eventFactoryMock.scm.getChangedFiles);
-                });
-            });
-
-            it('update the current user permission and put the current user at the head of admins', () => {
-                pipelineMock.admins = {
-                    foo: true,
-                    myself: false,
-                    bar: true
-                };
-
-                return server.inject(options).then(reply => {
-                    assert.equal(reply.statusCode, 201);
-
-                    const { admins } = pipelineMock;
-
-                    assert.deepEqual({ myself: true, foo: true, bar: true }, admins);
-                    assert.deepEqual(['myself', 'foo', 'bar'], Object.keys(admins));
-                });
-            });
-
-            it('returns 500 when the model encounters an error', () => {
-                const testError = new Error('datastoreSaveError');
-
-                eventFactoryMock.create.rejects(testError);
-
-                return server.inject(options).then(reply => {
-                    assert.equal(reply.statusCode, 500);
-                });
-            });
-
-            it('returns 404 when the model encounters a branch not found error', () => {
-                const testError = new Error('Branch not found');
-
-                testError.statusCode = 404;
-
-                eventFactoryMock.scm.getCommitSha.rejects(testError);
-
-                return server.inject(options).then(reply => {
-                    assert.equal(reply.statusCode, 404);
-                });
-            });
-
-            it('returns 403 forbidden error when user does not have push permission', () => {
-                userMock.getPermissions.resolves({ push: false });
-
-                return server.inject(options).then(reply => {
-                    assert.equal(reply.statusCode, 403);
-                    assert.notCalled(eventFactoryMock.create);
-                });
-            });
-
-            it('returns 400 bad request error when missing startFrom', () => {
-                delete options.payload.startFrom;
-
-                return server.inject(options).then(reply => {
-                    assert.equal(reply.statusCode, 400);
-                });
-            });
-
-            it('returns 400 bad request error missing prNum for "~pr"', () => {
-                options.payload.startFrom = '~pr';
-
-                return server.inject(options).then(reply => {
-                    assert.equal(reply.statusCode, 400);
-                });
-            });
-
-            it('returns 403 forbidden error when user does not have push permission and is not author of PR', () => {
-                options.payload.startFrom = 'PR-1:main';
-                userMock.getPermissions.resolves({ push: false });
-                eventFactoryMock.scm.getPrInfo.resolves({
+    afterEach(() => {
+        server = null;
+    });
+
+    it('GET /events/{id} requires read permission', async () => {
+        const route = { method: 'GET', url: '/events/123' };
+
+        const noAuthResult = await serverInject(server, route);
+        const invalidJwtResult = await serverInject(server, route, invalidJwt);
+        const readJwtResult = await serverInject(server, route, readJwt);
+        const executeJwtResult = await serverInject(server, route, executeJwt);
+        const writeJwtResult = await serverInject(server, route, writeJwt);
+        const allJwtResult = await serverInject(server, route, allJwt);
+        const oAuthJwtResult = await serverInject(server, route, oauthJwt);
+
+        assert.equal(noAuthResult.statusCode, 401);
+        assert.equal(invalidJwtResult.statusCode, 403);
+        assert.equal(readJwtResult.statusCode, 200);
+        assert.equal(executeJwtResult.statusCode, 200);
+        assert.equal(writeJwtResult.statusCode, 200);
+        assert.equal(allJwtResult.statusCode, 200);
+        assert.equal(oAuthJwtResult.statusCode, 200);
+    });
+
+    it('GET /events/{id}/builds requires read permission', async () => {
+        const route = { method: 'GET', url: '/events/123/builds' };
+
+        const noAuthResult = await serverInject(server, route);
+        const invalidJwtResult = await serverInject(server, route, invalidJwt);
+        const readJwtResult = await serverInject(server, route, readJwt);
+        const executeJwtResult = await serverInject(server, route, executeJwt);
+        const writeJwtResult = await serverInject(server, route, writeJwt);
+        const allJwtResult = await serverInject(server, route, allJwt);
+        const oAuthJwtResult = await serverInject(server, route, oauthJwt);
+
+        assert.equal(noAuthResult.statusCode, 401);
+        assert.equal(invalidJwtResult.statusCode, 403);
+        assert.equal(readJwtResult.statusCode, 200);
+        assert.equal(executeJwtResult.statusCode, 200);
+        assert.equal(writeJwtResult.statusCode, 200);
+        assert.equal(allJwtResult.statusCode, 200);
+        assert.equal(oAuthJwtResult.statusCode, 200);
+    });
+
+    it('GET /events/{id}/stageBuilds requires read permission', async () => {
+        const route = { method: 'GET', url: '/events/123/stageBuilds' };
+
+        const noAuthResult = await serverInject(server, route);
+        const invalidJwtResult = await serverInject(server, route, invalidJwt);
+        const readJwtResult = await serverInject(server, route, readJwt);
+        const executeJwtResult = await serverInject(server, route, executeJwt);
+        const writeJwtResult = await serverInject(server, route, writeJwt);
+        const allJwtResult = await serverInject(server, route, allJwt);
+        const oAuthJwtResult = await serverInject(server, route, oauthJwt);
+
+        assert.equal(noAuthResult.statusCode, 401);
+        assert.equal(invalidJwtResult.statusCode, 403);
+        assert.equal(readJwtResult.statusCode, 200);
+        assert.equal(executeJwtResult.statusCode, 200);
+        assert.equal(writeJwtResult.statusCode, 200);
+        assert.equal(allJwtResult.statusCode, 200);
+        assert.equal(oAuthJwtResult.statusCode, 200);
+    });
+
+    it('GET /events/{id}/metrics requires read permission', async () => {
+        const route = { method: 'GET', url: '/events/123/metrics' };
+
+        const noAuthResult = await serverInject(server, route);
+        const invalidJwtResult = await serverInject(server, route, invalidJwt);
+        const readJwtResult = await serverInject(server, route, readJwt);
+        const executeJwtResult = await serverInject(server, route, executeJwt);
+        const writeJwtResult = await serverInject(server, route, writeJwt);
+        const allJwtResult = await serverInject(server, route, allJwt);
+        const oAuthJwtResult = await serverInject(server, route, oauthJwt);
+
+        assert.equal(noAuthResult.statusCode, 401);
+        assert.equal(invalidJwtResult.statusCode, 403);
+        assert.equal(readJwtResult.statusCode, 200);
+        assert.equal(executeJwtResult.statusCode, 200);
+        assert.equal(writeJwtResult.statusCode, 200);
+        assert.equal(allJwtResult.statusCode, 200);
+        assert.equal(oAuthJwtResult.statusCode, 200);
+    });
+
+    it('POST /events requires execute permission', async () => {
+        const route = { method: 'POST', url: '/events' };
+
+        const noAuthResult = await serverInject(server, route);
+        const invalidJwtResult = await serverInject(server, route, invalidJwt);
+        const readJwtResult = await serverInject(server, route, readJwt);
+        const executeJwtResult = await serverInject(server, route, executeJwt);
+        const writeJwtResult = await serverInject(server, route, writeJwt);
+        const allJwtResult = await serverInject(server, route, allJwt);
+        const oAuthJwtResult = await serverInject(server, route, oauthJwt);
+
+        assert.equal(noAuthResult.statusCode, 401);
+        assert.equal(invalidJwtResult.statusCode, 403);
+        assert.equal(readJwtResult.statusCode, 403);
+        assert.equal(executeJwtResult.statusCode, 200);
+        assert.equal(writeJwtResult.statusCode, 200);
+        assert.equal(allJwtResult.statusCode, 200);
+        assert.equal(oAuthJwtResult.statusCode, 200);
+    });
+
+    it('PUT /events/{id}/stop requires execute permission', async () => {
+        const route = { method: 'PUT', url: '/events/123/stop' };
+
+        const noAuthResult = await serverInject(server, route);
+        const invalidJwtResult = await serverInject(server, route, invalidJwt);
+        const readJwtResult = await serverInject(server, route, readJwt);
+        const executeJwtResult = await serverInject(server, route, executeJwt);
+        const writeJwtResult = await serverInject(server, route, writeJwt);
+        const allJwtResult = await serverInject(server, route, allJwt);
+        const oAuthJwtResult = await serverInject(server, route, oauthJwt);
+
+        assert.equal(noAuthResult.statusCode, 401);
+        assert.equal(invalidJwtResult.statusCode, 403);
+        assert.equal(readJwtResult.statusCode, 403);
+        assert.equal(executeJwtResult.statusCode, 200);
+        assert.equal(writeJwtResult.statusCode, 200);
+        assert.equal(allJwtResult.statusCode, 200);
+        assert.equal(oAuthJwtResult.statusCode, 200);
+    });
+});
+
+describe('event plugin test', () => {
+    let bannerMock;
+    let screwdriverAdminDetailsMock;
+    let eventFactoryMock;
+    let pipelineFactoryMock;
+    let userFactoryMock;
+    let buildFactoryMock;
+    let jobFactoryMock;
+    let bannerFactoryMock;
+    let plugin;
+    let server;
+    let testEvent;
+
+    const commitSha = testBuild.sha;
+    const anotherCommitSha = 'b5bed0b64e2e9ec8a9970b8d070df7570376c498';
+
+    before(() => {
+        sinon.stub(badgeMaker, 'makeBadge').callsFake(format => `${format.label}: ${format.message}`);
+    });
+
+    beforeEach(async () => {
+        testEvent = hoek.clone(testEventBase);
+        screwdriverAdminDetailsMock = sinon.stub().returns({ isAdmin: true });
+        eventFactoryMock = {
+            get: sinon.stub(),
+            create: sinon.stub(),
+            scm: {
+                getCommitSha: sinon.stub().resolves(commitSha),
+                getPrInfo: sinon.stub().resolves({
                     sha: commitSha,
                     ref: 'prref',
                     prSource: 'branch',
                     url: 'https://github.com/screwdriver-cd/ui/pull/292',
-                    username: 'notmyself'
-                });
+                    username: 'myself'
+                }),
+                getChangedFiles: sinon.stub().resolves(['screwdriver.yaml'])
+            }
+        };
+        pipelineFactoryMock = {
+            get: sinon.stub(),
+            scm: {
+                getReadOnlyInfo: sinon.stub().returns({ readOnlyEnabled: false })
+            }
+        };
+        userFactoryMock = {
+            get: sinon.stub(),
+            getFullDisplayName: sinon.stub().returns('Memys Elfandi')
+        };
+        buildFactoryMock = {
+            uiUri: 'http://foo.bar',
+            get: sinon.stub(),
+            create: sinon.stub()
+        };
+        jobFactoryMock = {
+            get: sinon.stub(),
+            list: sinon.stub()
+        };
+        bannerFactoryMock = {
+            scm: {
+                getDisplayName: sinon.stub().returns()
+            }
+        };
+        bannerMock = {
+            name: 'banners',
+            register: s => {
+                s.expose('screwdriverAdminDetails', screwdriverAdminDetailsMock);
+            }
+        };
 
-                return server.inject(options).then(reply => {
-                    assert.equal(reply.statusCode, 403);
-                    assert.notCalled(eventFactoryMock.create);
-                    assert.notCalled(eventFactoryMock.scm.getCommitSha);
-                    assert.calledOnce(eventFactoryMock.scm.getPrInfo);
-                    assert.calledWith(eventFactoryMock.scm.getPrInfo, { ...scmConfig, prNum: '1' });
-                    assert.calledOnce(eventFactoryMock.scm.getChangedFiles);
-                });
-            });
+        /* eslint-disable global-require */
+        plugin = require('../../plugins/events');
+        /* eslint-enable global-require */
 
-            it('returns unauthorized error when the token has no permission for pipeline', () => {
-                options.auth.credentials = {
-                    scope: ['pipeline'],
-                    username,
-                    scmContext,
-                    pipelineId: pipelineId + 1
-                };
+        server = new hapi.Server({
+            port: 1234
+        });
+        server.app = {
+            pipelineFactory: pipelineFactoryMock,
+            userFactory: userFactoryMock,
+            eventFactory: eventFactoryMock,
+            buildFactory: buildFactoryMock,
+            jobFactory: jobFactoryMock,
+            bannerFactory: bannerFactoryMock
+        };
 
-                return server.inject(options).then(reply => {
-                    assert.equal(reply.statusCode, 401);
-                    assert.notCalled(eventFactoryMock.create);
-                });
-            });
+        server.auth.scheme('custom', () => ({
+            authenticate: (request, h) =>
+                h.authenticated({
+                    credentials: {
+                        scope: ['user']
+                    }
+                })
+        }));
+        server.auth.strategy('token', 'custom');
+        server.auth.strategy('session', 'custom');
 
-            it('returns 404 when event have no builds', () => {
-                testEvent.builds = null;
-                eventFactoryMock.create.resolves(getEventMock(testEvent));
+        await server.register([
+            { plugin: bannerMock },
+            { plugin },
+            {
+                // eslint-disable-next-line global-require
+                plugin: require('../../plugins/pipelines')
+            },
+            {
+                // eslint-disable-next-line global-require
+                plugin: require('../../plugins/builds')
+            }
+        ]);
+    });
 
-                return server.inject(options).then(reply => {
-                    assert.equal(reply.statusCode, 404);
-                    delete testEvent.builds;
-                });
+    afterEach(() => {
+        server = null;
+    });
+
+    after(() => {
+        sinon.restore();
+    });
+
+    it('registers the plugin', () => {
+        assert.isOk(server.registrations.events);
+    });
+
+    describe('GET /events/{id}', () => {
+        const id = 12345;
+
+        it('exposes a route for getting a event', () => {
+            eventFactoryMock.get.withArgs(id).resolves(getEventMock(testEvent));
+
+            return server.inject('/events/12345').then(reply => {
+                assert.equal(reply.statusCode, 200);
+                assert.deepEqual(reply.result, testEvent);
             });
         });
 
-        describe('PUT /events/{id}/stop', () => {
-            const pipelineId = 123;
-            const scmContext = 'github:github.com';
-            const scmUri = 'github.com:12345:branchName';
-            const checkoutUrl = 'git@github.com:screwdriver-cd/data-model.git#master';
-            const pipelineMock = {
+        it('returns 404 when event does not exist', () => {
+            const error = {
+                statusCode: 404,
+                error: 'Not Found',
+                message: 'Event does not exist'
+            };
+
+            eventFactoryMock.get.withArgs(id).resolves(null);
+
+            return server.inject('/events/12345').then(reply => {
+                assert.equal(reply.statusCode, 404);
+                assert.deepEqual(reply.result, error);
+            });
+        });
+
+        it('returns errors when datastore returns an error', () => {
+            eventFactoryMock.get.withArgs(id).rejects(new Error('blah'));
+
+            return server.inject('/events/12345').then(reply => {
+                assert.equal(reply.statusCode, 500);
+            });
+        });
+    });
+
+    describe('GET /events/{id}/builds', () => {
+        const id = 12345;
+        let options;
+        let event;
+        let builds;
+
+        beforeEach(() => {
+            options = {
+                method: 'GET',
+                url: `/events/${id}/builds`
+            };
+
+            event = getEventMock(testEvent);
+            builds = getBuildMocks(testBuilds);
+
+            eventFactoryMock.get.withArgs(id).resolves(event);
+            event.getBuilds.resolves(builds);
+        });
+
+        it('returns 404 if event does not exist', () => {
+            eventFactoryMock.get.withArgs(id).resolves(null);
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 404);
+            });
+        });
+
+        it('returns 200 for getting builds', () =>
+            server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 200);
+                assert.calledWith(event.getBuilds);
+                assert.deepEqual(reply.result, testBuilds);
+            }));
+
+        it('returns 200 for getting builds with query params', () => {
+            options.url = `/events/${id}/builds?fetchSteps=false&readOnly=true`;
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 200);
+                assert.calledWith(event.getBuilds, { readOnly: true });
+                assert.deepEqual(reply.result, testBuilds);
+            });
+        });
+    });
+
+    describe('GET /events/{id}/stageBuilds', () => {
+        const id = 12345;
+        let options;
+        let event;
+        let stageBuilds;
+
+        beforeEach(() => {
+            options = {
+                method: 'GET',
+                url: `/events/${id}/stageBuilds`
+            };
+
+            event = getEventMock(testEvent);
+            stageBuilds = getStageBuildMocks(testStageBuilds);
+
+            eventFactoryMock.get.withArgs(id).resolves(event);
+            event.getStageBuilds.resolves(stageBuilds);
+        });
+
+        it('returns 404 if event does not exist', () => {
+            eventFactoryMock.get.withArgs(id).resolves(null);
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 404);
+            });
+        });
+
+        it('returns 200 for getting stage builds', () =>
+            server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 200);
+                assert.calledWith(event.getStageBuilds);
+                assert.deepEqual(reply.result, testStageBuilds);
+            }));
+
+        it('returns 500 when the datastore returns an error', () => {
+            event.getStageBuilds.rejects(new Error('icantdothatdave'));
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 500);
+            });
+        });
+    });
+
+    describe('POST /events', () => {
+        const parentEventId = 12345;
+        let options;
+        let eventConfig;
+        let expectedLocation;
+        let scmConfig;
+        let userMock;
+        let pipelineMock;
+        let eventMock;
+        let meta;
+        const username = 'myself';
+        const userId = 777;
+        const parentBuildId = 12345;
+        const pipelineId = 123;
+        const scmContext = 'github:github.com';
+        const scmRepo = {
+            branch: 'branch',
+            url: 'https://github.com/org/repo/tree/branch',
+            name: 'org/repo'
+        };
+        const scmUri = 'github.com:12345:branchName';
+        const checkoutUrl = 'git@github.com:screwdriver-cd/data-model.git#master';
+        const parentBuilds = { 123: { eventId: 8888, jobs: { main: 12345 } } };
+        const prInfo = {
+            sha: commitSha,
+            ref: 'prref',
+            prSource: 'branch',
+            url: 'https://github.com/screwdriver-cd/ui/pull/292',
+            username: 'myself'
+        };
+
+        beforeEach(() => {
+            userMock = {
+                id: userId,
+                username,
+                getPermissions: sinon.stub().resolves({ push: true }),
+                unsealToken: sinon.stub().resolves('iamtoken'),
+                getFullDisplayName: sinon.stub().returns('Memys Elfandi')
+            };
+            pipelineMock = {
                 id: pipelineId,
+                state: 'ACTIVE',
                 checkoutUrl,
+                scmContext: 'github:github.com',
+                scmRepo,
                 update: sinon.stub().resolves(),
                 admins: { foo: true, bar: true },
                 adminUserIds: [888, 999],
@@ -2059,121 +510,1727 @@ describe('event plugin test', () => {
                     unsealToken: sinon.stub().resolves('token')
                 }),
                 scmUri,
-                prChain: false,
-                toJson: sinon.stub().returns({ id: pipelineId })
+                chainPR: false,
+                annotations: {
+                    'screwdriver.cd/restrictPR': 'none'
+                },
+                workflowGraph: {
+                    nodes: [
+                        { name: '~pr' },
+                        { name: '~commit' },
+                        { name: 'main', id: 1234 },
+                        { name: 'publish' },
+                        { name: 'beta' }
+                    ],
+                    edges: [
+                        { src: '~commit', dest: 'main' },
+                        { src: 'main', dest: 'publish' },
+                        { src: 'publish', dest: 'beta' }
+                    ]
+                }
             };
-            const id = 123;
-            const username = 'myself';
-            const userId = 777;
-            let expectedLocation;
-            let builds;
-            let event;
-            let stageBuilds;
-            let options;
-            let userMock;
+            pipelineMock.toJson = sinon.stub().returns(pipelineMock);
+            scmConfig = {
+                prNum: null,
+                scmContext: 'github:github.com',
+                scmUri,
+                scmRepo,
+                token: 'iamtoken'
+            };
+            meta = {
+                foo: 'bar',
+                one: 1
+            };
 
-            beforeEach(() => {
-                userMock = {
-                    id: userId,
-                    username,
-                    getPermissions: sinon.stub().resolves({ push: true }),
-                    unsealToken: sinon.stub().resolves('iamtoken')
+            options = {
+                method: 'POST',
+                url: '/events',
+                payload: {
+                    parentBuildId,
+                    pipelineId,
+                    startFrom: '~commit',
+                    meta,
+                    startAction: 'START_FROM_LATEST_COMMIT'
+                },
+                auth: {
+                    credentials: {
+                        scope: ['user'],
+                        username,
+                        scmContext
+                    },
+                    strategy: ['token']
+                }
+            };
+            eventConfig = {
+                parentBuildId,
+                pipelineId,
+                scmContext,
+                startFrom: '~commit',
+                sha: commitSha,
+                type: 'pipeline',
+                username,
+                meta
+            };
+
+            eventMock = getEventMock(testEvent);
+            eventFactoryMock.get.withArgs(eventMock.id).resolves(eventMock);
+
+            eventMock.builds = [];
+            eventFactoryMock.create.resolves(eventMock);
+            userFactoryMock.get.resolves(userMock);
+            pipelineFactoryMock.get.resolves(pipelineMock);
+        });
+
+        it('returns 201 when it successfully creates restart event with buildId passed in', () => {
+            options.payload = {
+                buildId: 1234,
+                meta,
+                startAction: 'RESTART_FROM_BUILD'
+            };
+            buildFactoryMock.get.resolves({
+                id: 1234,
+                jobId: 222,
+                parentBuildId,
+                eventId: 888,
+                parentBuilds
+            });
+            jobFactoryMock.get.resolves({
+                pipelineId,
+                name: 'main'
+            });
+            eventConfig.startFrom = 'main';
+            eventConfig.workflowGraph = getEventMock(testEvent).workflowGraph;
+            eventConfig.sha = getEventMock(testEvent).sha;
+            eventConfig.parentEventId = 888;
+            eventConfig.groupEventId = 888;
+            eventConfig.baseBranch = 'master';
+            eventConfig.parentBuilds = parentBuilds;
+            eventFactoryMock.get.resolves(getEventMock(testEvent));
+
+            return server.inject(options).then(reply => {
+                expectedLocation = {
+                    host: reply.request.headers.host,
+                    port: reply.request.headers.port,
+                    protocol: reply.request.server.info.protocol,
+                    pathname: `${options.url}/12345`
                 };
-                options = {
-                    method: 'PUT',
-                    url: `/events/${id}/stop`,
-                    auth: {
-                        credentials: {
-                            scope: ['user'],
-                            username,
-                            scmContext
-                        },
-                        strategy: ['token']
+                assert.calledWith(buildFactoryMock.get, 1234);
+                assert.calledWith(jobFactoryMock.get, 222);
+                assert.calledWith(userMock.getPermissions, scmUri, scmContext, scmRepo);
+                assert.calledWith(eventFactoryMock.create, eventConfig);
+                assert.strictEqual(reply.headers.location, urlLib.format(expectedLocation));
+                assert.notCalled(eventFactoryMock.scm.getPrInfo);
+                assert.equal(reply.statusCode, 201);
+            });
+        });
+
+        it('returns 201 when it successfully creates restart event with branch specific triggered parent event', () => {
+            options.payload.startFrom = 'main';
+            options.payload.startAction = 'RESTART_FROM_EVENT';
+            options.payload.parentEventId = 888;
+            options.payload.groupEventId = 888;
+            delete options.payload.parentBuildId;
+            jobFactoryMock.get.resolves({
+                pipelineId,
+                name: 'main'
+            });
+            eventConfig.startFrom = 'main';
+            eventConfig.workflowGraph = getEventMock(testEvent).workflowGraph;
+            eventConfig.sha = getEventMock(testEvent).sha;
+            eventConfig.parentEventId = 888;
+            eventConfig.groupEventId = 888;
+            eventConfig.baseBranch = 'test';
+            delete eventConfig.parentBuildId;
+            testEvent.baseBranch = 'test';
+            eventFactoryMock.get.resolves(getEventMock(testEvent));
+
+            return server.inject(options).then(reply => {
+                expectedLocation = {
+                    host: reply.request.headers.host,
+                    port: reply.request.headers.port,
+                    protocol: reply.request.server.info.protocol,
+                    pathname: `${options.url}/12345`
+                };
+                assert.calledWith(userMock.getPermissions, scmUri, scmContext, scmRepo);
+                assert.calledWith(eventFactoryMock.create, eventConfig);
+                assert.strictEqual(reply.headers.location, urlLib.format(expectedLocation));
+                assert.notCalled(eventFactoryMock.scm.getPrInfo);
+                assert.equal(reply.statusCode, 201);
+            });
+        });
+
+        it('returns 201 when it successfully creates a new event with branch specific triggered parent event', () => {
+            options.payload.startFrom = 'main';
+            options.payload.startAction = 'START_FROM_EVENT';
+            options.payload.parentEventId = 888;
+            options.payload.groupEventId = 888;
+            delete options.payload.parentBuildId;
+            jobFactoryMock.get.resolves({
+                pipelineId,
+                name: 'main'
+            });
+            eventConfig.startFrom = 'main';
+            eventConfig.workflowGraph = getEventMock(testEvent).workflowGraph;
+            eventConfig.sha = getEventMock(testEvent).sha;
+            eventConfig.groupEventId = 888;
+            eventConfig.baseBranch = 'test';
+            delete eventConfig.parentBuildId;
+            delete eventConfig.groupEventId;
+            testEvent.baseBranch = 'test';
+            eventFactoryMock.get.resolves(getEventMock(testEvent));
+
+            return server.inject(options).then(reply => {
+                expectedLocation = {
+                    host: reply.request.headers.host,
+                    port: reply.request.headers.port,
+                    protocol: reply.request.server.info.protocol,
+                    pathname: `${options.url}/12345`
+                };
+                assert.calledWith(userMock.getPermissions, scmUri, scmContext, scmRepo);
+                assert.calledWith(eventFactoryMock.create, eventConfig);
+                assert.strictEqual(reply.headers.location, urlLib.format(expectedLocation));
+                assert.notCalled(eventFactoryMock.scm.getPrInfo);
+                assert.equal(reply.statusCode, 201);
+            });
+        });
+
+        it('returns 201 when it successfully creates an event with causeMessage and scheduler creator passed in', () => {
+            delete options.payload.parentBuildId;
+            delete eventConfig.parentBuildId;
+            eventConfig.causeMessage = 'Started by periodic build scheduler';
+            eventConfig.creator = { name: 'Screwdriver scheduler', username: 'sd:scheduler' };
+            eventConfig.meta = {};
+            options.payload = {
+                pipelineId,
+                startFrom: '~commit',
+                causeMessage: 'Started by periodic build scheduler',
+                creator: {
+                    name: 'Screwdriver scheduler',
+                    username: 'sd:scheduler'
+                },
+                startAction: 'START_FROM_LATEST_COMMIT'
+            };
+
+            return server.inject(options).then(reply => {
+                expectedLocation = {
+                    host: reply.request.headers.host,
+                    port: reply.request.headers.port,
+                    protocol: reply.request.server.info.protocol,
+                    pathname: `${options.url}/12345`
+                };
+                assert.equal(reply.statusCode, 201);
+                assert.calledWith(userMock.getPermissions, scmUri, scmContext, scmRepo);
+                assert.calledWith(eventFactoryMock.create, eventConfig);
+                assert.strictEqual(reply.headers.location, urlLib.format(expectedLocation));
+                assert.calledWith(eventFactoryMock.scm.getCommitSha, scmConfig);
+                assert.notCalled(eventFactoryMock.scm.getPrInfo);
+            });
+        });
+
+        it('returns 201 when it successfully creates an event with creator passed in not overwrite username', () => {
+            delete options.payload.parentBuildId;
+            delete eventConfig.parentBuildId;
+            eventConfig.causeMessage = 'Manually Started by foobar';
+            eventConfig.creator = { name: 'foo bar', username: 'myself' };
+            eventConfig.meta = {};
+            options.payload = {
+                pipelineId,
+                startFrom: '~commit',
+                causeMessage: 'Manually Started by foobar',
+                creator: {
+                    name: 'foo bar',
+                    username: 'foobar'
+                },
+                startAction: 'START_FROM_LATEST_COMMIT'
+            };
+
+            return server.inject(options).then(reply => {
+                expectedLocation = {
+                    host: reply.request.headers.host,
+                    port: reply.request.headers.port,
+                    protocol: reply.request.server.info.protocol,
+                    pathname: `${options.url}/12345`
+                };
+                assert.equal(reply.statusCode, 201);
+                assert.calledWith(userMock.getPermissions, scmUri, scmContext, scmRepo);
+                assert.calledWith(eventFactoryMock.create, eventConfig);
+                assert.strictEqual(reply.headers.location, urlLib.format(expectedLocation));
+                assert.calledWith(eventFactoryMock.scm.getCommitSha, scmConfig);
+                assert.notCalled(eventFactoryMock.scm.getPrInfo);
+            });
+        });
+
+        it('returns 201 when it successfully creates an event', () =>
+            server.inject(options).then(reply => {
+                expectedLocation = {
+                    host: reply.request.headers.host,
+                    port: reply.request.headers.port,
+                    protocol: reply.request.server.info.protocol,
+                    pathname: `${options.url}/12345`
+                };
+                assert.equal(reply.statusCode, 201);
+                assert.calledWith(userMock.getPermissions, scmUri, scmContext, scmRepo);
+                assert.calledWith(eventFactoryMock.create, eventConfig);
+                assert.strictEqual(reply.headers.location, urlLib.format(expectedLocation));
+                assert.calledWith(eventFactoryMock.scm.getCommitSha, scmConfig);
+                assert.notCalled(eventFactoryMock.scm.getPrInfo);
+            }));
+
+        it('returns 201 when it successfully creates an event without parentBuildId', () => {
+            delete options.payload.parentBuildId;
+            delete eventConfig.parentBuildId;
+
+            return server.inject(options).then(reply => {
+                expectedLocation = {
+                    host: reply.request.headers.host,
+                    port: reply.request.headers.port,
+                    protocol: reply.request.server.info.protocol,
+                    pathname: `${options.url}/12345`
+                };
+                assert.equal(reply.statusCode, 201);
+                assert.calledWith(userMock.getPermissions, scmUri, scmContext, scmRepo);
+                assert.calledWith(eventFactoryMock.create, eventConfig);
+                assert.strictEqual(reply.headers.location, urlLib.format(expectedLocation));
+                assert.calledWith(eventFactoryMock.scm.getCommitSha, scmConfig);
+                assert.notCalled(eventFactoryMock.scm.getPrInfo);
+            });
+        });
+
+        it('returns 201 when it skips execution of virtual builds and trigger downstream builds', () => {
+            delete options.payload.parentBuildId;
+            delete eventConfig.parentBuildId;
+
+            eventMock.builds = [getBuildMocks(testBuilds)[0], getBuildMocks(testBuilds)[1]];
+            eventMock.builds.forEach(b => {
+                b.eventId = eventMock.id;
+            });
+            eventMock.getBuilds = sinon.stub().returns(testBuilds);
+            eventMock.workflowGraph.nodes[2].virtual = true;
+
+            const virtualBuildMock = eventMock.builds[0];
+            const nonVirtualBuildMock = eventMock.builds[1];
+
+            virtualBuildMock.status = 'CREATED';
+            nonVirtualBuildMock.status = 'CREATED';
+            nonVirtualBuildMock.jobId = 1235;
+
+            const virtualJobMock = {
+                id: virtualBuildMock.jobId,
+                pipelineId,
+                name: 'main',
+                pipeline: pipelineMock,
+                permutations: [
+                    {
+                        settings: {
+                            email: 'foo@bar.com'
+                        }
                     }
+                ],
+                getLatestBuild: sinon.stub().resolves(virtualBuildMock)
+            };
+
+            jobFactoryMock.get.withArgs(virtualJobMock.id).resolves(virtualJobMock);
+
+            virtualBuildMock.job = virtualJobMock;
+            virtualBuildMock.update = sinon.stub().resolves(virtualBuildMock);
+
+            eventMock.update = sinon.stub().resolves(eventMock);
+
+            server.events = {
+                emit: sinon.stub().resolves(null)
+            };
+
+            jobFactoryMock.get.withArgs(virtualJobMock.id).resolves(virtualJobMock);
+            eventFactoryMock.get.withArgs({ id: eventMock.id }).resolves(eventMock);
+
+            const jobPublishMock = {
+                id: nonVirtualBuildMock.jobId,
+                pipelineId,
+                name: 'publish',
+                state: 'ENABLED',
+                parsePRJobName: sinon.stub().returns('publish'),
+                permutations: [
+                    {
+                        settings: {
+                            email: 'foo@bar.com'
+                        }
+                    }
+                ]
+            };
+
+            jobFactoryMock.get.withArgs(jobPublishMock.id).resolves(jobPublishMock);
+            jobFactoryMock.get.withArgs({ pipelineId, name: 'publish' }).resolves(jobPublishMock);
+            jobFactoryMock.list
+                .withArgs({ params: { id: [eventMock.builds[0].jobId, eventMock.builds[1].jobId] } })
+                .resolves([virtualJobMock, jobPublishMock]);
+            buildFactoryMock.get.withArgs({ eventId: eventMock.id, jobId: jobPublishMock.id }).returns(null);
+
+            return server.inject(options).then(reply => {
+                expectedLocation = {
+                    host: reply.request.headers.host,
+                    port: reply.request.headers.port,
+                    protocol: reply.request.server.info.protocol,
+                    pathname: `${options.url}/12345`
                 };
+                assert.equal(reply.statusCode, 201);
+                assert.calledWith(userMock.getPermissions, scmUri, scmContext, scmRepo);
+                assert.calledWith(eventFactoryMock.create, eventConfig);
+                assert.strictEqual(reply.headers.location, urlLib.format(expectedLocation));
+                assert.calledWith(eventFactoryMock.scm.getCommitSha, scmConfig);
+                assert.notCalled(eventFactoryMock.scm.getPrInfo);
 
-                userFactoryMock.get.resolves(userMock);
-                pipelineFactoryMock.get.resolves(pipelineMock);
-                event = getEventMock(testEvent);
-                builds = getBuildMocks(testBuilds);
-                stageBuilds = getStageBuildMocks(testStageBuilds);
+                assert.equal(virtualBuildMock.status, 'SUCCESS');
+                assert.calledOnce(virtualBuildMock.update);
+                assert.calledOnce(buildFactoryMock.create);
+                assert.calledWith(buildFactoryMock.create, sinon.match({ jobId: jobPublishMock.id }));
 
-                builds[2].job = {
-                    id: builds[2].jobId,
-                    pipelineId,
-                    name: 'build2',
-                    pipeline: pipelineMock,
-                    permutations: [
-                        {
-                            settings: {
-                                email: 'foo@bar.com'
+                assert.equal(eventMock.status, 'IN_PROGRESS');
+            });
+        });
+
+        it('returns 201 and does not skip virtual builds when they have blockedBy', () => {
+            delete options.payload.parentBuildId;
+            delete eventConfig.parentBuildId;
+
+            eventMock.builds = [getBuildMocks(testBuilds)[0], getBuildMocks(testBuilds)[1]];
+            eventMock.builds.forEach(b => {
+                b.eventId = eventMock.id;
+            });
+            eventMock.getBuilds = sinon.stub().returns(testBuilds);
+            eventMock.workflowGraph.nodes[2].virtual = true;
+
+            const virtualBuildMock = eventMock.builds[0];
+            const nonVirtualBuildMock = eventMock.builds[1];
+
+            virtualBuildMock.status = 'QUEUED';
+            nonVirtualBuildMock.status = 'QUEUED';
+            nonVirtualBuildMock.jobId = 1235;
+
+            const virtualJobMock = {
+                id: virtualBuildMock.jobId,
+                pipelineId,
+                name: 'main',
+                pipeline: pipelineMock,
+                permutations: [
+                    {
+                        blockedBy: ['main'],
+                        settings: {
+                            email: 'foo@bar.com'
+                        }
+                    }
+                ],
+                getLatestBuild: sinon.stub().resolves(virtualBuildMock)
+            };
+
+            jobFactoryMock.get.withArgs(virtualJobMock.id).resolves(virtualJobMock);
+
+            virtualBuildMock.job = virtualJobMock;
+            virtualBuildMock.update = sinon.stub().resolves(virtualBuildMock);
+
+            eventMock.update = sinon.stub().resolves(eventMock);
+
+            server.events = {
+                emit: sinon.stub().resolves(null)
+            };
+
+            jobFactoryMock.get.withArgs(virtualJobMock.id).resolves(virtualJobMock);
+            eventFactoryMock.get.withArgs({ id: eventMock.id }).resolves(eventMock);
+
+            const jobPublishMock = {
+                id: nonVirtualBuildMock.jobId,
+                pipelineId,
+                name: 'publish',
+                state: 'ENABLED',
+                parsePRJobName: sinon.stub().returns('publish'),
+                permutations: [
+                    {
+                        settings: {
+                            email: 'foo@bar.com'
+                        }
+                    }
+                ]
+            };
+
+            jobFactoryMock.get.withArgs(jobPublishMock.id).resolves(jobPublishMock);
+            jobFactoryMock.get.withArgs({ pipelineId, name: 'publish' }).resolves(jobPublishMock);
+            jobFactoryMock.list
+                .withArgs({ params: { id: [eventMock.builds[0].jobId, eventMock.builds[1].jobId] } })
+                .resolves([virtualJobMock, jobPublishMock]);
+            buildFactoryMock.get.withArgs({ eventId: eventMock.id, jobId: jobPublishMock.id }).returns(null);
+
+            return server.inject(options).then(reply => {
+                expectedLocation = {
+                    host: reply.request.headers.host,
+                    port: reply.request.headers.port,
+                    protocol: reply.request.server.info.protocol,
+                    pathname: `${options.url}/12345`
+                };
+                assert.equal(reply.statusCode, 201);
+                assert.calledWith(userMock.getPermissions, scmUri, scmContext, scmRepo);
+                assert.calledWith(eventFactoryMock.create, eventConfig);
+                assert.strictEqual(reply.headers.location, urlLib.format(expectedLocation));
+                assert.calledWith(eventFactoryMock.scm.getCommitSha, scmConfig);
+                assert.notCalled(eventFactoryMock.scm.getPrInfo);
+
+                // virtual job should not be auto-skipped when blockedBy is present
+                assert.equal(virtualBuildMock.status, 'QUEUED');
+                assert.notCalled(virtualBuildMock.update);
+                assert.notCalled(buildFactoryMock.create);
+            });
+        });
+
+        it('returns 201 when it skips execution of virtual builds for PR event', () => {
+            delete options.payload.parentBuildId;
+            delete eventConfig.parentBuildId;
+
+            eventMock.builds = [getBuildMocks(testBuilds)[0], getBuildMocks(testBuilds)[1]];
+            eventMock.builds.forEach(b => {
+                b.eventId = eventMock.id;
+            });
+            eventMock.getBuilds = sinon.stub().returns(testBuilds);
+            eventMock.workflowGraph.nodes[2].virtual = true;
+
+            const virtualBuildMock = eventMock.builds[0];
+            const nonVirtualBuildMock = eventMock.builds[1];
+
+            virtualBuildMock.status = 'CREATED';
+            nonVirtualBuildMock.status = 'CREATED';
+            nonVirtualBuildMock.jobId = 1235;
+
+            const virtualJobMock = {
+                id: virtualBuildMock.jobId,
+                pipelineId,
+                name: 'PR-1:main',
+                pipeline: pipelineMock,
+                permutations: [
+                    {
+                        settings: {
+                            email: 'foo@bar.com'
+                        }
+                    }
+                ],
+                getLatestBuild: sinon.stub().resolves(virtualBuildMock)
+            };
+
+            jobFactoryMock.get.withArgs(virtualJobMock.id).resolves(virtualJobMock);
+
+            virtualBuildMock.job = virtualJobMock;
+            virtualBuildMock.update = sinon.stub().resolves(virtualBuildMock);
+
+            eventMock.update = sinon.stub().resolves(eventMock);
+
+            server.events = {
+                emit: sinon.stub().resolves(null)
+            };
+
+            jobFactoryMock.get.withArgs(virtualJobMock.id).resolves(virtualJobMock);
+            eventFactoryMock.get.withArgs({ id: eventMock.id }).resolves(eventMock);
+
+            const jobPublishMock = {
+                id: nonVirtualBuildMock.jobId,
+                pipelineId,
+                name: 'PR-1:publish',
+                state: 'ENABLED',
+                parsePRJobName: sinon.stub().returns('publish'),
+                permutations: [
+                    {
+                        settings: {
+                            email: 'foo@bar.com'
+                        }
+                    }
+                ]
+            };
+
+            jobFactoryMock.get.withArgs(jobPublishMock.id).resolves(jobPublishMock);
+            jobFactoryMock.get.withArgs({ pipelineId, name: 'publish' }).resolves(jobPublishMock);
+            jobFactoryMock.list
+                .withArgs({ params: { id: [eventMock.builds[0].jobId, eventMock.builds[1].jobId] } })
+                .resolves([virtualJobMock, jobPublishMock]);
+            buildFactoryMock.get.withArgs({ eventId: eventMock.id, jobId: jobPublishMock.id }).returns(null);
+
+            return server.inject(options).then(reply => {
+                expectedLocation = {
+                    host: reply.request.headers.host,
+                    port: reply.request.headers.port,
+                    protocol: reply.request.server.info.protocol,
+                    pathname: `${options.url}/12345`
+                };
+                assert.equal(reply.statusCode, 201);
+                assert.calledWith(userMock.getPermissions, scmUri, scmContext, scmRepo);
+                assert.calledWith(eventFactoryMock.create, eventConfig);
+                assert.strictEqual(reply.headers.location, urlLib.format(expectedLocation));
+                assert.calledWith(eventFactoryMock.scm.getCommitSha, scmConfig);
+                assert.notCalled(eventFactoryMock.scm.getPrInfo);
+
+                assert.equal(virtualBuildMock.status, 'SUCCESS');
+                assert.calledOnce(virtualBuildMock.update);
+
+                assert.equal(eventMock.status, 'IN_PROGRESS');
+            });
+        });
+
+        it('returns 201 when it successfully creates an restart event with parent event', () => {
+            eventConfig.parentEventId = parentEventId;
+            eventConfig.workflowGraph = getEventMock(testEvent).workflowGraph;
+            eventConfig.sha = getEventMock(testEvent).sha;
+            eventConfig.baseBranch = 'master';
+            options.payload.parentEventId = parentEventId;
+            options.payload.startAction = 'RESTART_FROM_EVENT';
+
+            return server.inject(options).then(reply => {
+                expectedLocation = {
+                    host: reply.request.headers.host,
+                    port: reply.request.headers.port,
+                    protocol: reply.request.server.info.protocol,
+                    pathname: `${options.url}/12345`
+                };
+                assert.equal(reply.statusCode, 201);
+                assert.calledWith(userMock.getPermissions, scmUri, scmContext, scmRepo);
+                assert.calledWith(eventFactoryMock.create, eventConfig);
+                assert.strictEqual(reply.headers.location, urlLib.format(expectedLocation));
+                assert.notCalled(eventFactoryMock.scm.getPrInfo);
+            });
+        });
+
+        it('returns 201 when it successfully creates a new event with parent event', () => {
+            eventConfig.workflowGraph = getEventMock(testEvent).workflowGraph;
+            eventConfig.sha = getEventMock(testEvent).sha;
+            eventConfig.baseBranch = 'master';
+            options.payload.parentEventId = parentEventId;
+            options.payload.startAction = 'START_FROM_EVENT';
+
+            return server.inject(options).then(reply => {
+                expectedLocation = {
+                    host: reply.request.headers.host,
+                    port: reply.request.headers.port,
+                    protocol: reply.request.server.info.protocol,
+                    pathname: `${options.url}/12345`
+                };
+                assert.equal(reply.statusCode, 201);
+                assert.calledWith(userMock.getPermissions, scmUri, scmContext, scmRepo);
+                assert.calledWith(eventFactoryMock.create, eventConfig);
+                assert.strictEqual(reply.headers.location, urlLib.format(expectedLocation));
+                assert.notCalled(eventFactoryMock.scm.getPrInfo);
+            });
+        });
+
+        it('returns 201 when it successfully creates an event with parent builds', () => {
+            options.payload = {
+                buildId: 1234,
+                meta,
+                parentBuilds,
+                startAction: 'RESTART_FROM_BUILD'
+            };
+            buildFactoryMock.get.resolves({
+                id: 1234,
+                jobId: 222,
+                parentBuildId,
+                eventId: 888
+            });
+            jobFactoryMock.get.resolves({
+                pipelineId,
+                name: 'main'
+            });
+            eventConfig.parentBuilds = parentBuilds;
+            eventConfig.startFrom = 'main';
+            eventConfig.workflowGraph = getEventMock(testEvent).workflowGraph;
+            eventConfig.sha = getEventMock(testEvent).sha;
+            eventConfig.parentEventId = 888;
+            eventConfig.groupEventId = 888;
+            eventConfig.baseBranch = 'master';
+            eventFactoryMock.get.resolves(getEventMock(testEvent));
+
+            return server.inject(options).then(reply => {
+                expectedLocation = {
+                    host: reply.request.headers.host,
+                    port: reply.request.headers.port,
+                    protocol: reply.request.server.info.protocol,
+                    pathname: `${options.url}/12345`
+                };
+                assert.calledWith(buildFactoryMock.get, 1234);
+                assert.calledWith(jobFactoryMock.get, 222);
+                assert.calledWith(userMock.getPermissions, scmUri, scmContext, scmRepo);
+                assert.calledWith(eventFactoryMock.create, eventConfig);
+                assert.strictEqual(reply.headers.location, urlLib.format(expectedLocation));
+                assert.notCalled(eventFactoryMock.scm.getPrInfo);
+                assert.equal(reply.statusCode, 201);
+            });
+        });
+
+        it('returns 201 when it successfully creates an event with groupEventId', () => {
+            options.payload = {
+                buildId: 1234,
+                meta,
+                parentBuilds,
+                groupEventId: 2,
+                startAction: 'RESTART_FROM_BUILD'
+            };
+            buildFactoryMock.get.resolves({
+                id: 1234,
+                jobId: 222,
+                parentBuildId,
+                eventId: 888
+            });
+            jobFactoryMock.get.resolves({
+                pipelineId,
+                name: 'main'
+            });
+            eventConfig.parentBuilds = parentBuilds;
+            eventConfig.startFrom = 'main';
+            eventConfig.workflowGraph = getEventMock(testEvent).workflowGraph;
+            eventConfig.sha = getEventMock(testEvent).sha;
+            eventConfig.parentEventId = 888;
+            eventConfig.groupEventId = 2;
+            eventConfig.baseBranch = 'master';
+            eventFactoryMock.get.resolves(getEventMock(testEvent));
+
+            return server.inject(options).then(reply => {
+                expectedLocation = {
+                    host: reply.request.headers.host,
+                    port: reply.request.headers.port,
+                    protocol: reply.request.server.info.protocol,
+                    pathname: `${options.url}/12345`
+                };
+                assert.calledWith(buildFactoryMock.get, 1234);
+                assert.calledWith(jobFactoryMock.get, 222);
+                assert.calledWith(userMock.getPermissions, scmUri, scmContext, scmRepo);
+                assert.calledWith(eventFactoryMock.create, eventConfig);
+                assert.strictEqual(reply.headers.location, urlLib.format(expectedLocation));
+                assert.notCalled(eventFactoryMock.scm.getPrInfo);
+                assert.equal(reply.statusCode, 201);
+            });
+        });
+
+        it('returns 400 bad request error when startFrom is stage teardown and parent event is not specified', () => {
+            options.payload.startFrom = 'stage@integration:teardown';
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 400);
+            });
+        });
+
+        it('returns 201 when it successfully creates an event with parent event and the startFrom is a stage teardown', () => {
+            eventConfig.parentEventId = parentEventId;
+            eventConfig.workflowGraph = getEventMock(testEvent).workflowGraph;
+            eventConfig.sha = getEventMock(testEvent).sha;
+            eventConfig.baseBranch = 'master';
+            eventConfig.startFrom = 'stage@integration:teardown';
+            options.payload.parentEventId = parentEventId;
+            options.payload.startFrom = 'stage@integration:teardown';
+            options.payload.startAction = 'RESTART_FROM_EVENT';
+
+            return server.inject(options).then(reply => {
+                expectedLocation = {
+                    host: reply.request.headers.host,
+                    port: reply.request.headers.port,
+                    protocol: reply.request.server.info.protocol,
+                    pathname: `${options.url}/12345`
+                };
+                assert.equal(reply.statusCode, 201);
+                assert.calledWith(eventFactoryMock.create, eventConfig);
+                assert.strictEqual(reply.headers.location, urlLib.format(expectedLocation));
+                assert.notCalled(eventFactoryMock.scm.getPrInfo);
+            });
+        });
+
+        it('returns 201 when it successfully creates a new event with parent event and the startFrom is a stage teardown', () => {
+            eventConfig.workflowGraph = getEventMock(testEvent).workflowGraph;
+            eventConfig.sha = getEventMock(testEvent).sha;
+            eventConfig.baseBranch = 'master';
+            eventConfig.startFrom = 'stage@integration:teardown';
+            options.payload.parentEventId = parentEventId;
+            options.payload.startFrom = 'stage@integration:teardown';
+            options.payload.startAction = 'START_FROM_EVENT';
+
+            return server.inject(options).then(reply => {
+                expectedLocation = {
+                    host: reply.request.headers.host,
+                    port: reply.request.headers.port,
+                    protocol: reply.request.server.info.protocol,
+                    pathname: `${options.url}/12345`
+                };
+                assert.equal(reply.statusCode, 201);
+                assert.calledWith(eventFactoryMock.create, eventConfig);
+                assert.strictEqual(reply.headers.location, urlLib.format(expectedLocation));
+                assert.notCalled(eventFactoryMock.scm.getPrInfo);
+            });
+        });
+
+        it('returns 201 when it successfully creates restarted event with parent event and the startFrom is not a stage teardown', () => {
+            eventConfig.parentEventId = parentEventId;
+            eventConfig.workflowGraph = getEventMock(testEvent).workflowGraph;
+            eventConfig.sha = getEventMock(testEvent).sha;
+            eventConfig.baseBranch = 'master';
+            options.payload.parentEventId = parentEventId;
+            options.payload.startAction = 'RESTART_FROM_EVENT';
+
+            return server.inject(options).then(reply => {
+                expectedLocation = {
+                    host: reply.request.headers.host,
+                    port: reply.request.headers.port,
+                    protocol: reply.request.server.info.protocol,
+                    pathname: `${options.url}/12345`
+                };
+                assert.equal(reply.statusCode, 201);
+                assert.calledWith(eventFactoryMock.create, eventConfig);
+                assert.strictEqual(reply.headers.location, urlLib.format(expectedLocation));
+                assert.notCalled(eventFactoryMock.scm.getPrInfo);
+            });
+        });
+
+        it('returns 201 when it successfully creates a new event with parent event and the startFrom is not a stage teardown', () => {
+            eventConfig.workflowGraph = getEventMock(testEvent).workflowGraph;
+            eventConfig.sha = getEventMock(testEvent).sha;
+            eventConfig.baseBranch = 'master';
+            options.payload.parentEventId = parentEventId;
+            options.payload.startAction = 'START_FROM_EVENT';
+
+            return server.inject(options).then(reply => {
+                expectedLocation = {
+                    host: reply.request.headers.host,
+                    port: reply.request.headers.port,
+                    protocol: reply.request.server.info.protocol,
+                    pathname: `${options.url}/12345`
+                };
+                assert.equal(reply.statusCode, 201);
+                assert.calledWith(eventFactoryMock.create, eventConfig);
+                assert.strictEqual(reply.headers.location, urlLib.format(expectedLocation));
+                assert.notCalled(eventFactoryMock.scm.getPrInfo);
+            });
+        });
+
+        it('returns 201 when it creates restarted event with parent event for child pipeline', () => {
+            eventConfig.parentEventId = parentEventId;
+            eventConfig.workflowGraph = getEventMock(testEvent).workflowGraph;
+            eventConfig.sha = getEventMock(testEvent).sha;
+            eventConfig.baseBranch = 'master';
+            testEvent.configPipelineSha = 'configPipelineSha';
+            testEvent.meta = {
+                parameters: {
+                    user: { value: 'adong' }
+                },
+                foo: 'bar',
+                one: 1
+            };
+            eventConfig.configPipelineSha = 'configPipelineSha';
+            eventConfig.meta = {
+                parameters: {
+                    user: { value: 'adong' }
+                },
+                foo: 'bar',
+                one: 1
+            };
+            options.payload.parentEventId = parentEventId;
+            options.payload.startAction = 'RESTART_FROM_EVENT';
+            delete options.payload.meta;
+            eventFactoryMock.get.withArgs(parentEventId).resolves(getEventMock(testEvent));
+
+            return server.inject(options).then(reply => {
+                expectedLocation = {
+                    host: reply.request.headers.host,
+                    port: reply.request.headers.port,
+                    protocol: reply.request.server.info.protocol,
+                    pathname: `${options.url}/12345`
+                };
+                assert.equal(reply.statusCode, 201);
+                assert.calledWith(userMock.getPermissions, scmUri, scmContext, scmRepo);
+                assert.calledWith(eventFactoryMock.create, eventConfig);
+                assert.strictEqual(reply.headers.location, urlLib.format(expectedLocation));
+                assert.notCalled(eventFactoryMock.scm.getPrInfo);
+                delete testEvent.configPipelineSha;
+            });
+        });
+
+        it('returns 201 when it creates a new event with parent event for child pipeline', () => {
+            // This test case ensures that when "Start" is called with a parent event specified,
+            // the parent event's metadata is not inherited.
+            eventConfig.workflowGraph = getEventMock(testEvent).workflowGraph;
+            eventConfig.sha = getEventMock(testEvent).sha;
+            eventConfig.baseBranch = 'master';
+            testEvent.configPipelineSha = 'configPipelineSha';
+            testEvent.meta = {
+                parameters: {
+                    user: { value: 'adong' }
+                },
+                foo: 'bar',
+                one: 1
+            };
+            eventConfig.configPipelineSha = 'configPipelineSha';
+            eventConfig.meta = {};
+            options.payload.parentEventId = parentEventId;
+            options.payload.startAction = 'START_FROM_EVENT';
+            delete options.payload.meta;
+            eventFactoryMock.get.withArgs(parentEventId).resolves(getEventMock(testEvent));
+
+            return server.inject(options).then(reply => {
+                expectedLocation = {
+                    host: reply.request.headers.host,
+                    port: reply.request.headers.port,
+                    protocol: reply.request.server.info.protocol,
+                    pathname: `${options.url}/12345`
+                };
+                assert.equal(reply.statusCode, 201);
+                assert.calledWith(userMock.getPermissions, scmUri, scmContext, scmRepo);
+                assert.calledWith(eventFactoryMock.create, eventConfig);
+                assert.strictEqual(reply.headers.location, urlLib.format(expectedLocation));
+                assert.notCalled(eventFactoryMock.scm.getPrInfo);
+                delete testEvent.configPipelineSha;
+            });
+        });
+
+        it('returns 201 when it creates restarted event with custom parameters and parent event', () => {
+            eventConfig.parentEventId = parentEventId;
+            eventConfig.workflowGraph = getEventMock(testEvent).workflowGraph;
+            eventConfig.sha = getEventMock(testEvent).sha;
+            eventConfig.baseBranch = 'master';
+            testEvent.configPipelineSha = 'configPipelineSha';
+            testEvent.meta = {
+                parameters: {
+                    user: { value: 'adong' }
+                }
+            };
+            eventConfig.configPipelineSha = 'configPipelineSha';
+            eventConfig.meta.parameters = {
+                user: { value: 'klu' }
+            };
+            options.payload.parentEventId = parentEventId;
+            options.payload.meta.parameters = {
+                user: { value: 'klu' }
+            };
+            options.payload.startAction = 'RESTART_FROM_EVENT';
+            eventFactoryMock.get.withArgs(parentEventId).resolves(getEventMock(testEvent));
+
+            return server.inject(options).then(reply => {
+                expectedLocation = {
+                    host: reply.request.headers.host,
+                    port: reply.request.headers.port,
+                    protocol: reply.request.server.info.protocol,
+                    pathname: `${options.url}/12345`
+                };
+                assert.equal(reply.statusCode, 201);
+                assert.calledWith(userMock.getPermissions, scmUri, scmContext, scmRepo);
+                assert.calledWith(eventFactoryMock.create, eventConfig);
+                assert.strictEqual(reply.headers.location, urlLib.format(expectedLocation));
+                assert.notCalled(eventFactoryMock.scm.getPrInfo);
+                delete testEvent.configPipelineSha;
+            });
+        });
+
+        it('returns 201 when it creates a new event with custom parameters and parent event', () => {
+            eventConfig.workflowGraph = getEventMock(testEvent).workflowGraph;
+            eventConfig.sha = getEventMock(testEvent).sha;
+            eventConfig.baseBranch = 'master';
+            testEvent.configPipelineSha = 'configPipelineSha';
+            testEvent.meta = {
+                parameters: {
+                    user: { value: 'adong' }
+                }
+            };
+            eventConfig.configPipelineSha = 'configPipelineSha';
+            eventConfig.meta.parameters = {
+                user: { value: 'klu' }
+            };
+            options.payload.parentEventId = parentEventId;
+            options.payload.meta.parameters = {
+                user: { value: 'klu' }
+            };
+            options.payload.startAction = 'START_FROM_EVENT';
+            eventFactoryMock.get.withArgs(parentEventId).resolves(getEventMock(testEvent));
+
+            return server.inject(options).then(reply => {
+                expectedLocation = {
+                    host: reply.request.headers.host,
+                    port: reply.request.headers.port,
+                    protocol: reply.request.server.info.protocol,
+                    pathname: `${options.url}/12345`
+                };
+                assert.equal(reply.statusCode, 201);
+                assert.calledWith(userMock.getPermissions, scmUri, scmContext, scmRepo);
+                assert.calledWith(eventFactoryMock.create, eventConfig);
+                assert.strictEqual(reply.headers.location, urlLib.format(expectedLocation));
+                assert.notCalled(eventFactoryMock.scm.getPrInfo);
+                delete testEvent.configPipelineSha;
+            });
+        });
+
+        it('returns 201 when it creates restarted event with parent event which has meta', () => {
+            eventConfig.parentEventId = parentEventId;
+            eventConfig.workflowGraph = getEventMock(testEvent).workflowGraph;
+            eventConfig.sha = getEventMock(testEvent).sha;
+            eventConfig.baseBranch = 'master';
+            testEvent.configPipelineSha = 'configPipelineSha';
+            testEvent.meta = meta;
+            eventConfig.configPipelineSha = 'configPipelineSha';
+            eventConfig.meta = meta;
+            options.payload.parentEventId = parentEventId;
+            options.payload.startAction = 'RESTART_FROM_EVENT';
+            eventFactoryMock.get.withArgs(parentEventId).resolves(getEventMock(testEvent));
+
+            return server.inject(options).then(reply => {
+                expectedLocation = {
+                    host: reply.request.headers.host,
+                    port: reply.request.headers.port,
+                    protocol: reply.request.server.info.protocol,
+                    pathname: `${options.url}/12345`
+                };
+                assert.equal(reply.statusCode, 201);
+                assert.calledWith(userMock.getPermissions, scmUri, scmContext, scmRepo);
+                assert.calledWith(eventFactoryMock.create, eventConfig);
+                assert.strictEqual(reply.headers.location, urlLib.format(expectedLocation));
+                assert.notCalled(eventFactoryMock.scm.getPrInfo);
+                delete testEvent.configPipelineSha;
+            });
+        });
+
+        it('returns 201 when it creates a new event with parent event which has meta', () => {
+            eventConfig.workflowGraph = getEventMock(testEvent).workflowGraph;
+            eventConfig.sha = getEventMock(testEvent).sha;
+            eventConfig.baseBranch = 'master';
+            testEvent.configPipelineSha = 'configPipelineSha';
+            testEvent.meta = meta;
+            eventConfig.configPipelineSha = 'configPipelineSha';
+            eventConfig.meta = meta;
+            options.payload.startAction = 'START_FROM_EVENT';
+            options.payload.parentEventId = parentEventId;
+            eventFactoryMock.get.withArgs(parentEventId).resolves(getEventMock(testEvent));
+
+            return server.inject(options).then(reply => {
+                expectedLocation = {
+                    host: reply.request.headers.host,
+                    port: reply.request.headers.port,
+                    protocol: reply.request.server.info.protocol,
+                    pathname: `${options.url}/12345`
+                };
+                assert.equal(reply.statusCode, 201);
+                assert.calledWith(userMock.getPermissions, scmUri, scmContext, scmRepo);
+                assert.calledWith(eventFactoryMock.create, eventConfig);
+                assert.strictEqual(reply.headers.location, urlLib.format(expectedLocation));
+                assert.notCalled(eventFactoryMock.scm.getPrInfo);
+                delete testEvent.configPipelineSha;
+            });
+        });
+
+        it('returns 201 when it creates restarted event with custom parameters and parent event which has meta', () => {
+            eventConfig.parentEventId = parentEventId;
+            eventConfig.workflowGraph = getEventMock(testEvent).workflowGraph;
+            eventConfig.sha = getEventMock(testEvent).sha;
+            eventConfig.baseBranch = 'master';
+            testEvent.configPipelineSha = 'configPipelineSha';
+            testEvent.meta = {
+                parameters: {
+                    user: { value: 'adong' }
+                },
+                foo: 'bar',
+                one: 1
+            };
+            eventConfig.configPipelineSha = 'configPipelineSha';
+            eventConfig.meta = {
+                parameters: {
+                    user: { value: 'klu' }
+                },
+                foo: 'bar',
+                one: 1
+            };
+            options.payload.parentEventId = parentEventId;
+            options.payload.startAction = 'RESTART_FROM_EVENT';
+            options.payload.meta = {
+                parameters: {
+                    user: { value: 'klu' }
+                }
+            };
+            eventFactoryMock.get.withArgs(parentEventId).resolves(getEventMock(testEvent));
+
+            return server.inject(options).then(reply => {
+                expectedLocation = {
+                    host: reply.request.headers.host,
+                    port: reply.request.headers.port,
+                    protocol: reply.request.server.info.protocol,
+                    pathname: `${options.url}/12345`
+                };
+                assert.equal(reply.statusCode, 201);
+                assert.calledWith(userMock.getPermissions, scmUri, scmContext, scmRepo);
+                assert.calledWith(eventFactoryMock.create, eventConfig);
+                assert.strictEqual(reply.headers.location, urlLib.format(expectedLocation));
+                assert.notCalled(eventFactoryMock.scm.getPrInfo);
+                delete testEvent.configPipelineSha;
+            });
+        });
+
+        it('returns 201 when it creates new event with custom parameters and parent event which has meta', () => {
+            // This test case ensures that when "Start" is called with a parent event specified,
+            // the parent event's metadata is not inherited.
+            eventConfig.workflowGraph = getEventMock(testEvent).workflowGraph;
+            eventConfig.sha = getEventMock(testEvent).sha;
+            eventConfig.baseBranch = 'master';
+            testEvent.configPipelineSha = 'configPipelineSha';
+            testEvent.meta = {
+                parameters: {
+                    user: { value: 'adong' }
+                },
+                foo: 'bar',
+                one: 1
+            };
+            eventConfig.configPipelineSha = 'configPipelineSha';
+            eventConfig.meta = {
+                parameters: {
+                    user: { value: 'klu' }
+                }
+            };
+            options.payload.parentEventId = parentEventId;
+            options.payload.startAction = 'START_FROM_EVENT';
+            options.payload.meta = {
+                parameters: {
+                    user: { value: 'klu' }
+                }
+            };
+            eventFactoryMock.get.withArgs(parentEventId).resolves(getEventMock(testEvent));
+
+            return server.inject(options).then(reply => {
+                expectedLocation = {
+                    host: reply.request.headers.host,
+                    port: reply.request.headers.port,
+                    protocol: reply.request.server.info.protocol,
+                    pathname: `${options.url}/12345`
+                };
+                assert.equal(reply.statusCode, 201);
+                assert.calledWith(userMock.getPermissions, scmUri, scmContext, scmRepo);
+                assert.calledWith(eventFactoryMock.create, eventConfig);
+                assert.strictEqual(reply.headers.location, urlLib.format(expectedLocation));
+                assert.notCalled(eventFactoryMock.scm.getPrInfo);
+                delete testEvent.configPipelineSha;
+            });
+        });
+
+        it('returns 201 when it successfully creates a PR event', () => {
+            eventConfig.startFrom = 'PR-1:main';
+            eventConfig.prNum = '1';
+            eventConfig.type = 'pr';
+            eventConfig.chainPR = false;
+            eventConfig.prInfo = prInfo;
+            eventConfig.changedFiles = ['screwdriver.yaml'];
+            ({ ref: eventConfig.prRef, prSource: eventConfig.prSource } = prInfo);
+            options.payload.startFrom = 'PR-1:main';
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 201);
+                assert.calledWith(userMock.getPermissions, scmUri, scmContext, scmRepo);
+                assert.calledWith(eventFactoryMock.create, eventConfig);
+                assert.calledOnce(eventFactoryMock.scm.getCommitSha);
+                assert.calledOnce(eventFactoryMock.scm.getPrInfo);
+                assert.calledWith(eventFactoryMock.scm.getPrInfo, { ...scmConfig, prNum: eventConfig.prNum });
+                assert.calledOnce(eventFactoryMock.scm.getChangedFiles);
+            });
+        });
+
+        it('returns 201 when it successfully creates a PR event using latest commit sha even when a different sha is specified in the payload', () => {
+            options.payload.startFrom = 'PR-1:main';
+            options.payload.sha = anotherCommitSha;
+
+            eventConfig.startFrom = 'PR-1:main';
+            eventConfig.prNum = '1';
+            eventConfig.type = 'pr';
+            eventConfig.chainPR = false;
+            eventConfig.prInfo = prInfo;
+            eventConfig.changedFiles = ['screwdriver.yaml'];
+            ({ ref: eventConfig.prRef, prSource: eventConfig.prSource } = prInfo);
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 201);
+                assert.calledWith(userMock.getPermissions, scmUri, scmContext, scmRepo);
+                assert.calledWith(eventFactoryMock.create, eventConfig);
+                assert.calledOnce(eventFactoryMock.scm.getCommitSha);
+                assert.calledOnce(eventFactoryMock.scm.getPrInfo);
+                assert.calledWith(eventFactoryMock.scm.getPrInfo, { ...scmConfig, prNum: eventConfig.prNum });
+                assert.calledOnce(eventFactoryMock.scm.getChangedFiles);
+            });
+        });
+
+        it('returns 201 when it successfully creates a PR event for given prNum', () => {
+            eventConfig.startFrom = 'PR-1:main';
+            eventConfig.prNum = '1';
+            eventConfig.type = 'pr';
+            eventConfig.chainPR = false;
+            eventConfig.prInfo = prInfo;
+            ({ ref: eventConfig.prRef, prSource: eventConfig.prSource } = prInfo);
+            eventFactoryMock.scm.getChangedFiles.resolves([]);
+            options.payload.startFrom = 'PR-1:main';
+            options.payload.prNum = '1';
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 201);
+                assert.calledWith(userMock.getPermissions, scmUri, scmContext, scmRepo);
+                assert.calledWith(eventFactoryMock.create, eventConfig);
+                assert.calledOnce(eventFactoryMock.scm.getCommitSha);
+                assert.calledOnce(eventFactoryMock.scm.getPrInfo);
+                assert.calledWith(eventFactoryMock.scm.getPrInfo, {
+                    ...scmConfig,
+                    prNum: Number(options.payload.prNum)
+                });
+                assert.calledOnce(eventFactoryMock.scm.getChangedFiles);
+            });
+        });
+
+        it('returns 201 when it successfully creates a PR event when PR author only has permission to run PR', () => {
+            eventConfig.startFrom = 'PR-1:main';
+            eventConfig.prNum = '1';
+            eventConfig.type = 'pr';
+            eventConfig.chainPR = false;
+            eventConfig.prInfo = prInfo;
+            ({ ref: eventConfig.prRef, prSource: eventConfig.prSource } = prInfo);
+            eventConfig.changedFiles = ['screwdriver.yaml'];
+            options.payload.startFrom = 'PR-1:main';
+            userMock.getPermissions.resolves({ push: false });
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 201);
+                assert.calledWith(userMock.getPermissions, scmUri, scmContext, scmRepo);
+                assert.calledWith(eventFactoryMock.create, eventConfig);
+                assert.calledOnce(eventFactoryMock.scm.getCommitSha);
+                assert.calledOnce(eventFactoryMock.scm.getPrInfo);
+                assert.calledWith(eventFactoryMock.scm.getPrInfo, { ...scmConfig, prNum: eventConfig.prNum });
+                assert.calledOnce(eventFactoryMock.scm.getChangedFiles);
+            });
+        });
+
+        it('returns 404 when it fails to get the pipeline', () => {
+            pipelineFactoryMock.get.resolves(null);
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 404);
+            });
+        });
+
+        it('returns 400 when it the pipeline is inactive', () => {
+            const error = {
+                statusCode: 400,
+                error: 'Bad Request',
+                message: 'Cannot create an event for a(n) INACTIVE pipeline'
+            };
+            const pipeline = { ...pipelineMock };
+
+            pipeline.state = 'INACTIVE';
+
+            pipelineFactoryMock.get.resolves(pipeline);
+
+            return server.inject(options).then(reply => {
+                assert.deepEqual(reply.result, error);
+            });
+        });
+
+        it('returns 400 when it the pipeline is being deleted', () => {
+            const error = {
+                statusCode: 400,
+                error: 'Bad Request',
+                message: 'Cannot create an event for a(n) DELETING pipeline'
+            };
+            const pipeline = { ...pipelineMock };
+
+            pipeline.state = 'DELETING';
+
+            pipelineFactoryMock.get.resolves(pipeline);
+
+            return server.inject(options).then(reply => {
+                assert.deepEqual(reply.result, error);
+            });
+        });
+
+        it('returns 404 when it fails to get prInfo', () => {
+            const error = {
+                statusCode: 404,
+                error: 'Not Found',
+                message: 'Failed to getPrInfo'
+            };
+
+            const testError = new Error('Failed to getPrInfo');
+
+            testError.statusCode = 404;
+
+            eventConfig.prNum = '1';
+            options.payload.startFrom = 'PR-1:main';
+
+            eventFactoryMock.scm.getPrInfo.rejects(testError);
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 404);
+                assert.deepEqual(reply.result, error);
+            });
+        });
+
+        it('returns 404 when it fails to get the pipeline', () => {
+            pipelineFactoryMock.get.resolves(null);
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 404);
+            });
+        });
+
+        it(
+            'returns 403 when it fails to creates a PR event when ' +
+                'PR author only has permission to run PR and restrictPR is on',
+            () => {
+                options.payload.startFrom = 'PR-1:main';
+                userMock.getPermissions.resolves({ push: false });
+                pipelineMock.annotations['screwdriver.cd/restrictPR'] = 'fork';
+
+                return server.inject(options).then(reply => {
+                    assert.equal(reply.statusCode, 403);
+                });
+            }
+        );
+
+        it('returns 500 when it fails to get user permission', () => {
+            const err = new Error();
+
+            userMock.getPermissions.rejects(err);
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 500);
+            });
+        });
+
+        it('returns 403 when user does not have permission for public repository', () => {
+            const err = new Error('Error message');
+
+            err.statusCode = 403;
+            userMock.getPermissions.rejects(err);
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, err.statusCode);
+                assert.strictEqual(reply.result.message, err.message);
+            });
+        });
+
+        it('returns 404 when user does not have permission for private repository', () => {
+            const err = new Error('Error message');
+
+            err.statusCode = 403;
+            userMock.getPermissions.rejects(err);
+            pipelineMock.scmRepo = { private: true };
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 404);
+            });
+        });
+
+        it('returns 201 when it successfully creates restarted PR event with parent event', () => {
+            eventConfig.parentEventId = parentEventId;
+            eventConfig.sha = commitSha;
+            eventConfig.startFrom = 'PR-1:main';
+            eventConfig.prNum = '1';
+            eventConfig.type = 'pr';
+            eventConfig.chainPR = false;
+            options.payload.startFrom = 'PR-1:main';
+            options.payload.startAction = 'RESTART_FROM_EVENT';
+            options.payload.parentEventId = parentEventId;
+            eventConfig.prInfo = prInfo;
+            ({ ref: eventConfig.prRef, prSource: eventConfig.prSource } = prInfo);
+            eventConfig.changedFiles = ['screwdriver.yaml'];
+            eventConfig.baseBranch = 'master';
+            eventConfig.meta.parameters = {
+                user: { value: 'adong' }
+            };
+
+            return server.inject(options).then(reply => {
+                expectedLocation = {
+                    host: reply.request.headers.host,
+                    port: reply.request.headers.port,
+                    protocol: reply.request.server.info.protocol,
+                    pathname: `${options.url}/12345`
+                };
+                assert.equal(reply.statusCode, 201);
+                assert.calledWith(userMock.getPermissions, scmUri, scmContext, scmRepo);
+                assert.calledWith(eventFactoryMock.create, eventConfig);
+                assert.strictEqual(reply.headers.location, urlLib.format(expectedLocation));
+                assert.calledOnce(eventFactoryMock.scm.getCommitSha);
+                assert.calledOnce(eventFactoryMock.scm.getPrInfo);
+                assert.calledWith(eventFactoryMock.scm.getPrInfo, { ...scmConfig, prNum: eventConfig.prNum });
+                assert.calledOnce(eventFactoryMock.scm.getChangedFiles);
+            });
+        });
+
+        it('returns 201 when it successfully creates a new PR event with parent event', () => {
+            eventConfig.sha = commitSha;
+            eventConfig.startFrom = 'PR-1:main';
+            eventConfig.prNum = '1';
+            eventConfig.type = 'pr';
+            eventConfig.chainPR = false;
+            options.payload.startFrom = 'PR-1:main';
+            options.payload.startAction = 'START_FROM_EVENT';
+            options.payload.parentEventId = parentEventId;
+            eventConfig.prInfo = prInfo;
+            ({ ref: eventConfig.prRef, prSource: eventConfig.prSource } = prInfo);
+            eventConfig.changedFiles = ['screwdriver.yaml'];
+            eventConfig.baseBranch = 'master';
+            eventConfig.meta.parameters = {
+                user: { value: 'adong' }
+            };
+
+            return server.inject(options).then(reply => {
+                expectedLocation = {
+                    host: reply.request.headers.host,
+                    port: reply.request.headers.port,
+                    protocol: reply.request.server.info.protocol,
+                    pathname: `${options.url}/12345`
+                };
+                assert.equal(reply.statusCode, 201);
+                assert.calledWith(userMock.getPermissions, scmUri, scmContext, scmRepo);
+                assert.calledWith(eventFactoryMock.create, eventConfig);
+                assert.strictEqual(reply.headers.location, urlLib.format(expectedLocation));
+                assert.calledOnce(eventFactoryMock.scm.getCommitSha);
+                assert.calledOnce(eventFactoryMock.scm.getPrInfo);
+                assert.calledWith(eventFactoryMock.scm.getPrInfo, { ...scmConfig, prNum: eventConfig.prNum });
+                assert.calledOnce(eventFactoryMock.scm.getChangedFiles);
+            });
+        });
+
+        it('returns 201 when it successfully creates an event with pipeline token', () => {
+            options.auth.credentials = {
+                scope: ['pipeline'],
+                username,
+                scmContext,
+                pipelineId
+            };
+
+            eventConfig.creator = { name: 'Pipeline Access Token', username: 'myself' };
+
+            return server.inject(options).then(reply => {
+                expectedLocation = {
+                    host: reply.request.headers.host,
+                    port: reply.request.headers.port,
+                    protocol: reply.request.server.info.protocol,
+                    pathname: `${options.url}/12345`
+                };
+                assert.equal(reply.statusCode, 201);
+                assert.calledWith(userMock.getPermissions, scmUri, scmContext, scmRepo);
+                assert.calledWith(eventFactoryMock.create, eventConfig);
+                assert.strictEqual(reply.headers.location, urlLib.format(expectedLocation));
+                assert.calledWith(eventFactoryMock.scm.getCommitSha, scmConfig);
+                assert.notCalled(eventFactoryMock.scm.getPrInfo);
+            });
+        });
+
+        it('returns 201 when it successfully creates an event and updates admins with good permissions for PR', () => {
+            delete pipelineMock.admins.myself;
+
+            eventConfig.startFrom = 'PR-1:main';
+            eventConfig.prNum = '1';
+            eventConfig.type = 'pr';
+            eventConfig.chainPR = false;
+            eventConfig.prInfo = prInfo;
+            ({ ref: eventConfig.prRef, prSource: eventConfig.prSource } = prInfo);
+            eventConfig.changedFiles = ['screwdriver.yaml'];
+            options.payload.startFrom = 'PR-1:main';
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 201);
+                assert.calledWith(userMock.getPermissions, scmUri, scmContext, scmRepo);
+                assert.calledWith(eventFactoryMock.create, eventConfig);
+                assert.calledOnce(eventFactoryMock.scm.getCommitSha);
+                assert.calledOnce(eventFactoryMock.scm.getPrInfo);
+                assert.calledWith(eventFactoryMock.scm.getPrInfo, { ...scmConfig, prNum: eventConfig.prNum });
+                assert.calledOnce(eventFactoryMock.scm.getChangedFiles);
+            });
+        });
+
+        it('update the current user permission and put the current user at the head of admins', () => {
+            pipelineMock.admins = {
+                foo: true,
+                myself: false,
+                bar: true
+            };
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 201);
+
+                const { admins } = pipelineMock;
+
+                assert.deepEqual({ myself: true, foo: true, bar: true }, admins);
+                assert.deepEqual(['myself', 'foo', 'bar'], Object.keys(admins));
+            });
+        });
+
+        it('returns 500 when the model encounters an error', () => {
+            const testError = new Error('datastoreSaveError');
+
+            eventFactoryMock.create.rejects(testError);
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 500);
+            });
+        });
+
+        it('returns 404 when the model encounters a branch not found error', () => {
+            const testError = new Error('Branch not found');
+
+            testError.statusCode = 404;
+
+            eventFactoryMock.scm.getCommitSha.rejects(testError);
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 404);
+            });
+        });
+
+        it('returns 403 forbidden error when user does not have push permission', () => {
+            userMock.getPermissions.resolves({ push: false });
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 403);
+                assert.notCalled(eventFactoryMock.create);
+            });
+        });
+
+        it('returns 400 bad request error when missing startFrom', () => {
+            delete options.payload.startFrom;
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 400);
+            });
+        });
+
+        it('returns 400 bad request error missing prNum for "~pr"', () => {
+            options.payload.startFrom = '~pr';
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 400);
+            });
+        });
+
+        it('returns 403 forbidden error when user does not have push permission and is not author of PR', () => {
+            options.payload.startFrom = 'PR-1:main';
+            userMock.getPermissions.resolves({ push: false });
+            eventFactoryMock.scm.getPrInfo.resolves({
+                sha: commitSha,
+                ref: 'prref',
+                prSource: 'branch',
+                url: 'https://github.com/screwdriver-cd/ui/pull/292',
+                username: 'notmyself'
+            });
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 403);
+                assert.notCalled(eventFactoryMock.create);
+                assert.notCalled(eventFactoryMock.scm.getCommitSha);
+                assert.calledOnce(eventFactoryMock.scm.getPrInfo);
+                assert.calledWith(eventFactoryMock.scm.getPrInfo, { ...scmConfig, prNum: '1' });
+                assert.calledOnce(eventFactoryMock.scm.getChangedFiles);
+            });
+        });
+
+        it('returns unauthorized error when the token has no permission for pipeline', () => {
+            options.auth.credentials = {
+                scope: ['pipeline'],
+                username,
+                scmContext,
+                pipelineId: pipelineId + 1
+            };
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 401);
+                assert.notCalled(eventFactoryMock.create);
+            });
+        });
+
+        it('returns 404 when event have no builds', () => {
+            testEvent.builds = null;
+            eventFactoryMock.create.resolves(getEventMock(testEvent));
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 404);
+                delete testEvent.builds;
+            });
+        });
+    });
+
+    describe('PUT /events/{id}/stop', () => {
+        const pipelineId = 123;
+        const scmContext = 'github:github.com';
+        const scmUri = 'github.com:12345:branchName';
+        const checkoutUrl = 'git@github.com:screwdriver-cd/data-model.git#master';
+        const pipelineMock = {
+            id: pipelineId,
+            checkoutUrl,
+            update: sinon.stub().resolves(),
+            admins: { foo: true, bar: true },
+            adminUserIds: [888, 999],
+            admin: Promise.resolve({
+                username: 'foo',
+                unsealToken: sinon.stub().resolves('token')
+            }),
+            scmUri,
+            prChain: false,
+            toJson: sinon.stub().returns({ id: pipelineId })
+        };
+        const id = 123;
+        const username = 'myself';
+        const userId = 777;
+        let expectedLocation;
+        let builds;
+        let event;
+        let stageBuilds;
+        let options;
+        let userMock;
+
+        beforeEach(() => {
+            userMock = {
+                id: userId,
+                username,
+                getPermissions: sinon.stub().resolves({ push: true }),
+                unsealToken: sinon.stub().resolves('iamtoken')
+            };
+            options = {
+                method: 'PUT',
+                url: `/events/${id}/stop`,
+                auth: {
+                    credentials: {
+                        scope: ['user'],
+                        username,
+                        scmContext
+                    },
+                    strategy: ['token']
+                }
+            };
+
+            userFactoryMock.get.resolves(userMock);
+            pipelineFactoryMock.get.resolves(pipelineMock);
+            event = getEventMock(testEvent);
+            builds = getBuildMocks(testBuilds);
+            stageBuilds = getStageBuildMocks(testStageBuilds);
+
+            builds[2].job = {
+                id: builds[2].jobId,
+                pipelineId,
+                name: 'build2',
+                pipeline: pipelineMock,
+                permutations: [
+                    {
+                        settings: {
+                            email: 'foo@bar.com'
+                        }
+                    }
+                ]
+            };
+            builds[3].job = {
+                id: builds[3].jobId,
+                pipelineId,
+                name: 'build3',
+                pipeline: pipelineMock,
+                permutations: [
+                    {
+                        settings: {
+                            slack: {
+                                channels: ['foo'],
+                                statuses: ['SUCCESS']
                             }
                         }
-                    ]
-                };
-                builds[3].job = {
-                    id: builds[3].jobId,
-                    pipelineId,
-                    name: 'build3',
-                    pipeline: pipelineMock,
-                    permutations: [
-                        {
-                            settings: {
-                                slack: {
-                                    channels: ['foo'],
-                                    statuses: ['SUCCESS']
-                                }
+                    }
+                ]
+            };
+            builds[4].job = {
+                id: builds[4].jobId,
+                pipelineId,
+                name: 'build4',
+                pipeline: pipelineMock,
+                permutations: [
+                    {
+                        settings: {
+                            email: 'bar@baz.com',
+                            slack: {
+                                channels: ['bar'],
+                                statuses: ['FAILURE']
                             }
                         }
-                    ]
-                };
-                builds[4].job = {
-                    id: builds[4].jobId,
-                    pipelineId,
-                    name: 'build4',
-                    pipeline: pipelineMock,
-                    permutations: [
-                        {
-                            settings: {
-                                email: 'bar@baz.com',
-                                slack: {
-                                    channels: ['bar'],
-                                    statuses: ['FAILURE']
-                                }
-                            }
-                        }
-                    ]
-                };
+                    }
+                ]
+            };
 
+            eventFactoryMock.get.withArgs(id).resolves(event);
+            event.getBuilds.resolves(builds);
+            event.getStageBuilds.resolves(stageBuilds);
+            screwdriverAdminDetailsMock.returns({ isAdmin: false });
+
+            server.events = {
+                emit: sinon.stub().resolves(null)
+            };
+        });
+
+        it('returns 200 and stops all event builds', () =>
+            server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 200);
+                assert.strictEqual(builds[2].status, 'ABORTED');
+                assert.strictEqual(builds[3].status, 'ABORTED');
+                assert.strictEqual(builds[4].status, 'ABORTED');
+                assert.strictEqual(builds[2].statusMessage, 'Aborted event by myself');
+                assert.strictEqual(builds[3].statusMessage, 'Aborted event by myself');
+                assert.strictEqual(builds[4].statusMessage, 'Aborted event by myself');
+                assert.calledOnce(event.getBuilds);
+                assert.notCalled(builds[0].update);
+                assert.notCalled(builds[1].update);
+                assert.calledOnce(builds[2].update);
+                assert.calledOnce(builds[3].update);
+                assert.calledOnce(builds[4].update);
+            }));
+
+        it('returns 200 and stops all event builds when user has push permission and is not Screwdriver admin', () => {
+            screwdriverAdminDetailsMock.returns({ isAdmin: false });
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 200);
+                assert.strictEqual(builds[2].status, 'ABORTED');
+                assert.strictEqual(builds[3].status, 'ABORTED');
+                assert.strictEqual(builds[4].status, 'ABORTED');
+                assert.strictEqual(builds[2].statusMessage, 'Aborted event by myself');
+                assert.strictEqual(builds[3].statusMessage, 'Aborted event by myself');
+                assert.strictEqual(builds[4].statusMessage, 'Aborted event by myself');
+                assert.calledOnce(event.getBuilds);
+                assert.notCalled(builds[0].update);
+                assert.notCalled(builds[1].update);
+                assert.calledOnce(builds[2].update);
+                assert.calledOnce(builds[3].update);
+                assert.calledOnce(builds[4].update);
+            });
+        });
+
+        it(
+            'returns 200 and stops all event builds when user is PR owner' +
+                ' and does not have push permission and is not Screwdriver admin',
+            () => {
+                event = getEventMock(testEventPr);
                 eventFactoryMock.get.withArgs(id).resolves(event);
                 event.getBuilds.resolves(builds);
                 event.getStageBuilds.resolves(stageBuilds);
-                screwdriverAdminDetailsMock.returns({ isAdmin: false });
-
-                server.events = {
-                    emit: sinon.stub().resolves(null)
+                userMock = {
+                    username: 'imbatman',
+                    getPermissions: sinon.stub().resolves({ push: false })
                 };
-            });
-
-            it('returns 200 and stops all event builds', () =>
-                server.inject(options).then(reply => {
-                    assert.equal(reply.statusCode, 200);
-                    assert.strictEqual(builds[2].status, 'ABORTED');
-                    assert.strictEqual(builds[3].status, 'ABORTED');
-                    assert.strictEqual(builds[4].status, 'ABORTED');
-                    assert.strictEqual(builds[2].statusMessage, 'Aborted event by myself');
-                    assert.strictEqual(builds[3].statusMessage, 'Aborted event by myself');
-                    assert.strictEqual(builds[4].statusMessage, 'Aborted event by myself');
-                    assert.calledOnce(event.getBuilds);
-                    assert.notCalled(builds[0].update);
-                    assert.notCalled(builds[1].update);
-                    assert.calledOnce(builds[2].update);
-                    assert.calledOnce(builds[3].update);
-                    assert.calledOnce(builds[4].update);
-                }));
-
-            it('returns 200 and stops all event builds when user has push permission and is not Screwdriver admin', () => {
+                options.auth.credentials.username = 'imbatman';
                 screwdriverAdminDetailsMock.returns({ isAdmin: false });
+                userFactoryMock.get.resolves(userMock);
+
+                return server.inject(options).then(reply => {
+                    assert.equal(reply.statusCode, 200);
+                    assert.strictEqual(builds[2].status, 'ABORTED');
+                    assert.strictEqual(builds[3].status, 'ABORTED');
+                    assert.strictEqual(builds[4].status, 'ABORTED');
+                    assert.strictEqual(builds[2].statusMessage, 'Aborted event by imbatman');
+                    assert.strictEqual(builds[3].statusMessage, 'Aborted event by imbatman');
+                    assert.strictEqual(builds[4].statusMessage, 'Aborted event by imbatman');
+                    assert.calledOnce(event.getBuilds);
+                    assert.notCalled(builds[0].update);
+                    assert.notCalled(builds[1].update);
+                    assert.calledOnce(builds[2].update);
+                    assert.calledOnce(builds[3].update);
+                    assert.calledOnce(builds[4].update);
+                });
+            }
+        );
+
+        it(
+            'returns 200 and stops all event builds when user does not have push permission' +
+                'and is Screwdriver admin',
+            () => {
+                userMock.getPermissions.resolves({ push: false });
+                screwdriverAdminDetailsMock.returns({ isAdmin: true });
 
                 return server.inject(options).then(reply => {
                     assert.equal(reply.statusCode, 200);
@@ -2190,270 +2247,187 @@ describe('event plugin test', () => {
                     assert.calledOnce(builds[3].update);
                     assert.calledOnce(builds[4].update);
                 });
+            }
+        );
+
+        it('returns 200 and update event status to ABORTED', () => {
+            builds[0].status = 'SUCCESS';
+            builds[1].status = 'FAILRUE';
+            builds[3].status = 'COLLAPSED';
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 200);
+                assert.strictEqual(builds[2].status, 'ABORTED');
+                assert.strictEqual(builds[4].status, 'ABORTED');
+                assert.strictEqual(builds[2].statusMessage, 'Aborted event by myself');
+                assert.strictEqual(builds[4].statusMessage, 'Aborted event by myself');
+                assert.calledOnce(event.update);
+                assert.strictEqual(event.status, 'ABORTED');
             });
+        });
 
-            it(
-                'returns 200 and stops all event builds when user is PR owner' +
-                    ' and does not have push permission and is not Screwdriver admin',
-                () => {
-                    event = getEventMock(testEventPr);
-                    eventFactoryMock.get.withArgs(id).resolves(event);
-                    event.getBuilds.resolves(builds);
-                    event.getStageBuilds.resolves(stageBuilds);
-                    userMock = {
-                        username: 'imbatman',
-                        getPermissions: sinon.stub().resolves({ push: false })
-                    };
-                    options.auth.credentials.username = 'imbatman';
-                    screwdriverAdminDetailsMock.returns({ isAdmin: false });
-                    userFactoryMock.get.resolves(userMock);
+        it('returns 200 and update event status to ABORTED', () => {
+            const stageBuildMocks = [
+                { status: 'RUNNING', update: sinon.stub().resolves() },
+                { status: 'QUEUED', update: sinon.stub().resolves() },
+                { status: 'CREATED', update: sinon.stub().resolves() },
+                { status: 'SUCCESS', update: sinon.stub().throws() },
+                { status: 'FAILURE', update: sinon.stub().throws() }
+            ];
 
-                    return server.inject(options).then(reply => {
-                        assert.equal(reply.statusCode, 200);
-                        assert.strictEqual(builds[2].status, 'ABORTED');
-                        assert.strictEqual(builds[3].status, 'ABORTED');
-                        assert.strictEqual(builds[4].status, 'ABORTED');
-                        assert.strictEqual(builds[2].statusMessage, 'Aborted event by imbatman');
-                        assert.strictEqual(builds[3].statusMessage, 'Aborted event by imbatman');
-                        assert.strictEqual(builds[4].statusMessage, 'Aborted event by imbatman');
-                        assert.calledOnce(event.getBuilds);
-                        assert.notCalled(builds[0].update);
-                        assert.notCalled(builds[1].update);
-                        assert.calledOnce(builds[2].update);
-                        assert.calledOnce(builds[3].update);
-                        assert.calledOnce(builds[4].update);
-                    });
-                }
-            );
+            event.getStageBuilds.resolves(stageBuildMocks);
 
-            it(
-                'returns 200 and stops all event builds when user does not have push permission' +
-                    'and is Screwdriver admin',
-                () => {
-                    userMock.getPermissions.resolves({ push: false });
-                    screwdriverAdminDetailsMock.returns({ isAdmin: true });
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 200);
+                assert.strictEqual(stageBuildMocks[0].status, 'ABORTED');
+                assert.calledOnce(stageBuildMocks[0].update);
+                assert.strictEqual(stageBuildMocks[1].status, 'ABORTED');
+                assert.calledOnce(stageBuildMocks[1].update);
+                assert.strictEqual(stageBuildMocks[2].status, 'ABORTED');
+                assert.calledOnce(stageBuildMocks[2].update);
 
-                    return server.inject(options).then(reply => {
-                        assert.equal(reply.statusCode, 200);
-                        assert.strictEqual(builds[2].status, 'ABORTED');
-                        assert.strictEqual(builds[3].status, 'ABORTED');
-                        assert.strictEqual(builds[4].status, 'ABORTED');
-                        assert.strictEqual(builds[2].statusMessage, 'Aborted event by myself');
-                        assert.strictEqual(builds[3].statusMessage, 'Aborted event by myself');
-                        assert.strictEqual(builds[4].statusMessage, 'Aborted event by myself');
-                        assert.calledOnce(event.getBuilds);
-                        assert.notCalled(builds[0].update);
-                        assert.notCalled(builds[1].update);
-                        assert.calledOnce(builds[2].update);
-                        assert.calledOnce(builds[3].update);
-                        assert.calledOnce(builds[4].update);
-                    });
-                }
-            );
+                assert.strictEqual(stageBuildMocks[3].status, 'SUCCESS');
+                assert.notCalled(stageBuildMocks[3].update);
+                assert.strictEqual(stageBuildMocks[4].status, 'FAILURE');
+                assert.notCalled(stageBuildMocks[4].update);
+            });
+        });
 
-            it('returns 200 and update event status to ABORTED', () => {
-                builds[0].status = 'SUCCESS';
-                builds[1].status = 'FAILRUE';
-                builds[3].status = 'COLLAPSED';
-
-                return server.inject(options).then(reply => {
-                    assert.equal(reply.statusCode, 200);
-                    assert.strictEqual(builds[2].status, 'ABORTED');
-                    assert.strictEqual(builds[4].status, 'ABORTED');
-                    assert.strictEqual(builds[2].statusMessage, 'Aborted event by myself');
-                    assert.strictEqual(builds[4].statusMessage, 'Aborted event by myself');
-                    assert.calledOnce(event.update);
-                    assert.strictEqual(event.status, 'ABORTED');
+        it('returns 200 and stops all event builds and notify', () => {
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 200);
+                assert.strictEqual(builds[2].status, 'ABORTED');
+                assert.strictEqual(builds[3].status, 'ABORTED');
+                assert.strictEqual(builds[4].status, 'ABORTED');
+                assert.strictEqual(builds[2].statusMessage, 'Aborted event by myself');
+                assert.strictEqual(builds[3].statusMessage, 'Aborted event by myself');
+                assert.strictEqual(builds[4].statusMessage, 'Aborted event by myself');
+                assert.calledOnce(event.getBuilds);
+                assert.notCalled(builds[0].update);
+                assert.notCalled(builds[1].update);
+                assert.calledOnce(builds[2].update);
+                assert.calledOnce(builds[3].update);
+                assert.calledOnce(builds[4].update);
+                assert.callCount(server.events.emit, 3);
+                assert.calledWithMatch(server.events.emit.getCall(0), 'build_status', {
+                    settings: { email: 'foo@bar.com' },
+                    status: 'ABORTED',
+                    pipeline: { id: 123 },
+                    jobName: 'build2',
+                    build: {
+                        id: 223344,
+                        jobId: 3456
+                    },
+                    buildLink: 'http://foo.bar/pipelines/123/builds/223344',
+                    isFixed: false
+                });
+                assert.calledWithMatch(server.events.emit.getCall(1), 'build_status', {
+                    settings: {
+                        slack: {
+                            channels: ['foo'],
+                            statuses: ['SUCCESS']
+                        }
+                    },
+                    status: 'ABORTED',
+                    pipeline: { id: 123 },
+                    jobName: 'build3',
+                    build: {
+                        id: 334455,
+                        jobId: 4567
+                    },
+                    buildLink: 'http://foo.bar/pipelines/123/builds/334455',
+                    isFixed: false
+                });
+                assert.calledWithMatch(server.events.emit.getCall(2), 'build_status', {
+                    settings: {
+                        email: 'bar@baz.com',
+                        slack: {
+                            channels: ['bar'],
+                            statuses: ['FAILURE']
+                        }
+                    },
+                    status: 'ABORTED',
+                    pipeline: { id: 123 },
+                    jobName: 'build4',
+                    build: {
+                        id: 776677,
+                        jobId: 5678
+                    },
+                    buildLink: 'http://foo.bar/pipelines/123/builds/776677',
+                    isFixed: false
                 });
             });
+        });
 
-            it('returns 200 and update event status to ABORTED', () => {
-                const stageBuildMocks = [
-                    { status: 'RUNNING', update: sinon.stub().resolves() },
-                    { status: 'QUEUED', update: sinon.stub().resolves() },
-                    { status: 'CREATED', update: sinon.stub().resolves() },
-                    { status: 'SUCCESS', update: sinon.stub().throws() },
-                    { status: 'FAILURE', update: sinon.stub().throws() }
-                ];
+        it('returns 200 and stops all event builds and notify without including already aborted builds', () => {
+            builds[2].status = 'ABORTED';
+            builds[2].statusMessage = 'Aborted build by myself';
 
-                event.getStageBuilds.resolves(stageBuildMocks);
-
-                return server.inject(options).then(reply => {
-                    assert.equal(reply.statusCode, 200);
-                    assert.strictEqual(stageBuildMocks[0].status, 'ABORTED');
-                    assert.calledOnce(stageBuildMocks[0].update);
-                    assert.strictEqual(stageBuildMocks[1].status, 'ABORTED');
-                    assert.calledOnce(stageBuildMocks[1].update);
-                    assert.strictEqual(stageBuildMocks[2].status, 'ABORTED');
-                    assert.calledOnce(stageBuildMocks[2].update);
-
-                    assert.strictEqual(stageBuildMocks[3].status, 'SUCCESS');
-                    assert.notCalled(stageBuildMocks[3].update);
-                    assert.strictEqual(stageBuildMocks[4].status, 'FAILURE');
-                    assert.notCalled(stageBuildMocks[4].update);
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 200);
+                assert.strictEqual(builds[2].status, 'ABORTED');
+                assert.strictEqual(builds[3].status, 'ABORTED');
+                assert.strictEqual(builds[4].status, 'ABORTED');
+                assert.strictEqual(builds[2].statusMessage, 'Aborted build by myself');
+                assert.strictEqual(builds[3].statusMessage, 'Aborted event by myself');
+                assert.strictEqual(builds[4].statusMessage, 'Aborted event by myself');
+                assert.calledOnce(event.getBuilds);
+                assert.notCalled(builds[0].update);
+                assert.notCalled(builds[1].update);
+                assert.notCalled(builds[2].update);
+                assert.calledOnce(builds[3].update);
+                assert.calledOnce(builds[4].update);
+                assert.callCount(server.events.emit, 2);
+                assert.calledWithMatch(server.events.emit.getCall(0), 'build_status', {
+                    settings: {
+                        slack: {
+                            channels: ['foo'],
+                            statuses: ['SUCCESS']
+                        }
+                    },
+                    status: 'ABORTED',
+                    pipeline: { id: 123 },
+                    jobName: 'build3',
+                    build: {
+                        id: 334455,
+                        jobId: 4567
+                    },
+                    buildLink: 'http://foo.bar/pipelines/123/builds/334455',
+                    isFixed: false
+                });
+                assert.calledWithMatch(server.events.emit.getCall(1), 'build_status', {
+                    settings: {
+                        email: 'bar@baz.com',
+                        slack: {
+                            channels: ['bar'],
+                            statuses: ['FAILURE']
+                        }
+                    },
+                    status: 'ABORTED',
+                    pipeline: { id: 123 },
+                    jobName: 'build4',
+                    build: {
+                        id: 776677,
+                        jobId: 5678
+                    },
+                    buildLink: 'http://foo.bar/pipelines/123/builds/776677',
+                    isFixed: false
                 });
             });
+        });
 
-            it('returns 200 and stops all event builds and notify', () => {
-                return server.inject(options).then(reply => {
-                    assert.equal(reply.statusCode, 200);
-                    assert.strictEqual(builds[2].status, 'ABORTED');
-                    assert.strictEqual(builds[3].status, 'ABORTED');
-                    assert.strictEqual(builds[4].status, 'ABORTED');
-                    assert.strictEqual(builds[2].statusMessage, 'Aborted event by myself');
-                    assert.strictEqual(builds[3].statusMessage, 'Aborted event by myself');
-                    assert.strictEqual(builds[4].statusMessage, 'Aborted event by myself');
-                    assert.calledOnce(event.getBuilds);
-                    assert.notCalled(builds[0].update);
-                    assert.notCalled(builds[1].update);
-                    assert.calledOnce(builds[2].update);
-                    assert.calledOnce(builds[3].update);
-                    assert.calledOnce(builds[4].update);
-                    assert.callCount(server.events.emit, 3);
-                    assert.calledWithMatch(server.events.emit.getCall(0), 'build_status', {
-                        settings: { email: 'foo@bar.com' },
-                        status: 'ABORTED',
-                        pipeline: { id: 123 },
-                        jobName: 'build2',
-                        build: {
-                            id: 223344,
-                            jobId: 3456
-                        },
-                        buildLink: 'http://foo.bar/pipelines/123/builds/223344',
-                        isFixed: false
-                    });
-                    assert.calledWithMatch(server.events.emit.getCall(1), 'build_status', {
-                        settings: {
-                            slack: {
-                                channels: ['foo'],
-                                statuses: ['SUCCESS']
-                            }
-                        },
-                        status: 'ABORTED',
-                        pipeline: { id: 123 },
-                        jobName: 'build3',
-                        build: {
-                            id: 334455,
-                            jobId: 4567
-                        },
-                        buildLink: 'http://foo.bar/pipelines/123/builds/334455',
-                        isFixed: false
-                    });
-                    assert.calledWithMatch(server.events.emit.getCall(2), 'build_status', {
-                        settings: {
-                            email: 'bar@baz.com',
-                            slack: {
-                                channels: ['bar'],
-                                statuses: ['FAILURE']
-                            }
-                        },
-                        status: 'ABORTED',
-                        pipeline: { id: 123 },
-                        jobName: 'build4',
-                        build: {
-                            id: 776677,
-                            jobId: 5678
-                        },
-                        buildLink: 'http://foo.bar/pipelines/123/builds/776677',
-                        isFixed: false
-                    });
-                });
-            });
-
-            it('returns 200 and stops all event builds and notify without including already aborted builds', () => {
-                builds[2].status = 'ABORTED';
-                builds[2].statusMessage = 'Aborted build by myself';
-
-                return server.inject(options).then(reply => {
-                    assert.equal(reply.statusCode, 200);
-                    assert.strictEqual(builds[2].status, 'ABORTED');
-                    assert.strictEqual(builds[3].status, 'ABORTED');
-                    assert.strictEqual(builds[4].status, 'ABORTED');
-                    assert.strictEqual(builds[2].statusMessage, 'Aborted build by myself');
-                    assert.strictEqual(builds[3].statusMessage, 'Aborted event by myself');
-                    assert.strictEqual(builds[4].statusMessage, 'Aborted event by myself');
-                    assert.calledOnce(event.getBuilds);
-                    assert.notCalled(builds[0].update);
-                    assert.notCalled(builds[1].update);
-                    assert.notCalled(builds[2].update);
-                    assert.calledOnce(builds[3].update);
-                    assert.calledOnce(builds[4].update);
-                    assert.callCount(server.events.emit, 2);
-                    assert.calledWithMatch(server.events.emit.getCall(0), 'build_status', {
-                        settings: {
-                            slack: {
-                                channels: ['foo'],
-                                statuses: ['SUCCESS']
-                            }
-                        },
-                        status: 'ABORTED',
-                        pipeline: { id: 123 },
-                        jobName: 'build3',
-                        build: {
-                            id: 334455,
-                            jobId: 4567
-                        },
-                        buildLink: 'http://foo.bar/pipelines/123/builds/334455',
-                        isFixed: false
-                    });
-                    assert.calledWithMatch(server.events.emit.getCall(1), 'build_status', {
-                        settings: {
-                            email: 'bar@baz.com',
-                            slack: {
-                                channels: ['bar'],
-                                statuses: ['FAILURE']
-                            }
-                        },
-                        status: 'ABORTED',
-                        pipeline: { id: 123 },
-                        jobName: 'build4',
-                        build: {
-                            id: 776677,
-                            jobId: 5678
-                        },
-                        buildLink: 'http://foo.bar/pipelines/123/builds/776677',
-                        isFixed: false
-                    });
-                });
-            });
-
-            it(
-                'returns 403 forbidden error when user does not have push permission' +
-                    ' and is not Screwdriver admin and is not PR owner',
-                () => {
-                    const error = {
-                        statusCode: 403,
-                        error: 'Forbidden',
-                        message: 'User myself does not have push permission for this repo'
-                    };
-
-                    userMock.getPermissions.resolves({ push: false });
-                    screwdriverAdminDetailsMock.returns({ isAdmin: false });
-
-                    return server.inject(options).then(reply => {
-                        assert.equal(reply.statusCode, 403);
-                        assert.notCalled(event.getBuilds);
-                        assert.notCalled(builds[0].update);
-                        assert.notCalled(builds[1].update);
-                        assert.notCalled(builds[2].update);
-                        assert.notCalled(builds[3].update);
-                        assert.deepEqual(reply.result, error);
-                    });
-                }
-            );
-
-            it('returns 403 forbidden error when users scm host does not match', () => {
-                const e = new Error('Users scm host does not match');
-
-                e.statusCode = 403;
-
-                userMock.getPermissions.rejects(e);
-
+        it(
+            'returns 403 forbidden error when user does not have push permission' +
+                ' and is not Screwdriver admin and is not PR owner',
+            () => {
                 const error = {
                     statusCode: 403,
                     error: 'Forbidden',
-                    message: 'Users scm host does not match'
+                    message: 'User myself does not have push permission for this repo'
                 };
+
+                userMock.getPermissions.resolves({ push: false });
+                screwdriverAdminDetailsMock.returns({ isAdmin: false });
 
                 return server.inject(options).then(reply => {
                     assert.equal(reply.statusCode, 403);
@@ -2464,222 +2438,246 @@ describe('event plugin test', () => {
                     assert.notCalled(builds[3].update);
                     assert.deepEqual(reply.result, error);
                 });
-            });
+            }
+        );
 
-            it('returns 404 not found error when users scm host does not match and the pipeline is private', () => {
-                pipelineMock.scmRepo = { private: true };
+        it('returns 403 forbidden error when users scm host does not match', () => {
+            const e = new Error('Users scm host does not match');
 
-                const e = new Error('Users scm host does not match');
+            e.statusCode = 403;
 
-                e.statusCode = 403;
+            userMock.getPermissions.rejects(e);
 
-                userMock.getPermissions.rejects(e);
+            const error = {
+                statusCode: 403,
+                error: 'Forbidden',
+                message: 'Users scm host does not match'
+            };
 
-                const error = {
-                    statusCode: 404,
-                    error: 'Not Found',
-                    message: 'Not Found'
-                };
-
-                return server.inject(options).then(reply => {
-                    assert.equal(reply.statusCode, 404);
-                    assert.notCalled(event.getBuilds);
-                    assert.notCalled(builds[0].update);
-                    assert.notCalled(builds[1].update);
-                    assert.notCalled(builds[2].update);
-                    assert.notCalled(builds[3].update);
-                    assert.deepEqual(reply.result, error);
-                });
-            });
-
-            it('returns 500 error when get permission throws error', () => {
-                const e = new Error('Something happened');
-
-                e.statusCode = 500;
-
-                userMock.getPermissions.rejects(e);
-
-                const error = {
-                    statusCode: 500,
-                    error: 'Internal Server Error',
-                    message: 'An internal server error occurred'
-                };
-
-                return server.inject(options).then(reply => {
-                    assert.equal(reply.statusCode, 500);
-                    assert.notCalled(event.getBuilds);
-                    assert.notCalled(builds[0].update);
-                    assert.notCalled(builds[1].update);
-                    assert.notCalled(builds[2].update);
-                    assert.notCalled(builds[3].update);
-                    assert.deepEqual(reply.result, error);
-                });
-            });
-
-            it('returns 200 when it successfully stops all event builds with pipeline token', () => {
-                options.auth.credentials = {
-                    scope: ['pipeline'],
-                    username,
-                    scmContext,
-                    pipelineId
-                };
-
-                return server.inject(options).then(reply => {
-                    expectedLocation = {
-                        host: reply.request.headers.host,
-                        port: reply.request.headers.port,
-                        protocol: reply.request.server.info.protocol,
-                        pathname: `${options.url}/12345`
-                    };
-                    assert.equal(reply.statusCode, 200);
-                    assert.strictEqual(reply.headers.location, urlLib.format(expectedLocation));
-                    assert.strictEqual(builds[2].status, 'ABORTED');
-                    assert.strictEqual(builds[3].status, 'ABORTED');
-                    assert.strictEqual(builds[4].status, 'ABORTED');
-                    assert.strictEqual(builds[2].statusMessage, 'Aborted event by myself');
-                    assert.strictEqual(builds[3].statusMessage, 'Aborted event by myself');
-                    assert.strictEqual(builds[4].statusMessage, 'Aborted event by myself');
-                    assert.calledOnce(event.getBuilds);
-                    assert.notCalled(builds[0].update);
-                    assert.notCalled(builds[1].update);
-                    assert.calledOnce(builds[2].update);
-                    assert.calledOnce(builds[3].update);
-                });
-            });
-
-            it('returns 401 unauthorized error when pipeline token does not have permission', () => {
-                const error = {
-                    statusCode: 401,
-                    error: 'Unauthorized',
-                    message: 'Token does not have permission to this pipeline'
-                };
-
-                options.auth.credentials = {
-                    scope: ['pipeline'],
-                    username,
-                    scmContext,
-                    pipelineId: pipelineId + 1
-                };
-
-                return server.inject(options).then(reply => {
-                    assert.equal(reply.statusCode, 401);
-                    assert.deepEqual(reply.result, error);
-                });
-            });
-
-            it('returns 404 when event does not exist', () => {
-                const error = {
-                    statusCode: 404,
-                    error: 'Not Found',
-                    message: `Event ${id} does not exist`
-                };
-
-                eventFactoryMock.get.withArgs(id).resolves(null);
-
-                return server.inject(options).then(reply => {
-                    assert.equal(reply.statusCode, 404);
-                    assert.deepEqual(reply.result, error);
-                });
-            });
-
-            it('returns 500 when datastore fails', () => {
-                eventFactoryMock.get.withArgs(id).rejects(new Error('Failed'));
-
-                return server.inject(options).then(reply => {
-                    assert.equal(reply.statusCode, 500);
-                });
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 403);
+                assert.notCalled(event.getBuilds);
+                assert.notCalled(builds[0].update);
+                assert.notCalled(builds[1].update);
+                assert.notCalled(builds[2].update);
+                assert.notCalled(builds[3].update);
+                assert.deepEqual(reply.result, error);
             });
         });
 
-        describe('GET /events/{id}/metrics', () => {
-            const id = 123;
-            const username = 'myself';
-            let options;
-            let eventMock;
-            let startTime = '2019-01-29T01:47:27.863Z';
-            let endTime = '2019-01-30T01:47:27.863Z';
-            const dateNow = 1552597858211;
-            const nowTime = new Date(dateNow).toISOString();
-            let sandbox;
+        it('returns 404 not found error when users scm host does not match and the pipeline is private', () => {
+            pipelineMock.scmRepo = { private: true };
 
-            beforeEach(() => {
-                sandbox = sinon.createSandbox({
-                    useFakeTimers: false
-                });
-                sandbox.useFakeTimers(dateNow);
-                options = {
-                    method: 'GET',
-                    url: `/events/${id}/metrics?startTime=${startTime}&endTime=${endTime}`,
-                    auth: {
-                        credentials: {
-                            username,
-                            scope: ['user']
-                        },
-                        strategy: ['token']
-                    }
+            const e = new Error('Users scm host does not match');
+
+            e.statusCode = 403;
+
+            userMock.getPermissions.rejects(e);
+
+            const error = {
+                statusCode: 404,
+                error: 'Not Found',
+                message: 'Not Found'
+            };
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 404);
+                assert.notCalled(event.getBuilds);
+                assert.notCalled(builds[0].update);
+                assert.notCalled(builds[1].update);
+                assert.notCalled(builds[2].update);
+                assert.notCalled(builds[3].update);
+                assert.deepEqual(reply.result, error);
+            });
+        });
+
+        it('returns 500 error when get permission throws error', () => {
+            const e = new Error('Something happened');
+
+            e.statusCode = 500;
+
+            userMock.getPermissions.rejects(e);
+
+            const error = {
+                statusCode: 500,
+                error: 'Internal Server Error',
+                message: 'An internal server error occurred'
+            };
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 500);
+                assert.notCalled(event.getBuilds);
+                assert.notCalled(builds[0].update);
+                assert.notCalled(builds[1].update);
+                assert.notCalled(builds[2].update);
+                assert.notCalled(builds[3].update);
+                assert.deepEqual(reply.result, error);
+            });
+        });
+
+        it('returns 200 when it successfully stops all event builds with pipeline token', () => {
+            options.auth.credentials = {
+                scope: ['pipeline'],
+                username,
+                scmContext,
+                pipelineId
+            };
+
+            return server.inject(options).then(reply => {
+                expectedLocation = {
+                    host: reply.request.headers.host,
+                    port: reply.request.headers.port,
+                    protocol: reply.request.server.info.protocol,
+                    pathname: `${options.url}/12345`
                 };
-                eventMock = getEventMock(testEvent);
-                eventMock.getMetrics = sinon.stub().resolves([]);
-                eventFactoryMock.get.resolves(eventMock);
+                assert.equal(reply.statusCode, 200);
+                assert.strictEqual(reply.headers.location, urlLib.format(expectedLocation));
+                assert.strictEqual(builds[2].status, 'ABORTED');
+                assert.strictEqual(builds[3].status, 'ABORTED');
+                assert.strictEqual(builds[4].status, 'ABORTED');
+                assert.strictEqual(builds[2].statusMessage, 'Aborted event by myself');
+                assert.strictEqual(builds[3].statusMessage, 'Aborted event by myself');
+                assert.strictEqual(builds[4].statusMessage, 'Aborted event by myself');
+                assert.calledOnce(event.getBuilds);
+                assert.notCalled(builds[0].update);
+                assert.notCalled(builds[1].update);
+                assert.calledOnce(builds[2].update);
+                assert.calledOnce(builds[3].update);
             });
+        });
 
-            afterEach(() => {
-                sandbox.restore();
+        it('returns 401 unauthorized error when pipeline token does not have permission', () => {
+            const error = {
+                statusCode: 401,
+                error: 'Unauthorized',
+                message: 'Token does not have permission to this pipeline'
+            };
+
+            options.auth.credentials = {
+                scope: ['pipeline'],
+                username,
+                scmContext,
+                pipelineId: pipelineId + 1
+            };
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 401);
+                assert.deepEqual(reply.result, error);
             });
+        });
 
-            it('returns 200 and metrics for event', () =>
-                server.inject(options).then(reply => {
-                    assert.equal(reply.statusCode, 200);
-                    assert.calledWith(eventMock.getMetrics, {
-                        startTime,
-                        endTime
-                    });
-                }));
+        it('returns 404 when event does not exist', () => {
+            const error = {
+                statusCode: 404,
+                error: 'Not Found',
+                message: `Event ${id} does not exist`
+            };
 
-            it('returns 400 if time range is too big', () => {
-                startTime = '2018-01-29T01:47:27.863Z';
-                endTime = '2019-01-29T01:47:27.863Z';
-                options.url = `/events/${id}/metrics?startTime=${startTime}&endTime=${endTime}`;
+            eventFactoryMock.get.withArgs(id).resolves(null);
 
-                return server.inject(options).then(reply => {
-                    assert.notCalled(eventMock.getMetrics);
-                    assert.equal(reply.statusCode, 400);
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 404);
+                assert.deepEqual(reply.result, error);
+            });
+        });
+
+        it('returns 500 when datastore fails', () => {
+            eventFactoryMock.get.withArgs(id).rejects(new Error('Failed'));
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 500);
+            });
+        });
+    });
+
+    describe('GET /events/{id}/metrics', () => {
+        const id = 123;
+        const username = 'myself';
+        let options;
+        let eventMock;
+        let startTime = '2019-01-29T01:47:27.863Z';
+        let endTime = '2019-01-30T01:47:27.863Z';
+        const dateNow = 1552597858211;
+        const nowTime = new Date(dateNow).toISOString();
+        let sandbox;
+
+        beforeEach(() => {
+            sandbox = sinon.createSandbox({
+                useFakeTimers: false
+            });
+            sandbox.useFakeTimers(dateNow);
+            options = {
+                method: 'GET',
+                url: `/events/${id}/metrics?startTime=${startTime}&endTime=${endTime}`,
+                auth: {
+                    credentials: {
+                        username,
+                        scope: ['user']
+                    },
+                    strategy: ['token']
+                }
+            };
+            eventMock = getEventMock(testEvent);
+            eventMock.getMetrics = sinon.stub().resolves([]);
+            eventFactoryMock.get.resolves(eventMock);
+        });
+
+        afterEach(() => {
+            sandbox.restore();
+        });
+
+        it('returns 200 and metrics for event', () =>
+            server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 200);
+                assert.calledWith(eventMock.getMetrics, {
+                    startTime,
+                    endTime
                 });
+            }));
+
+        it('returns 400 if time range is too big', () => {
+            startTime = '2018-01-29T01:47:27.863Z';
+            endTime = '2019-01-29T01:47:27.863Z';
+            options.url = `/events/${id}/metrics?startTime=${startTime}&endTime=${endTime}`;
+
+            return server.inject(options).then(reply => {
+                assert.notCalled(eventMock.getMetrics);
+                assert.equal(reply.statusCode, 400);
             });
+        });
 
-            it('defaults time range if missing', () => {
-                options.url = `/events/${id}/metrics`;
+        it('defaults time range if missing', () => {
+            options.url = `/events/${id}/metrics`;
 
-                return server.inject(options).then(reply => {
-                    assert.calledWith(eventMock.getMetrics, {
-                        endTime: nowTime,
-                        startTime: '2018-09-15T21:10:58.211Z' // 6 months
-                    });
-                    assert.equal(reply.statusCode, 200);
+            return server.inject(options).then(reply => {
+                assert.calledWith(eventMock.getMetrics, {
+                    endTime: nowTime,
+                    startTime: '2018-09-15T21:10:58.211Z' // 6 months
                 });
+                assert.equal(reply.statusCode, 200);
             });
+        });
 
-            it('returns 404 when event does not exist', () => {
-                const error = {
-                    statusCode: 404,
-                    error: 'Not Found',
-                    message: 'Event does not exist'
-                };
+        it('returns 404 when event does not exist', () => {
+            const error = {
+                statusCode: 404,
+                error: 'Not Found',
+                message: 'Event does not exist'
+            };
 
-                eventFactoryMock.get.resolves(null);
+            eventFactoryMock.get.resolves(null);
 
-                return server.inject(options).then(reply => {
-                    assert.equal(reply.statusCode, 404);
-                    assert.deepEqual(reply.result, error);
-                });
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 404);
+                assert.deepEqual(reply.result, error);
             });
+        });
 
-            it('returns 500 when datastore fails', () => {
-                eventFactoryMock.get.rejects(new Error('Failed'));
+        it('returns 500 when datastore fails', () => {
+            eventFactoryMock.get.rejects(new Error('Failed'));
 
-                return server.inject(options).then(reply => {
-                    assert.equal(reply.statusCode, 500);
-                });
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 500);
             });
         });
     });
