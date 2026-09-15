@@ -66,6 +66,9 @@ describe('command plugin test', () => {
     let requestMock;
     let plugin;
     let server;
+    let authMock;
+    let generateTokenMock;
+    let generateProfileMock;
 
     beforeEach(async () => {
         commandFactoryMock = {
@@ -87,6 +90,8 @@ describe('command plugin test', () => {
             get: sinon.stub()
         };
         requestMock = sinon.stub();
+        generateProfileMock = sinon.stub();
+        generateTokenMock = sinon.stub();
 
         plugin = rewiremock.proxy('../../plugins/commands', {
             'screwdriver-request': requestMock
@@ -114,7 +119,15 @@ describe('command plugin test', () => {
         }));
         server.auth.strategy('token', 'custom');
 
-        await server.register({ plugin });
+        authMock = {
+            name: 'auth',
+            register: s => {
+                s.expose('generateToken', generateTokenMock);
+                s.expose('generateProfile', generateProfileMock);
+            }
+        };
+
+        await server.register([{ plugin: authMock }, { plugin }]);
     });
 
     afterEach(() => {
@@ -673,6 +686,27 @@ describe('command plugin test', () => {
                 assert.calledOnce(testCommand.remove);
                 assert.calledOnce(testCommandTag.remove);
                 assert.equal(reply.statusCode, 204);
+            });
+        });
+
+        it('deletes the store binary with a minted sdapi token instead of the caller token', () => {
+            const profile = { scope: ['sdapi'] };
+
+            userMock.getPermissions.withArgs(scmUri).resolves({ admin: true });
+            generateProfileMock.returns(profile);
+            generateTokenMock.withArgs(profile).returns('signed-sdapi-token');
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 204);
+                assert.calledOnceWithExactly(generateProfileMock, {
+                    scope: ['sdapi'],
+                    metadata: { pipelineId, namespace: 'foo', name: 'bar' },
+                    auth: { type: 'temporary' }
+                });
+                assert.calledOnceWithExactly(generateTokenMock, profile);
+                assert.calledWithMatch(requestMock, {
+                    headers: { Authorization: 'Bearer signed-sdapi-token' }
+                });
             });
         });
     });
