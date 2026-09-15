@@ -1903,12 +1903,13 @@ describe('event plugin test', () => {
             });
         });
 
-        it('returns 404 when event have no builds', () => {
+        it('returns 201 when event have no builds', () => {
             testEvent.builds = null;
             eventFactoryMock.create.resolves(getEventMock(testEvent));
 
             return server.inject(options).then(reply => {
-                assert.equal(reply.statusCode, 404);
+                assert.equal(reply.statusCode, 201);
+                assert.equal(reply.headers['x-status-message'], 'No jobs to start.');
                 delete testEvent.builds;
             });
         });

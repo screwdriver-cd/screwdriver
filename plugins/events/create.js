@@ -295,10 +295,6 @@ module.exports = () => ({
 
             const event = await createEvent(payload, request.server);
 
-            if (event.builds === null) {
-                return boom.notFound('No jobs to start.');
-            }
-
             // everything succeeded, inform the user
             const location = urlLib.format({
                 host: request.headers.host,
@@ -306,6 +302,15 @@ module.exports = () => ({
                 protocol: request.server.info.protocol,
                 pathname: `${request.path}/${event.id}`
             });
+
+            if (event.builds === null) {
+                return h
+                    .response(event.toJson())
+                    .header('X-Status-Message', 'No jobs to start.')
+                    .header('Access-Control-Expose-Headers', 'X-Status-Message')
+                    .header('Location', location)
+                    .code(201);
+            }
 
             return h.response(event.toJson()).header('Location', location).code(201);
         },
