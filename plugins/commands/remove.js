@@ -56,7 +56,6 @@ module.exports = () => ({
             const { commandFactory, commandTagFactory } = request.server.app;
             const { canRemove } = request.server.plugins.commands;
             const storeUrl = request.server.app.ecosystem.store;
-            const authToken = request.headers.authorization;
 
             return Promise.all([
                 commandFactory.list({ params: { namespace, name } }),
@@ -69,6 +68,21 @@ module.exports = () => ({
 
                     return canRemove(credentials, commands[0], 'admin', request.server.app)
                         .then(() => {
+                            // Delegate to the store with a service token that attests the
+                            // ownership check just performed, instead of forwarding the
+                            // caller's own token. The store has no visibility into SCM
+                            // permissions and cannot re-derive this decision, so forwarding a
+                            // bare user/guest-scope token let a caller reach the store
+                            // directly and skip this check entirely.
+                            const storeToken = request.server.plugins.auth.generateToken(
+                                request.server.plugins.auth.generateProfile({
+                                    scope: ['sdapi'],
+                                    metadata: { pipelineId: commands[0].pipelineId, namespace, name },
+                                    auth: { type: 'temporary' }
+                                })
+                            );
+                            const authToken = `Bearer ${storeToken}`;
+
                             const commandPromises = commands.map(command =>
                                 removeCommand(command, storeUrl, authToken)
                             );
