@@ -448,7 +448,7 @@ describe('pipeline plugin test', () => {
             ['put', '/pipelines/{pipelineId}/tokens/{tokenId}', 'all'],
             ['put', '/pipelines/{pipelineId}/tokens/{tokenId}/refresh', 'all'],
             ['delete', '/pipelines/{pipelineId}/tokens/{tokenId}', 'all'],
-            ['delete', '/pipelines/{id}/tokens', 'all'],
+            ['delete', '/pipelines/{pipelineId}/tokens', 'all'],
             ['put', '/pipelines/{id}/updateAdmins', 'all'],
             ['put', '/pipelines/updateAdmins', 'all'],
             ['post', '/pipeline/template', 'all'],
@@ -4957,7 +4957,7 @@ describe('pipeline plugin test', () => {
             userFactoryMock.get.withArgs({ username, scmContext }).resolves(userMock);
             pipelineMock = getPipelineMocks(testPipeline);
             pipelineMock.tokens = Promise.resolve(getTokenMocks([testTokens]));
-            pipelineFactoryMock.get.resolves(pipelineMock);
+            pipelineFactoryMock.get.withArgs(id).resolves(pipelineMock);
         });
 
         it('returns 204 when delete all successfully', () =>
@@ -4987,7 +4987,7 @@ describe('pipeline plugin test', () => {
                 message: 'Pipeline does not exist'
             };
 
-            pipelineFactoryMock.get.resolves(null);
+            pipelineFactoryMock.get.withArgs(id).resolves(null);
 
             return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 404);
