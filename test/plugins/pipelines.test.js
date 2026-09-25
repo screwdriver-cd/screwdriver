@@ -898,6 +898,11 @@ describe('pipeline plugin test', () => {
                 private: true
             }
         };
+        const permissionError = {
+            statusCode: 403,
+            error: 'Forbidden',
+            message: 'User foo does not have pull access for this pipeline'
+        };
         let options;
 
         beforeEach(() => {
@@ -948,11 +953,6 @@ describe('pipeline plugin test', () => {
         });
 
         it('returns 403 when user does not have permissions', () => {
-            const error = {
-                statusCode: 403,
-                error: 'Forbidden',
-                message: 'User foo does not have pull access for this pipeline'
-            };
             const userMock = {
                 username: 'foo',
                 getPermissions: sinon.stub().resolves({ pull: false })
@@ -964,7 +964,79 @@ describe('pipeline plugin test', () => {
 
             return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 403);
-                assert.deepEqual(reply.result, error);
+                assert.deepEqual(reply.result, permissionError);
+            });
+        });
+
+        it('returns 200 for an explicit pipeline admin from a different SCM context', () => {
+            const userId = 888;
+            const pipeline = decoratePipelineMock({
+                ...testPrivatePipelines[0],
+                adminUserIds: [userId]
+            });
+            const userMock = {
+                id: userId,
+                username: 'foo',
+                scmContext: differentScmContext,
+                getPermissions: sinon.stub().resolves({ pull: false })
+            };
+
+            options.auth.credentials.scmContext = differentScmContext;
+            screwdriverAdminDetailsMock.returns({ isAdmin: false });
+            pipelineFactoryMock.get.resolves(pipeline);
+            userFactoryMock.get.resolves(userMock);
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 200);
+                assert.deepEqual(reply.result, pipeline.toJson());
+                assert.calledOnce(userMock.getPermissions);
+            });
+        });
+
+        it('returns 403 for an explicit pipeline admin from the same SCM context', () => {
+            const userId = 888;
+            const pipeline = decoratePipelineMock({
+                ...testPrivatePipelines[0],
+                adminUserIds: [userId]
+            });
+            const userMock = {
+                id: userId,
+                username: 'foo',
+                scmContext,
+                getPermissions: sinon.stub().resolves({ pull: false })
+            };
+
+            options.auth.credentials.scmContext = scmContext;
+            screwdriverAdminDetailsMock.returns({ isAdmin: false });
+            pipelineFactoryMock.get.resolves(pipeline);
+            userFactoryMock.get.resolves(userMock);
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 403);
+                assert.deepEqual(reply.result, permissionError);
+            });
+        });
+
+        it('returns 403 for a user from a different SCM context who is not an explicit pipeline admin', () => {
+            const pipeline = decoratePipelineMock({
+                ...testPrivatePipelines[0],
+                adminUserIds: [888]
+            });
+            const userMock = {
+                id: 999,
+                username: 'foo',
+                scmContext: differentScmContext,
+                getPermissions: sinon.stub().resolves({ pull: false })
+            };
+
+            options.auth.credentials.scmContext = differentScmContext;
+            screwdriverAdminDetailsMock.returns({ isAdmin: false });
+            pipelineFactoryMock.get.resolves(pipeline);
+            userFactoryMock.get.resolves(userMock);
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 403);
+                assert.deepEqual(reply.result, permissionError);
             });
         });
     });
