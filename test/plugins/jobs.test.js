@@ -93,7 +93,6 @@ describe('authorization settings test for job routes', () => {
     let pipelineExecuteJwt;
     let pipelineWriteJwt;
     let pipelineAllJwt;
-    let pipelineTemporaryJwt;
     let invalidJwt;
 
     beforeEach(async () => {
@@ -296,7 +295,6 @@ describe('authorization settings test for job routes', () => {
         const pipelineExecuteJwtResult = await serverInject(server, route, pipelineExecuteJwt);
         const pipelineWriteJwtResult = await serverInject(server, route, pipelineWriteJwt);
         const pipelineAllJwtResult = await serverInject(server, route, pipelineAllJwt);
-        const pipelineTemporaryJwtResult = await serverInject(server, route, pipelineAllJwt);
 
         assert.equal(noAuthResult.statusCode, 401);
         assert.equal(invalidJwtResult.statusCode, 403);
@@ -309,7 +307,6 @@ describe('authorization settings test for job routes', () => {
         assert.equal(pipelineExecuteJwtResult.statusCode, 403);
         assert.equal(pipelineWriteJwtResult.statusCode, 403);
         assert.equal(pipelineAllJwtResult.statusCode, 200);
-        assert.equal(pipelineTemporaryJwtResult.statusCode, 200);
     });
 });
 
