@@ -4,6 +4,7 @@ const { assert } = require('chai');
 const sinon = require('sinon');
 const hapi = require('@hapi/hapi');
 const hoek = require('@hapi/hoek');
+const { newAuthTestServer, serverInject } = require('./auth.test.helper');
 const testBuilds = require('./data/builds.json');
 const testBuild = require('./data/buildWithSteps.json');
 const testJob = require('./data/job.json');
@@ -80,6 +81,221 @@ const getMockBuildClusters = buildClusters => {
 
     return decorateBuildClusterObject(buildClusters);
 };
+
+describe('authorization settings test for job routes', () => {
+    let server;
+    let readJwt;
+    let executeJwt;
+    let writeJwt;
+    let allJwt;
+    let oauthJwt;
+    let pipelineJwt;
+    let invalidJwt;
+
+    beforeEach(async () => {
+        /* eslint-disable global-require */
+        const plugin = require('../../plugins/jobs');
+        /* eslint-enable global-require */
+
+        server = await newAuthTestServer();
+
+        await server.register({ plugin });
+
+        readJwt = server.generateTestJwt({ permission: 'read' });
+        executeJwt = server.generateTestJwt({ permission: 'execute' });
+        writeJwt = server.generateTestJwt({ permission: 'write' });
+        allJwt = server.generateTestJwt({ permission: 'all' });
+        oauthJwt = server.generateTestJwt({ type: 'oauth' });
+        pipelineJwt = server.generateTestJwt({ type: 'temporary', scope: ['pipeline'] });
+        invalidJwt = server.generateTestJwt({ permission: 'invalid' });
+    });
+
+    afterEach(() => {
+        server = null;
+    });
+
+    it('GET /jobs/{id} requires read permission', async () => {
+        const route = { method: 'GET', url: '/jobs/123' };
+
+        const noAuthResult = await serverInject(server, route);
+        const invalidJwtResult = await serverInject(server, route, invalidJwt);
+        const readJwtResult = await serverInject(server, route, readJwt);
+        const executeJwtResult = await serverInject(server, route, executeJwt);
+        const writeJwtResult = await serverInject(server, route, writeJwt);
+        const allJwtResult = await serverInject(server, route, allJwt);
+        const oAuthJwtResult = await serverInject(server, route, oauthJwt);
+
+        assert.equal(noAuthResult.statusCode, 401);
+        assert.equal(invalidJwtResult.statusCode, 403);
+        assert.equal(readJwtResult.statusCode, 200);
+        assert.equal(executeJwtResult.statusCode, 200);
+        assert.equal(writeJwtResult.statusCode, 200);
+        assert.equal(allJwtResult.statusCode, 200);
+        assert.equal(oAuthJwtResult.statusCode, 200);
+    });
+
+    it('GET /jobs/{id}/builds requires read permission', async () => {
+        const route = { method: 'GET', url: '/jobs/123/builds' };
+
+        const noAuthResult = await serverInject(server, route);
+        const invalidJwtResult = await serverInject(server, route, invalidJwt);
+        const readJwtResult = await serverInject(server, route, readJwt);
+        const executeJwtResult = await serverInject(server, route, executeJwt);
+        const writeJwtResult = await serverInject(server, route, writeJwt);
+        const allJwtResult = await serverInject(server, route, allJwt);
+        const oAuthJwtResult = await serverInject(server, route, oauthJwt);
+
+        assert.equal(noAuthResult.statusCode, 401);
+        assert.equal(invalidJwtResult.statusCode, 403);
+        assert.equal(readJwtResult.statusCode, 200);
+        assert.equal(executeJwtResult.statusCode, 200);
+        assert.equal(writeJwtResult.statusCode, 200);
+        assert.equal(allJwtResult.statusCode, 200);
+        assert.equal(oAuthJwtResult.statusCode, 200);
+    });
+
+    it('GET /jobs/{id}/lastSuccessfulMeta requires read permission', async () => {
+        const route = { method: 'GET', url: '/jobs/123/lastSuccessfulMeta' };
+
+        const noAuthResult = await serverInject(server, route);
+        const invalidJwtResult = await serverInject(server, route, invalidJwt);
+        const readJwtResult = await serverInject(server, route, readJwt);
+        const executeJwtResult = await serverInject(server, route, executeJwt);
+        const writeJwtResult = await serverInject(server, route, writeJwt);
+        const allJwtResult = await serverInject(server, route, allJwt);
+        const oAuthJwtResult = await serverInject(server, route, oauthJwt);
+
+        assert.equal(noAuthResult.statusCode, 401);
+        assert.equal(invalidJwtResult.statusCode, 403);
+        assert.equal(readJwtResult.statusCode, 200);
+        assert.equal(executeJwtResult.statusCode, 200);
+        assert.equal(writeJwtResult.statusCode, 200);
+        assert.equal(allJwtResult.statusCode, 200);
+        assert.equal(oAuthJwtResult.statusCode, 200);
+    });
+
+    it('GET /jobs/{id}/metrics requires read permission', async () => {
+        const route = { method: 'GET', url: '/jobs/123/metrics' };
+
+        const noAuthResult = await serverInject(server, route);
+        const invalidJwtResult = await serverInject(server, route, invalidJwt);
+        const readJwtResult = await serverInject(server, route, readJwt);
+        const executeJwtResult = await serverInject(server, route, executeJwt);
+        const writeJwtResult = await serverInject(server, route, writeJwt);
+        const allJwtResult = await serverInject(server, route, allJwt);
+        const oAuthJwtResult = await serverInject(server, route, oauthJwt);
+
+        assert.equal(noAuthResult.statusCode, 401);
+        assert.equal(invalidJwtResult.statusCode, 403);
+        assert.equal(readJwtResult.statusCode, 200);
+        assert.equal(executeJwtResult.statusCode, 200);
+        assert.equal(writeJwtResult.statusCode, 200);
+        assert.equal(allJwtResult.statusCode, 200);
+        assert.equal(oAuthJwtResult.statusCode, 200);
+    });
+
+    it('GET /jobs/{id}/latestBuild requires read permission', async () => {
+        const route = { method: 'GET', url: '/jobs/123/latestBuild' };
+
+        const noAuthResult = await serverInject(server, route);
+        const invalidJwtResult = await serverInject(server, route, invalidJwt);
+        const readJwtResult = await serverInject(server, route, readJwt);
+        const executeJwtResult = await serverInject(server, route, executeJwt);
+        const writeJwtResult = await serverInject(server, route, writeJwt);
+        const allJwtResult = await serverInject(server, route, allJwt);
+        const oAuthJwtResult = await serverInject(server, route, oauthJwt);
+
+        assert.equal(noAuthResult.statusCode, 401);
+        assert.equal(invalidJwtResult.statusCode, 403);
+        assert.equal(readJwtResult.statusCode, 200);
+        assert.equal(executeJwtResult.statusCode, 200);
+        assert.equal(writeJwtResult.statusCode, 200);
+        assert.equal(allJwtResult.statusCode, 200);
+        assert.equal(oAuthJwtResult.statusCode, 200);
+    });
+
+    it('PUT /jobs/{id} requires write permission', async () => {
+        const route = { method: 'PUT', url: '/jobs/123' };
+
+        const noAuthResult = await serverInject(server, route);
+        const invalidJwtResult = await serverInject(server, route, invalidJwt);
+        const readJwtResult = await serverInject(server, route, readJwt);
+        const executeJwtResult = await serverInject(server, route, executeJwt);
+        const writeJwtResult = await serverInject(server, route, writeJwt);
+        const allJwtResult = await serverInject(server, route, allJwt);
+        const oAuthJwtResult = await serverInject(server, route, oauthJwt);
+
+        assert.equal(noAuthResult.statusCode, 401);
+        assert.equal(invalidJwtResult.statusCode, 403);
+        assert.equal(readJwtResult.statusCode, 403);
+        assert.equal(executeJwtResult.statusCode, 403);
+        assert.equal(writeJwtResult.statusCode, 200);
+        assert.equal(allJwtResult.statusCode, 200);
+        assert.equal(oAuthJwtResult.statusCode, 200);
+    });
+
+    it('PUT /jobs/{id}/buildCluster requires all permission', async () => {
+        const route = { method: 'PUT', url: '/jobs/123/buildCluster' };
+
+        const noAuthResult = await serverInject(server, route);
+        const invalidJwtResult = await serverInject(server, route, invalidJwt);
+        const readJwtResult = await serverInject(server, route, readJwt);
+        const executeJwtResult = await serverInject(server, route, executeJwt);
+        const writeJwtResult = await serverInject(server, route, writeJwt);
+        const allJwtResult = await serverInject(server, route, allJwt);
+        const oAuthJwtResult = await serverInject(server, route, oauthJwt);
+
+        assert.equal(noAuthResult.statusCode, 401);
+        assert.equal(invalidJwtResult.statusCode, 403);
+        assert.equal(readJwtResult.statusCode, 403);
+        assert.equal(executeJwtResult.statusCode, 403);
+        assert.equal(writeJwtResult.statusCode, 403);
+        assert.equal(allJwtResult.statusCode, 200);
+        assert.equal(oAuthJwtResult.statusCode, 200);
+    });
+
+    it('DELETE /jobs/{id}/buildCluster requires write permission', async () => {
+        const route = { method: 'DELETE', url: '/jobs/123/buildCluster' };
+
+        const noAuthResult = await serverInject(server, route);
+        const invalidJwtResult = await serverInject(server, route, invalidJwt);
+        const readJwtResult = await serverInject(server, route, readJwt);
+        const executeJwtResult = await serverInject(server, route, executeJwt);
+        const writeJwtResult = await serverInject(server, route, writeJwt);
+        const allJwtResult = await serverInject(server, route, allJwt);
+        const oAuthJwtResult = await serverInject(server, route, oauthJwt);
+
+        assert.equal(noAuthResult.statusCode, 401);
+        assert.equal(invalidJwtResult.statusCode, 403);
+        assert.equal(readJwtResult.statusCode, 403);
+        assert.equal(executeJwtResult.statusCode, 403);
+        assert.equal(writeJwtResult.statusCode, 403);
+        assert.equal(allJwtResult.statusCode, 200);
+        assert.equal(oAuthJwtResult.statusCode, 200);
+    });
+
+    it('POST /jobs/{id}/notify requires pipeline scope', async () => {
+        const route = { method: 'POST', url: '/jobs/123/notify' };
+
+        const noAuthResult = await serverInject(server, route);
+        const invalidJwtResult = await serverInject(server, route, invalidJwt);
+        const readJwtResult = await serverInject(server, route, readJwt);
+        const executeJwtResult = await serverInject(server, route, executeJwt);
+        const writeJwtResult = await serverInject(server, route, writeJwt);
+        const allJwtResult = await serverInject(server, route, allJwt);
+        const oAuthJwtResult = await serverInject(server, route, oauthJwt);
+        const pipelineJwtResult = await serverInject(server, route, pipelineJwt);
+
+        assert.equal(noAuthResult.statusCode, 401);
+        assert.equal(invalidJwtResult.statusCode, 403);
+        assert.equal(readJwtResult.statusCode, 403);
+        assert.equal(executeJwtResult.statusCode, 403);
+        assert.equal(writeJwtResult.statusCode, 403);
+        assert.equal(allJwtResult.statusCode, 403);
+        assert.equal(oAuthJwtResult.statusCode, 403);
+        assert.equal(pipelineJwtResult.statusCode, 200);
+    });
+});
 
 describe('job plugin test', () => {
     let jobFactoryMock;
@@ -187,33 +403,6 @@ describe('job plugin test', () => {
 
     it('registers the plugin', () => {
         assert.isOk(server.registrations.jobs);
-    });
-
-    describe('authorization settings for job routes', () => {
-        const routesRequiringAuthorization = [
-            ['get', '/jobs/{id}', 'read'],
-            ['get', '/jobs/{id}/builds', 'read'],
-            ['get', '/jobs/{id}/lastSuccessfulMeta', 'read'],
-            ['get', '/jobs/{id}/metrics', 'read'],
-            ['get', '/jobs/{id}/latestBuild', 'read'],
-            ['put', '/jobs/{id}', 'write'],
-            ['post', '/jobs/{id}/notify', 'all'],
-            ['put', '/jobs/{id}/buildCluster', 'all'],
-            ['delete', '/jobs/{id}/buildCluster', 'all']
-        ];
-
-        it('sets the agreed permission on every authenticated job route', () => {
-            routesRequiringAuthorization.forEach(([method, path, permission]) => {
-                const route = server.table().find(r => r.method === method && r.path === path);
-
-                assert.isOk(route, `${method.toUpperCase()} ${path} should be registered`);
-                assert.equal(
-                    route.settings.plugins.authorization.permission,
-                    permission,
-                    `${method.toUpperCase()} ${path} should require ${permission} permission`
-                );
-            });
-        });
     });
 
     describe('GET /jobs/{id}', () => {

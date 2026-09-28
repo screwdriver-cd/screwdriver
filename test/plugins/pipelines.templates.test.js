@@ -6,6 +6,7 @@ const sinon = require('sinon');
 const hapi = require('@hapi/hapi');
 const hoek = require('@hapi/hoek');
 const rewiremock = require('rewiremock/node');
+const { newAuthTestServer, serverInject } = require('./auth.test.helper');
 const testPipeline = require('./data/pipeline.json');
 const testTemplate = require('./data/pipeline-template.json');
 const testTemplateUntrusted = require('./data/pipeline-template-untrusted.json');
@@ -69,6 +70,311 @@ const getTagsMock = tags => {
 
     return mock;
 };
+
+describe('authorization settings test for pipeline template routes', () => {
+    let server;
+    let readJwt;
+    let executeJwt;
+    let writeJwt;
+    let allJwt;
+    let oauthJwt;
+    let sdAdminJwt;
+    let buildJwt;
+    let invalidJwt;
+
+    beforeEach(async () => {
+        /* eslint-disable global-require */
+        const plugin = rewiremock.proxy('../../plugins/pipelines', {
+            '../../plugins/lock': {}
+        });
+        /* eslint-enable global-require */
+
+        server = await newAuthTestServer();
+
+        await server.register({ plugin });
+
+        readJwt = server.generateTestJwt({ permission: 'read' });
+        executeJwt = server.generateTestJwt({ permission: 'execute' });
+        writeJwt = server.generateTestJwt({ permission: 'write' });
+        allJwt = server.generateTestJwt({ permission: 'all' });
+        oauthJwt = server.generateTestJwt({ type: 'oauth' });
+        sdAdminJwt = server.generateTestJwt({ permission: 'all', scope: ['admin'] });
+        buildJwt = server.generateTestJwt({ type: 'temporary', scope: ['build'] });
+        invalidJwt = server.generateTestJwt({ permission: 'invalid' });
+    });
+
+    afterEach(() => {
+        server = null;
+    });
+
+    it('POST /pipeline/template/validate does not requires permission', async () => {
+        const route = { method: 'POST', url: '/pipeline/template/validate' };
+
+        const noAuthResult = await serverInject(server, route);
+        const invalidJwtResult = await serverInject(server, route, invalidJwt);
+        const readJwtResult = await serverInject(server, route, readJwt);
+        const executeJwtResult = await serverInject(server, route, executeJwt);
+        const writeJwtResult = await serverInject(server, route, writeJwt);
+        const allJwtResult = await serverInject(server, route, allJwt);
+        const oAuthJwtResult = await serverInject(server, route, oauthJwt);
+
+        assert.equal(noAuthResult.statusCode, 200);
+        assert.equal(invalidJwtResult.statusCode, 200);
+        assert.equal(readJwtResult.statusCode, 200);
+        assert.equal(executeJwtResult.statusCode, 200);
+        assert.equal(writeJwtResult.statusCode, 200);
+        assert.equal(allJwtResult.statusCode, 200);
+        assert.equal(oAuthJwtResult.statusCode, 200);
+    });
+
+    it('GET /pipeline/templates requires read permission', async () => {
+        const route = { method: 'GET', url: '/pipeline/templates' };
+
+        const noAuthResult = await serverInject(server, route);
+        const invalidJwtResult = await serverInject(server, route, invalidJwt);
+        const readJwtResult = await serverInject(server, route, readJwt);
+        const executeJwtResult = await serverInject(server, route, executeJwt);
+        const writeJwtResult = await serverInject(server, route, writeJwt);
+        const allJwtResult = await serverInject(server, route, allJwt);
+        const oAuthJwtResult = await serverInject(server, route, oauthJwt);
+
+        assert.equal(noAuthResult.statusCode, 401);
+        assert.equal(invalidJwtResult.statusCode, 403);
+        assert.equal(readJwtResult.statusCode, 200);
+        assert.equal(executeJwtResult.statusCode, 200);
+        assert.equal(writeJwtResult.statusCode, 200);
+        assert.equal(allJwtResult.statusCode, 200);
+        assert.equal(oAuthJwtResult.statusCode, 200);
+    });
+
+    it('GET /pipeline/template/{id} requires read permission', async () => {
+        const route = { method: 'GET', url: '/pipeline/template/123' };
+
+        const noAuthResult = await serverInject(server, route);
+        const invalidJwtResult = await serverInject(server, route, invalidJwt);
+        const readJwtResult = await serverInject(server, route, readJwt);
+        const executeJwtResult = await serverInject(server, route, executeJwt);
+        const writeJwtResult = await serverInject(server, route, writeJwt);
+        const allJwtResult = await serverInject(server, route, allJwt);
+        const oAuthJwtResult = await serverInject(server, route, oauthJwt);
+
+        assert.equal(noAuthResult.statusCode, 401);
+        assert.equal(invalidJwtResult.statusCode, 403);
+        assert.equal(readJwtResult.statusCode, 200);
+        assert.equal(executeJwtResult.statusCode, 200);
+        assert.equal(writeJwtResult.statusCode, 200);
+        assert.equal(allJwtResult.statusCode, 200);
+        assert.equal(oAuthJwtResult.statusCode, 200);
+    });
+
+    it('GET /pipeline/template/{namespace}/{name} requires read permission', async () => {
+        const route = { method: 'GET', url: '/pipeline/template/foo/bar' };
+
+        const noAuthResult = await serverInject(server, route);
+        const invalidJwtResult = await serverInject(server, route, invalidJwt);
+        const readJwtResult = await serverInject(server, route, readJwt);
+        const executeJwtResult = await serverInject(server, route, executeJwt);
+        const writeJwtResult = await serverInject(server, route, writeJwt);
+        const allJwtResult = await serverInject(server, route, allJwt);
+        const oAuthJwtResult = await serverInject(server, route, oauthJwt);
+
+        assert.equal(noAuthResult.statusCode, 401);
+        assert.equal(invalidJwtResult.statusCode, 403);
+        assert.equal(readJwtResult.statusCode, 200);
+        assert.equal(executeJwtResult.statusCode, 200);
+        assert.equal(writeJwtResult.statusCode, 200);
+        assert.equal(allJwtResult.statusCode, 200);
+        assert.equal(oAuthJwtResult.statusCode, 200);
+    });
+
+    it('GET /pipeline/template/{namespace}/{name}/{versionOrTag} requires read permission', async () => {
+        const route = { method: 'GET', url: '/pipeline/template/foo/bar/baz' };
+
+        const noAuthResult = await serverInject(server, route);
+        const invalidJwtResult = await serverInject(server, route, invalidJwt);
+        const readJwtResult = await serverInject(server, route, readJwt);
+        const executeJwtResult = await serverInject(server, route, executeJwt);
+        const writeJwtResult = await serverInject(server, route, writeJwt);
+        const allJwtResult = await serverInject(server, route, allJwt);
+        const oAuthJwtResult = await serverInject(server, route, oauthJwt);
+
+        assert.equal(noAuthResult.statusCode, 401);
+        assert.equal(invalidJwtResult.statusCode, 403);
+        assert.equal(readJwtResult.statusCode, 200);
+        assert.equal(executeJwtResult.statusCode, 200);
+        assert.equal(writeJwtResult.statusCode, 200);
+        assert.equal(allJwtResult.statusCode, 200);
+        assert.equal(oAuthJwtResult.statusCode, 200);
+    });
+
+    it('GET /pipeline/templates/{namespace}/{name}/versions requires read permission', async () => {
+        const route = { method: 'GET', url: '/pipeline/templates/foo/bar/versions' };
+
+        const noAuthResult = await serverInject(server, route);
+        const invalidJwtResult = await serverInject(server, route, invalidJwt);
+        const readJwtResult = await serverInject(server, route, readJwt);
+        const executeJwtResult = await serverInject(server, route, executeJwt);
+        const writeJwtResult = await serverInject(server, route, writeJwt);
+        const allJwtResult = await serverInject(server, route, allJwt);
+        const oAuthJwtResult = await serverInject(server, route, oauthJwt);
+
+        assert.equal(noAuthResult.statusCode, 401);
+        assert.equal(invalidJwtResult.statusCode, 403);
+        assert.equal(readJwtResult.statusCode, 200);
+        assert.equal(executeJwtResult.statusCode, 200);
+        assert.equal(writeJwtResult.statusCode, 200);
+        assert.equal(allJwtResult.statusCode, 200);
+        assert.equal(oAuthJwtResult.statusCode, 200);
+    });
+
+    it('GET /pipeline/templates/{namespace}/{name}/tags requires read permission', async () => {
+        const route = { method: 'GET', url: '/pipeline/templates/foo/bar/tags' };
+
+        const noAuthResult = await serverInject(server, route);
+        const invalidJwtResult = await serverInject(server, route, invalidJwt);
+        const readJwtResult = await serverInject(server, route, readJwt);
+        const executeJwtResult = await serverInject(server, route, executeJwt);
+        const writeJwtResult = await serverInject(server, route, writeJwt);
+        const allJwtResult = await serverInject(server, route, allJwt);
+        const oAuthJwtResult = await serverInject(server, route, oauthJwt);
+
+        assert.equal(noAuthResult.statusCode, 401);
+        assert.equal(invalidJwtResult.statusCode, 403);
+        assert.equal(readJwtResult.statusCode, 200);
+        assert.equal(executeJwtResult.statusCode, 200);
+        assert.equal(writeJwtResult.statusCode, 200);
+        assert.equal(allJwtResult.statusCode, 200);
+        assert.equal(oAuthJwtResult.statusCode, 200);
+    });
+
+    it('POST /pipeline/template requires build scope', async () => {
+        const route = { method: 'POST', url: '/pipeline/template' };
+
+        const noAuthResult = await serverInject(server, route);
+        const invalidJwtResult = await serverInject(server, route, invalidJwt);
+        const readJwtResult = await serverInject(server, route, readJwt);
+        const executeJwtResult = await serverInject(server, route, executeJwt);
+        const writeJwtResult = await serverInject(server, route, writeJwt);
+        const allJwtResult = await serverInject(server, route, allJwt);
+        const oAuthJwtResult = await serverInject(server, route, oauthJwt);
+        const buildJwtResult = await serverInject(server, route, buildJwt);
+
+        assert.equal(noAuthResult.statusCode, 401);
+        assert.equal(invalidJwtResult.statusCode, 403);
+        assert.equal(readJwtResult.statusCode, 403);
+        assert.equal(executeJwtResult.statusCode, 403);
+        assert.equal(writeJwtResult.statusCode, 403);
+        assert.equal(allJwtResult.statusCode, 403);
+        assert.equal(oAuthJwtResult.statusCode, 403);
+        assert.equal(buildJwtResult.statusCode, 200);
+    });
+
+    it('PUT /pipeline/template/{namespace}/{name}/tags/{tag} requires build scope', async () => {
+        const route = { method: 'PUT', url: '/pipeline/template/foo/bar/tags/baz' };
+
+        const noAuthResult = await serverInject(server, route);
+        const invalidJwtResult = await serverInject(server, route, invalidJwt);
+        const readJwtResult = await serverInject(server, route, readJwt);
+        const executeJwtResult = await serverInject(server, route, executeJwt);
+        const writeJwtResult = await serverInject(server, route, writeJwt);
+        const allJwtResult = await serverInject(server, route, allJwt);
+        const oAuthJwtResult = await serverInject(server, route, oauthJwt);
+        const buildJwtResult = await serverInject(server, route, buildJwt);
+
+        assert.equal(noAuthResult.statusCode, 401);
+        assert.equal(invalidJwtResult.statusCode, 403);
+        assert.equal(readJwtResult.statusCode, 403);
+        assert.equal(executeJwtResult.statusCode, 403);
+        assert.equal(writeJwtResult.statusCode, 403);
+        assert.equal(allJwtResult.statusCode, 403);
+        assert.equal(oAuthJwtResult.statusCode, 403);
+        assert.equal(buildJwtResult.statusCode, 200);
+    });
+
+    it('DELETE /pipeline/templates/{namespace}/{name} requires all permission', async () => {
+        const route = { method: 'DELETE', url: '/pipeline/templates/foo/bar' };
+
+        const noAuthResult = await serverInject(server, route);
+        const invalidJwtResult = await serverInject(server, route, invalidJwt);
+        const readJwtResult = await serverInject(server, route, readJwt);
+        const executeJwtResult = await serverInject(server, route, executeJwt);
+        const writeJwtResult = await serverInject(server, route, writeJwt);
+        const allJwtResult = await serverInject(server, route, allJwt);
+        const oAuthJwtResult = await serverInject(server, route, oauthJwt);
+
+        assert.equal(noAuthResult.statusCode, 401);
+        assert.equal(invalidJwtResult.statusCode, 403);
+        assert.equal(readJwtResult.statusCode, 403);
+        assert.equal(executeJwtResult.statusCode, 403);
+        assert.equal(writeJwtResult.statusCode, 403);
+        assert.equal(allJwtResult.statusCode, 200);
+        assert.equal(oAuthJwtResult.statusCode, 200);
+    });
+
+    it('DELETE /pipeline/templates/{namespace}/{name}/tags/{tag} requires build scope', async () => {
+        const route = { method: 'DELETE', url: '/pipeline/templates/foo/bar/tags/baz' };
+
+        const noAuthResult = await serverInject(server, route);
+        const invalidJwtResult = await serverInject(server, route, invalidJwt);
+        const readJwtResult = await serverInject(server, route, readJwt);
+        const executeJwtResult = await serverInject(server, route, executeJwt);
+        const writeJwtResult = await serverInject(server, route, writeJwt);
+        const allJwtResult = await serverInject(server, route, allJwt);
+        const oAuthJwtResult = await serverInject(server, route, oauthJwt);
+        const buildJwtResult = await serverInject(server, route, buildJwt);
+
+        assert.equal(noAuthResult.statusCode, 401);
+        assert.equal(invalidJwtResult.statusCode, 403);
+        assert.equal(readJwtResult.statusCode, 403);
+        assert.equal(executeJwtResult.statusCode, 403);
+        assert.equal(writeJwtResult.statusCode, 403);
+        assert.equal(allJwtResult.statusCode, 403);
+        assert.equal(oAuthJwtResult.statusCode, 403);
+        assert.equal(buildJwtResult.statusCode, 200);
+    });
+
+    it('DELETE /pipeline/templates/{namespace}/{name}/versions/{version} requires all permission', async () => {
+        const route = { method: 'DELETE', url: '/pipeline/templates/foo/bar/versions/1' };
+
+        const noAuthResult = await serverInject(server, route);
+        const invalidJwtResult = await serverInject(server, route, invalidJwt);
+        const readJwtResult = await serverInject(server, route, readJwt);
+        const executeJwtResult = await serverInject(server, route, executeJwt);
+        const writeJwtResult = await serverInject(server, route, writeJwt);
+        const allJwtResult = await serverInject(server, route, allJwt);
+        const oAuthJwtResult = await serverInject(server, route, oauthJwt);
+
+        assert.equal(noAuthResult.statusCode, 401);
+        assert.equal(invalidJwtResult.statusCode, 403);
+        assert.equal(readJwtResult.statusCode, 403);
+        assert.equal(executeJwtResult.statusCode, 403);
+        assert.equal(writeJwtResult.statusCode, 403);
+        assert.equal(allJwtResult.statusCode, 200);
+        assert.equal(oAuthJwtResult.statusCode, 200);
+    });
+
+    it('PUT /pipeline/templates/{namespace}/{name}/trusted requires all permission and admin scope', async () => {
+        const route = { method: 'PUT', url: '/pipeline/templates/foo/bar/trusted' };
+
+        const noAuthResult = await serverInject(server, route);
+        const invalidJwtResult = await serverInject(server, route, invalidJwt);
+        const readJwtResult = await serverInject(server, route, readJwt);
+        const executeJwtResult = await serverInject(server, route, executeJwt);
+        const writeJwtResult = await serverInject(server, route, writeJwt);
+        const allJwtResult = await serverInject(server, route, allJwt);
+        const oAuthJwtResult = await serverInject(server, route, oauthJwt);
+        const sdAdminJwtResult = await serverInject(server, route, sdAdminJwt);
+
+        assert.equal(noAuthResult.statusCode, 401);
+        assert.equal(invalidJwtResult.statusCode, 403);
+        assert.equal(readJwtResult.statusCode, 403);
+        assert.equal(executeJwtResult.statusCode, 403);
+        assert.equal(writeJwtResult.statusCode, 403);
+        assert.equal(allJwtResult.statusCode, 403);
+        assert.equal(oAuthJwtResult.statusCode, 403);
+        assert.equal(sdAdminJwtResult.statusCode, 200);
+    });
+});
 
 describe('pipeline plugin test', () => {
     let pipelineFactoryMock;

@@ -5,8 +5,84 @@ const sinon = require('sinon');
 const hapi = require('@hapi/hapi');
 const rewiremock = require('rewiremock/node');
 const { BookendInterface } = require('screwdriver-build-bookend');
+const { newAuthTestServer, serverInject } = require('./auth.test.helper');
 
 sinon.assert.expose(assert, { prefix: '' });
+
+describe('authorization settings test for coverage routes', () => {
+    let server;
+    let readJwt;
+    let executeJwt;
+    let writeJwt;
+    let allJwt;
+    let oauthJwt;
+    let buildJwt;
+    let invalidJwt;
+
+    beforeEach(async () => {
+        /* eslint-disable global-require */
+        const plugin = require('../../plugins/coverage');
+        /* eslint-enable global-require */
+
+        server = await newAuthTestServer();
+
+        await server.register({ plugin });
+
+        readJwt = server.generateTestJwt({ permission: 'read' });
+        executeJwt = server.generateTestJwt({ permission: 'execute' });
+        writeJwt = server.generateTestJwt({ permission: 'write' });
+        allJwt = server.generateTestJwt({ permission: 'all' });
+        oauthJwt = server.generateTestJwt({ type: 'oauth' });
+        buildJwt = server.generateTestJwt({ type: 'temporary', scope: ['build'] });
+        invalidJwt = server.generateTestJwt({ permission: 'invalid' });
+    });
+
+    afterEach(() => {
+        server = null;
+    });
+
+    it('GET /coverage/info requires read permission', async () => {
+        const route = { method: 'GET', url: '/coverage/info' };
+
+        const noAuthResult = await serverInject(server, route);
+        const invalidJwtResult = await serverInject(server, route, invalidJwt);
+        const readJwtResult = await serverInject(server, route, readJwt);
+        const executeJwtResult = await serverInject(server, route, executeJwt);
+        const writeJwtResult = await serverInject(server, route, writeJwt);
+        const allJwtResult = await serverInject(server, route, allJwt);
+        const oAuthJwtResult = await serverInject(server, route, oauthJwt);
+
+        assert.equal(noAuthResult.statusCode, 401);
+        assert.equal(invalidJwtResult.statusCode, 403);
+        assert.equal(readJwtResult.statusCode, 200);
+        assert.equal(executeJwtResult.statusCode, 200);
+        assert.equal(writeJwtResult.statusCode, 200);
+        assert.equal(allJwtResult.statusCode, 200);
+        assert.equal(oAuthJwtResult.statusCode, 200);
+    });
+
+    it('GET /coverage/token requires build scope', async () => {
+        const route = { method: 'GET', url: '/coverage/token' };
+
+        const noAuthResult = await serverInject(server, route);
+        const invalidJwtResult = await serverInject(server, route, invalidJwt);
+        const readJwtResult = await serverInject(server, route, readJwt);
+        const executeJwtResult = await serverInject(server, route, executeJwt);
+        const writeJwtResult = await serverInject(server, route, writeJwt);
+        const allJwtResult = await serverInject(server, route, allJwt);
+        const oAuthJwtResult = await serverInject(server, route, oauthJwt);
+        const buildJwtResult = await serverInject(server, route, buildJwt);
+
+        assert.equal(noAuthResult.statusCode, 401);
+        assert.equal(invalidJwtResult.statusCode, 403);
+        assert.equal(readJwtResult.statusCode, 403);
+        assert.equal(executeJwtResult.statusCode, 403);
+        assert.equal(writeJwtResult.statusCode, 403);
+        assert.equal(allJwtResult.statusCode, 403);
+        assert.equal(oAuthJwtResult.statusCode, 403);
+        assert.equal(buildJwtResult.statusCode, 200);
+    });
+});
 
 describe('coverage plugin test', () => {
     const credentials = {
@@ -88,33 +164,6 @@ describe('coverage plugin test', () => {
 
     it('registers the plugin', () => {
         assert.isOk(server.registrations.coverage);
-    });
-
-    describe('authorization settings for coverage routes', () => {
-        const routesRequiringAuthorization = [['get', '/coverage/info', 'read']];
-        const buildTokenOnlyRoutes = [['get', '/coverage/token']];
-
-        it('sets the agreed permission on every API Token-accessible coverage route', () => {
-            routesRequiringAuthorization.forEach(([method, path, permission]) => {
-                const route = server.table().find(r => r.method === method && r.path === path);
-
-                assert.isOk(route, `${method.toUpperCase()} ${path} should be registered`);
-                assert.equal(
-                    route.settings.plugins.authorization.permission,
-                    permission,
-                    `${method.toUpperCase()} ${path} should require ${permission} permission`
-                );
-            });
-        });
-
-        it('does not set API Token permissions on Build Token-only coverage routes', () => {
-            buildTokenOnlyRoutes.forEach(([method, path]) => {
-                const route = server.table().find(r => r.method === method && r.path === path);
-
-                assert.isOk(route, `${method.toUpperCase()} ${path} should be registered`);
-                assert.notProperty(route.settings.plugins, 'authorization');
-            });
-        });
     });
 
     describe('GET /coverage/token', () => {

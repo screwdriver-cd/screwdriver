@@ -8,6 +8,7 @@ const rewiremock = require('rewiremock/node');
 const hoek = require('@hapi/hoek');
 const streamToPromise = require('stream-to-promise');
 const FormData = require('form-data');
+const { newAuthTestServer, serverInject } = require('./auth.test.helper');
 const testcommand = require('./data/command.json');
 const testcommands = require('./data/commands.json');
 const testcommandVersions = require('./data/commandVersions.json');
@@ -57,6 +58,249 @@ const getUserMock = user => {
 
     return mock;
 };
+
+describe('authorization settings test for command routes', () => {
+    let server;
+    let readJwt;
+    let executeJwt;
+    let writeJwt;
+    let allJwt;
+    let oauthJwt;
+    let sdAdminJwt;
+    let buildJwt;
+    let invalidJwt;
+
+    beforeEach(async () => {
+        /* eslint-disable global-require */
+        const plugin = require('../../plugins/commands');
+        /* eslint-enable global-require */
+
+        server = await newAuthTestServer();
+
+        await server.register({ plugin });
+
+        readJwt = server.generateTestJwt({ permission: 'read' });
+        executeJwt = server.generateTestJwt({ permission: 'execute' });
+        writeJwt = server.generateTestJwt({ permission: 'write' });
+        allJwt = server.generateTestJwt({ permission: 'all' });
+        oauthJwt = server.generateTestJwt({ type: 'oauth' });
+        sdAdminJwt = server.generateTestJwt({ type: 'oauth', scope: ['user', 'admin'] });
+        buildJwt = server.generateTestJwt({ type: 'temporary', scope: ['build'] });
+        invalidJwt = server.generateTestJwt({ permission: 'invalid' });
+    });
+
+    afterEach(() => {
+        server = null;
+    });
+
+    it('GET /commands requires read permission', async () => {
+        const route = { method: 'GET', url: '/commands' };
+
+        const noAuthResult = await serverInject(server, route);
+        const invalidJwtResult = await serverInject(server, route, invalidJwt);
+        const readJwtResult = await serverInject(server, route, readJwt);
+        const executeJwtResult = await serverInject(server, route, executeJwt);
+        const writeJwtResult = await serverInject(server, route, writeJwt);
+        const allJwtResult = await serverInject(server, route, allJwt);
+        const oAuthJwtResult = await serverInject(server, route, oauthJwt);
+
+        assert.equal(noAuthResult.statusCode, 401);
+        assert.equal(invalidJwtResult.statusCode, 403);
+        assert.equal(readJwtResult.statusCode, 200);
+        assert.equal(executeJwtResult.statusCode, 200);
+        assert.equal(writeJwtResult.statusCode, 200);
+        assert.equal(allJwtResult.statusCode, 200);
+        assert.equal(oAuthJwtResult.statusCode, 200);
+    });
+
+    it('GET /commands/{namespace}/{name} requires read permission', async () => {
+        const route = { method: 'GET', url: '/commands/foo/bar' };
+
+        const noAuthResult = await serverInject(server, route);
+        const invalidJwtResult = await serverInject(server, route, invalidJwt);
+        const readJwtResult = await serverInject(server, route, readJwt);
+        const executeJwtResult = await serverInject(server, route, executeJwt);
+        const writeJwtResult = await serverInject(server, route, writeJwt);
+        const allJwtResult = await serverInject(server, route, allJwt);
+        const oAuthJwtResult = await serverInject(server, route, oauthJwt);
+
+        assert.equal(noAuthResult.statusCode, 401);
+        assert.equal(invalidJwtResult.statusCode, 403);
+        assert.equal(readJwtResult.statusCode, 200);
+        assert.equal(executeJwtResult.statusCode, 200);
+        assert.equal(writeJwtResult.statusCode, 200);
+        assert.equal(allJwtResult.statusCode, 200);
+        assert.equal(oAuthJwtResult.statusCode, 200);
+    });
+
+    it('GET /commands/{namespace}/{name}/{versionOrTag} requires read permission', async () => {
+        const route = { method: 'GET', url: '/commands/foo/bar/buz' };
+
+        const noAuthResult = await serverInject(server, route);
+        const invalidJwtResult = await serverInject(server, route, invalidJwt);
+        const readJwtResult = await serverInject(server, route, readJwt);
+        const executeJwtResult = await serverInject(server, route, executeJwt);
+        const writeJwtResult = await serverInject(server, route, writeJwt);
+        const allJwtResult = await serverInject(server, route, allJwt);
+        const oAuthJwtResult = await serverInject(server, route, oauthJwt);
+
+        assert.equal(noAuthResult.statusCode, 401);
+        assert.equal(invalidJwtResult.statusCode, 403);
+        assert.equal(readJwtResult.statusCode, 200);
+        assert.equal(executeJwtResult.statusCode, 200);
+        assert.equal(writeJwtResult.statusCode, 200);
+        assert.equal(allJwtResult.statusCode, 200);
+        assert.equal(oAuthJwtResult.statusCode, 200);
+    });
+
+    it('GET /commands/{namespace}/{name}/tags requires read permission', async () => {
+        const route = { method: 'GET', url: '/commands/foo/bar/tags' };
+
+        const noAuthResult = await serverInject(server, route);
+        const invalidJwtResult = await serverInject(server, route, invalidJwt);
+        const readJwtResult = await serverInject(server, route, readJwt);
+        const executeJwtResult = await serverInject(server, route, executeJwt);
+        const writeJwtResult = await serverInject(server, route, writeJwt);
+        const allJwtResult = await serverInject(server, route, allJwt);
+        const oAuthJwtResult = await serverInject(server, route, oauthJwt);
+
+        assert.equal(noAuthResult.statusCode, 401);
+        assert.equal(invalidJwtResult.statusCode, 403);
+        assert.equal(readJwtResult.statusCode, 200);
+        assert.equal(executeJwtResult.statusCode, 200);
+        assert.equal(writeJwtResult.statusCode, 200);
+        assert.equal(allJwtResult.statusCode, 200);
+        assert.equal(oAuthJwtResult.statusCode, 200);
+    });
+
+    it('DELETE /commands/{namespace}/{name} requires all permission', async () => {
+        const route = { method: 'DELETE', url: '/commands/foo/bar' };
+
+        const noAuthResult = await serverInject(server, route);
+        const invalidJwtResult = await serverInject(server, route, invalidJwt);
+        const readJwtResult = await serverInject(server, route, readJwt);
+        const executeJwtResult = await serverInject(server, route, executeJwt);
+        const writeJwtResult = await serverInject(server, route, writeJwt);
+        const allJwtResult = await serverInject(server, route, allJwt);
+        const oAuthJwtResult = await serverInject(server, route, oauthJwt);
+
+        assert.equal(noAuthResult.statusCode, 401);
+        assert.equal(invalidJwtResult.statusCode, 403);
+        assert.equal(readJwtResult.statusCode, 403);
+        assert.equal(executeJwtResult.statusCode, 403);
+        assert.equal(writeJwtResult.statusCode, 403);
+        assert.equal(allJwtResult.statusCode, 200);
+        assert.equal(oAuthJwtResult.statusCode, 200);
+    });
+
+    it('DELETE /commands/{namespace}/{name}/versions/{version} requires all permission', async () => {
+        const route = { method: 'DELETE', url: '/commands/foo/bar/versions/1' };
+
+        const noAuthResult = await serverInject(server, route);
+        const invalidJwtResult = await serverInject(server, route, invalidJwt);
+        const readJwtResult = await serverInject(server, route, readJwt);
+        const executeJwtResult = await serverInject(server, route, executeJwt);
+        const writeJwtResult = await serverInject(server, route, writeJwt);
+        const allJwtResult = await serverInject(server, route, allJwt);
+        const oAuthJwtResult = await serverInject(server, route, oauthJwt);
+
+        assert.equal(noAuthResult.statusCode, 401);
+        assert.equal(invalidJwtResult.statusCode, 403);
+        assert.equal(readJwtResult.statusCode, 403);
+        assert.equal(executeJwtResult.statusCode, 403);
+        assert.equal(writeJwtResult.statusCode, 403);
+        assert.equal(allJwtResult.statusCode, 200);
+        assert.equal(oAuthJwtResult.statusCode, 200);
+    });
+
+    it('PUT /commands/{namespace}/{name}/trusted requires all permission and admin scope', async () => {
+        const route = { method: 'PUT', url: '/commands/foo/bar/trusted' };
+
+        const noAuthResult = await serverInject(server, route);
+        const invalidJwtResult = await serverInject(server, route, invalidJwt);
+        const readJwtResult = await serverInject(server, route, readJwt);
+        const executeJwtResult = await serverInject(server, route, executeJwt);
+        const writeJwtResult = await serverInject(server, route, writeJwt);
+        const allJwtResult = await serverInject(server, route, allJwt);
+        const oAuthJwtResult = await serverInject(server, route, oauthJwt);
+        const sdAdminJwtResult = await serverInject(server, route, sdAdminJwt);
+
+        assert.equal(noAuthResult.statusCode, 401);
+        assert.equal(invalidJwtResult.statusCode, 403);
+        assert.equal(readJwtResult.statusCode, 403);
+        assert.equal(executeJwtResult.statusCode, 403);
+        assert.equal(writeJwtResult.statusCode, 403);
+        assert.equal(allJwtResult.statusCode, 403);
+        assert.equal(oAuthJwtResult.statusCode, 403);
+        assert.equal(sdAdminJwtResult.statusCode, 200);
+    });
+
+    it('POST /commands requires build scope', async () => {
+        const route = { method: 'POST', url: '/commands' };
+
+        const noAuthResult = await serverInject(server, route);
+        const invalidJwtResult = await serverInject(server, route, invalidJwt);
+        const readJwtResult = await serverInject(server, route, readJwt);
+        const executeJwtResult = await serverInject(server, route, executeJwt);
+        const writeJwtResult = await serverInject(server, route, writeJwt);
+        const allJwtResult = await serverInject(server, route, allJwt);
+        const oAuthJwtResult = await serverInject(server, route, oauthJwt);
+        const buildJwtResult = await serverInject(server, route, buildJwt);
+
+        assert.equal(noAuthResult.statusCode, 401);
+        assert.equal(invalidJwtResult.statusCode, 403);
+        assert.equal(readJwtResult.statusCode, 403);
+        assert.equal(executeJwtResult.statusCode, 403);
+        assert.equal(writeJwtResult.statusCode, 403);
+        assert.equal(allJwtResult.statusCode, 403);
+        assert.equal(oAuthJwtResult.statusCode, 403);
+        assert.equal(buildJwtResult.statusCode, 200);
+    });
+
+    it('PUT /commands/{namespace}/{name}/tags/{tagName} requires build scope', async () => {
+        const route = { method: 'PUT', url: '/commands/foo/bar/tags/baz' };
+
+        const noAuthResult = await serverInject(server, route);
+        const invalidJwtResult = await serverInject(server, route, invalidJwt);
+        const readJwtResult = await serverInject(server, route, readJwt);
+        const executeJwtResult = await serverInject(server, route, executeJwt);
+        const writeJwtResult = await serverInject(server, route, writeJwt);
+        const allJwtResult = await serverInject(server, route, allJwt);
+        const oAuthJwtResult = await serverInject(server, route, oauthJwt);
+        const buildJwtResult = await serverInject(server, route, buildJwt);
+
+        assert.equal(noAuthResult.statusCode, 401);
+        assert.equal(invalidJwtResult.statusCode, 403);
+        assert.equal(readJwtResult.statusCode, 403);
+        assert.equal(executeJwtResult.statusCode, 403);
+        assert.equal(writeJwtResult.statusCode, 403);
+        assert.equal(allJwtResult.statusCode, 403);
+        assert.equal(oAuthJwtResult.statusCode, 403);
+        assert.equal(buildJwtResult.statusCode, 200);
+    });
+
+    it('DELETE /commands/{namespace}/{name}/tags/{tagName} requires build scope', async () => {
+        const route = { method: 'DELETE', url: '/commands/foo/bar/tags/baz' };
+
+        const noAuthResult = await serverInject(server, route);
+        const invalidJwtResult = await serverInject(server, route, invalidJwt);
+        const readJwtResult = await serverInject(server, route, readJwt);
+        const executeJwtResult = await serverInject(server, route, executeJwt);
+        const writeJwtResult = await serverInject(server, route, writeJwt);
+        const allJwtResult = await serverInject(server, route, allJwt);
+        const oAuthJwtResult = await serverInject(server, route, oauthJwt);
+        const buildJwtResult = await serverInject(server, route, buildJwt);
+
+        assert.equal(noAuthResult.statusCode, 401);
+        assert.equal(invalidJwtResult.statusCode, 403);
+        assert.equal(readJwtResult.statusCode, 403);
+        assert.equal(executeJwtResult.statusCode, 403);
+        assert.equal(writeJwtResult.statusCode, 403);
+        assert.equal(allJwtResult.statusCode, 403);
+        assert.equal(oAuthJwtResult.statusCode, 403);
+        assert.equal(buildJwtResult.statusCode, 200);
+    });
+});
 
 describe('command plugin test', () => {
     let commandFactoryMock;
@@ -136,45 +380,6 @@ describe('command plugin test', () => {
 
     it('registers the plugin', () => {
         assert.isOk(server.registrations.commands);
-    });
-
-    describe('authorization settings for command routes', () => {
-        const routesRequiringAuthorization = [
-            ['get', '/commands', 'read'],
-            ['get', '/commands/{namespace}/{name}', 'read'],
-            ['get', '/commands/{namespace}/{name}/{versionOrTag}', 'read'],
-            ['get', '/commands/{namespace}/{name}/tags', 'read'],
-            ['delete', '/commands/{namespace}/{name}', 'all'],
-            ['delete', '/commands/{namespace}/{name}/versions/{version}', 'all'],
-            ['put', '/commands/{namespace}/{name}/trusted', 'all']
-        ];
-        const buildTokenOnlyRoutes = [
-            ['post', '/commands'],
-            ['put', '/commands/{namespace}/{name}/tags/{tagName}'],
-            ['delete', '/commands/{namespace}/{name}/tags/{tagName}']
-        ];
-
-        it('sets the agreed permission on every API Token-accessible command route', () => {
-            routesRequiringAuthorization.forEach(([method, path, permission]) => {
-                const route = server.table().find(r => r.method === method && r.path === path);
-
-                assert.isOk(route, `${method.toUpperCase()} ${path} should be registered`);
-                assert.equal(
-                    route.settings.plugins.authorization.permission,
-                    permission,
-                    `${method.toUpperCase()} ${path} should require ${permission} permission`
-                );
-            });
-        });
-
-        it('does not set API Token permissions on Build Token-only command routes', () => {
-            buildTokenOnlyRoutes.forEach(([method, path]) => {
-                const route = server.table().find(r => r.method === method && r.path === path);
-
-                assert.isOk(route, `${method.toUpperCase()} ${path} should be registered`);
-                assert.notProperty(route.settings.plugins, 'authorization');
-            });
-        });
     });
 
     describe('GET /commands', () => {
