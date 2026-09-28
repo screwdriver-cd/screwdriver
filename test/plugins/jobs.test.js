@@ -113,7 +113,6 @@ describe('authorization settings test for job routes', () => {
         pipelineExecuteJwt = server.generateTestJwt({ permission: 'execute', scope: ['pipeline'] });
         pipelineWriteJwt = server.generateTestJwt({ permission: 'write', scope: ['pipeline'] });
         pipelineAllJwt = server.generateTestJwt({ permission: 'all', scope: ['pipeline'] });
-        pipelineTemporaryJwt = server.generateTestJwt({ type: 'temprorary', scope: ['pipeline'] });
         invalidJwt = server.generateTestJwt({ permission: 'invalid' });
     });
 
