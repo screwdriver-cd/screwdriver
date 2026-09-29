@@ -8,7 +8,7 @@ const { getUserPermissions, getScmUri } = require('../../helper');
 
 module.exports = () => ({
     method: 'DELETE',
-    path: '/pipelines/{id}/tokens',
+    path: '/pipelines/{pipelineId}/tokens',
     options: {
         description: 'Remove all tokens for a specific pipeline',
         notes: 'Returns null if successful',
@@ -54,7 +54,7 @@ module.exports = () => ({
         },
         validate: {
             params: joi.object({
-                id: idSchema
+                pipelineId: idSchema
             })
         }
     }
