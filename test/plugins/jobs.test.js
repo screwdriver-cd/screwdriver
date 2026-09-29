@@ -89,10 +89,6 @@ describe('authorization settings test for job routes', () => {
     let writeJwt;
     let allJwt;
     let oauthJwt;
-    let pipelineReadJwt;
-    let pipelineExecuteJwt;
-    let pipelineWriteJwt;
-    let pipelineAllJwt;
     let invalidJwt;
 
     beforeEach(async () => {
@@ -109,10 +105,6 @@ describe('authorization settings test for job routes', () => {
         writeJwt = server.generateTestJwt({ permission: 'write' });
         allJwt = server.generateTestJwt({ permission: 'all' });
         oauthJwt = server.generateTestJwt({ type: 'oauth' });
-        pipelineReadJwt = server.generateTestJwt({ permission: 'read', scope: ['pipeline'] });
-        pipelineExecuteJwt = server.generateTestJwt({ permission: 'execute', scope: ['pipeline'] });
-        pipelineWriteJwt = server.generateTestJwt({ permission: 'write', scope: ['pipeline'] });
-        pipelineAllJwt = server.generateTestJwt({ permission: 'all', scope: ['pipeline'] });
         invalidJwt = server.generateTestJwt({ permission: 'invalid' });
     });
 
@@ -282,6 +274,11 @@ describe('authorization settings test for job routes', () => {
 
     it('POST /jobs/{id}/notify requires all permission and pipeline scope', async () => {
         const route = { method: 'POST', url: '/jobs/123/notify' };
+
+        const pipelineReadJwt = server.generateTestJwt({ permission: 'read', scope: ['pipeline'] });
+        const pipelineExecuteJwt = server.generateTestJwt({ permission: 'execute', scope: ['pipeline'] });
+        const pipelineWriteJwt = server.generateTestJwt({ permission: 'write', scope: ['pipeline'] });
+        const pipelineAllJwt = server.generateTestJwt({ permission: 'all', scope: ['pipeline'] });
 
         const noAuthResult = await serverInject(server, route);
         const invalidJwtResult = await serverInject(server, route, invalidJwt);
