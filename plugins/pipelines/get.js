@@ -63,7 +63,7 @@ module.exports = () => ({
             try {
                 pipeline = await canAccessPipeline(credentials, pipelineId, 'pull', request.server.app);
             } catch (err) {
-                if (!err.isBoom || err.output.statusCode !== 403) {
+                if (!boom.isBoom(err, 403)) {
                     throw err;
                 }
 

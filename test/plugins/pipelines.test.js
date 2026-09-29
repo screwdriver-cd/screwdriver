@@ -903,6 +903,11 @@ describe('pipeline plugin test', () => {
             error: 'Forbidden',
             message: 'User foo does not have pull access for this pipeline'
         };
+        const tokenPermissionError = {
+            statusCode: 403,
+            error: 'Forbidden',
+            message: 'Token does not have permission for this pipeline'
+        };
         let options;
 
         beforeEach(() => {
@@ -1037,6 +1042,34 @@ describe('pipeline plugin test', () => {
             return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 403);
                 assert.deepEqual(reply.result, permissionError);
+            });
+        });
+
+        it('returns 403 for a pipeline token accessing a different pipeline', () => {
+            const userId = 888;
+            const pipeline = decoratePipelineMock({
+                ...testPrivatePipelines[0],
+                adminUserIds: [userId]
+            });
+            const userMock = {
+                id: userId,
+                username: 'foo',
+                scmContext: differentScmContext
+            };
+
+            options.auth.credentials = {
+                username: 'foo',
+                scmContext: differentScmContext,
+                pipelineId: 999,
+                scope: ['pipeline']
+            };
+            pipelineFactoryMock.get.resolves(pipeline);
+            userFactoryMock.get.resolves(userMock);
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 403);
+                assert.deepEqual(reply.result, tokenPermissionError);
+                assert.notCalled(userFactoryMock.get);
             });
         });
     });
