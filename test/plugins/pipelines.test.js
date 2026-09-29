@@ -861,7 +861,7 @@ describe('authorization settings test for pipeline routes', () => {
     });
 
     it('DELETE /pipelines/{id}/tokens requires all permission', async () => {
-        const route = { method: 'DELETE', url: '/pipelines/{id}/tokens' };
+        const route = { method: 'DELETE', url: '/pipelines/123/tokens' };
 
         const noAuthResult = await serverInject(server, route);
         const invalidJwtResult = await serverInject(server, route, invalidJwt);

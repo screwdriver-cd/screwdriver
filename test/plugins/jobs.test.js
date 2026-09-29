@@ -260,7 +260,7 @@ describe('authorization settings test for job routes', () => {
         assert.equal(oAuthJwtResult.statusCode, 200);
     });
 
-    it('DELETE /jobs/{id}/buildCluster requires write permission', async () => {
+    it('DELETE /jobs/{id}/buildCluster requires all permission', async () => {
         const route = { method: 'DELETE', url: '/jobs/123/buildCluster' };
 
         const noAuthResult = await serverInject(server, route);

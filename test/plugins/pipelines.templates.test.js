@@ -78,7 +78,6 @@ describe('authorization settings test for pipeline template routes', () => {
     let writeJwt;
     let allJwt;
     let oauthJwt;
-    let sdAdminJwt;
     let buildJwt;
     let invalidJwt;
 
@@ -98,7 +97,6 @@ describe('authorization settings test for pipeline template routes', () => {
         writeJwt = server.generateTestJwt({ permission: 'write' });
         allJwt = server.generateTestJwt({ permission: 'all' });
         oauthJwt = server.generateTestJwt({ type: 'oauth' });
-        sdAdminJwt = server.generateTestJwt({ permission: 'all', scope: ['admin'] });
         buildJwt = server.generateTestJwt({ type: 'temporary', scope: ['build'] });
         invalidJwt = server.generateTestJwt({ permission: 'invalid' });
     });
@@ -356,6 +354,11 @@ describe('authorization settings test for pipeline template routes', () => {
     it('PUT /pipeline/templates/{namespace}/{name}/trusted requires all permission and admin scope', async () => {
         const route = { method: 'PUT', url: '/pipeline/templates/foo/bar/trusted' };
 
+        const sdAdminReadJwt = server.generateTestJwt({ permission: 'read', scope: ['admin'] });
+        const sdAdminExecuteJwt = server.generateTestJwt({ permission: 'execute', scope: ['admin'] });
+        const sdAdminWriteJwt = server.generateTestJwt({ permission: 'write', scope: ['admin'] });
+        const sdAdminAllJwt = server.generateTestJwt({ permission: 'all', scope: ['admin'] });
+
         const noAuthResult = await serverInject(server, route);
         const invalidJwtResult = await serverInject(server, route, invalidJwt);
         const readJwtResult = await serverInject(server, route, readJwt);
@@ -363,7 +366,10 @@ describe('authorization settings test for pipeline template routes', () => {
         const writeJwtResult = await serverInject(server, route, writeJwt);
         const allJwtResult = await serverInject(server, route, allJwt);
         const oAuthJwtResult = await serverInject(server, route, oauthJwt);
-        const sdAdminJwtResult = await serverInject(server, route, sdAdminJwt);
+        const sdAdminReadJwtResult = await serverInject(server, route, sdAdminReadJwt);
+        const sdAdminExecuteJwtResult = await serverInject(server, route, sdAdminExecuteJwt);
+        const sdAdminWriteJwtResult = await serverInject(server, route, sdAdminWriteJwt);
+        const sdAdminAllJwtResult = await serverInject(server, route, sdAdminAllJwt);
 
         assert.equal(noAuthResult.statusCode, 401);
         assert.equal(invalidJwtResult.statusCode, 403);
@@ -372,7 +378,10 @@ describe('authorization settings test for pipeline template routes', () => {
         assert.equal(writeJwtResult.statusCode, 403);
         assert.equal(allJwtResult.statusCode, 403);
         assert.equal(oAuthJwtResult.statusCode, 403);
-        assert.equal(sdAdminJwtResult.statusCode, 200);
+        assert.equal(sdAdminReadJwtResult.statusCode, 403);
+        assert.equal(sdAdminExecuteJwtResult.statusCode, 403);
+        assert.equal(sdAdminWriteJwtResult.statusCode, 403);
+        assert.equal(sdAdminAllJwtResult.statusCode, 200);
     });
 });
 
