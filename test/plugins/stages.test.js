@@ -4,6 +4,7 @@ const { assert } = require('chai');
 const sinon = require('sinon');
 const hapi = require('@hapi/hapi');
 const hoek = require('@hapi/hoek');
+const { newAuthTestServer, serverInject } = require('./auth.test.helper');
 const testStage = require('./data/stage.json');
 const testStageBuilds = require('./data/stageBuilds.json');
 
@@ -32,6 +33,77 @@ const getStageMocks = stages => {
 
     return decorateObj(stages);
 };
+
+describe('authorization settings test for stage routes', () => {
+    let server;
+    let readJwt;
+    let executeJwt;
+    let writeJwt;
+    let allJwt;
+    let oauthJwt;
+    let invalidJwt;
+
+    beforeEach(async () => {
+        /* eslint-disable global-require */
+        const plugin = require('../../plugins/stages');
+        /* eslint-enable global-require */
+
+        server = await newAuthTestServer();
+
+        await server.register({ plugin });
+
+        readJwt = server.generateTestJwt({ permission: 'read' });
+        executeJwt = server.generateTestJwt({ permission: 'execute' });
+        writeJwt = server.generateTestJwt({ permission: 'write' });
+        allJwt = server.generateTestJwt({ permission: 'all' });
+        oauthJwt = server.generateTestJwt({ type: 'oauth' });
+        invalidJwt = server.generateTestJwt({ permission: 'invalid' });
+    });
+
+    afterEach(() => {
+        server = null;
+    });
+
+    it('GET /stages/{id} requires read permission', async () => {
+        const route = { method: 'GET', url: '/stages/123' };
+
+        const noAuthResult = await serverInject(server, route);
+        const invalidJwtResult = await serverInject(server, route, invalidJwt);
+        const readJwtResult = await serverInject(server, route, readJwt);
+        const executeJwtResult = await serverInject(server, route, executeJwt);
+        const writeJwtResult = await serverInject(server, route, writeJwt);
+        const allJwtResult = await serverInject(server, route, allJwt);
+        const oAuthJwtResult = await serverInject(server, route, oauthJwt);
+
+        assert.equal(noAuthResult.statusCode, 401);
+        assert.equal(invalidJwtResult.statusCode, 403);
+        assert.equal(readJwtResult.statusCode, 200);
+        assert.equal(executeJwtResult.statusCode, 200);
+        assert.equal(writeJwtResult.statusCode, 200);
+        assert.equal(allJwtResult.statusCode, 200);
+        assert.equal(oAuthJwtResult.statusCode, 200);
+    });
+
+    it('GET /stages/{id}/stageBuilds requires read permission', async () => {
+        const route = { method: 'GET', url: '/stages/123/stageBuilds' };
+
+        const noAuthResult = await serverInject(server, route);
+        const invalidJwtResult = await serverInject(server, route, invalidJwt);
+        const readJwtResult = await serverInject(server, route, readJwt);
+        const executeJwtResult = await serverInject(server, route, executeJwt);
+        const writeJwtResult = await serverInject(server, route, writeJwt);
+        const allJwtResult = await serverInject(server, route, allJwt);
+        const oAuthJwtResult = await serverInject(server, route, oauthJwt);
+
+        assert.equal(noAuthResult.statusCode, 401);
+        assert.equal(invalidJwtResult.statusCode, 403);
+        assert.equal(readJwtResult.statusCode, 200);
+        assert.equal(executeJwtResult.statusCode, 200);
+        assert.equal(writeJwtResult.statusCode, 200);
+        assert.equal(allJwtResult.statusCode, 200);
+        assert.equal(oAuthJwtResult.statusCode, 200);
+    });
+});
 
 describe('stage plugin test', () => {
     let stageFactoryMock;
@@ -78,20 +150,6 @@ describe('stage plugin test', () => {
 
     it('registers the plugin', () => {
         assert.isOk(server.registrations.stages);
-    });
-
-    it('requires read permission for every route', () => {
-        const expectedRoutes = [
-            { method: 'get', path: '/stages/{id}' },
-            { method: 'get', path: '/stages/{id}/stageBuilds' }
-        ];
-
-        expectedRoutes.forEach(({ method, path }) => {
-            const route = server.table().find(r => r.method === method && r.path === path);
-
-            assert.isOk(route, `Route not found: ${method.toUpperCase()} ${path}`);
-            assert.equal(route.settings.plugins.authorization.permission, 'read');
-        });
     });
 
     describe('GET /stages/{id}', () => {

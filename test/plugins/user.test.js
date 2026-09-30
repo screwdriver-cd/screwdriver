@@ -4,6 +4,7 @@ const { assert } = require('chai');
 const sinon = require('sinon');
 const hapi = require('@hapi/hapi');
 const hoek = require('@hapi/hoek');
+const { newAuthTestServer, serverInject } = require('./auth.test.helper');
 
 sinon.assert.expose(assert, { prefix: '' });
 
@@ -17,6 +18,130 @@ const getUserMock = user => {
 
     return mock;
 };
+
+describe('authorization settings test for user routes', () => {
+    let server;
+    let readJwt;
+    let executeJwt;
+    let writeJwt;
+    let allJwt;
+    let oauthJwt;
+    let invalidJwt;
+
+    beforeEach(async () => {
+        /* eslint-disable global-require */
+        const plugin = require('../../plugins/users');
+        /* eslint-enable global-require */
+
+        server = await newAuthTestServer();
+
+        await server.register({ plugin });
+
+        readJwt = server.generateTestJwt({ permission: 'read' });
+        executeJwt = server.generateTestJwt({ permission: 'execute' });
+        writeJwt = server.generateTestJwt({ permission: 'write' });
+        allJwt = server.generateTestJwt({ permission: 'all' });
+        oauthJwt = server.generateTestJwt({ type: 'oauth' });
+        invalidJwt = server.generateTestJwt({ permission: 'invalid' });
+    });
+
+    afterEach(() => {
+        server = null;
+    });
+
+    it('GET /users/{username} requires read permission and admin scope', async () => {
+        const route = { method: 'GET', url: '/users/foo' };
+
+        const sdAdminReadJwt = server.generateTestJwt({ permission: 'read', scope: ['admin'] });
+        const sdAdminExecuteJwt = server.generateTestJwt({ permission: 'execute', scope: ['admin'] });
+        const sdAdminWriteJwt = server.generateTestJwt({ permission: 'write', scope: ['admin'] });
+        const sdAdminAllJwt = server.generateTestJwt({ permission: 'all', scope: ['admin'] });
+
+        const noAuthResult = await serverInject(server, route);
+        const invalidJwtResult = await serverInject(server, route, invalidJwt);
+        const readJwtResult = await serverInject(server, route, readJwt);
+        const executeJwtResult = await serverInject(server, route, executeJwt);
+        const writeJwtResult = await serverInject(server, route, writeJwt);
+        const allJwtResult = await serverInject(server, route, allJwt);
+        const oAuthJwtResult = await serverInject(server, route, oauthJwt);
+        const sdAdminReadJwtResult = await serverInject(server, route, sdAdminReadJwt);
+        const sdAdminExecuteJwtResult = await serverInject(server, route, sdAdminExecuteJwt);
+        const sdAdminWriteJwtResult = await serverInject(server, route, sdAdminWriteJwt);
+        const sdAdminAllJwtResult = await serverInject(server, route, sdAdminAllJwt);
+
+        assert.equal(noAuthResult.statusCode, 401);
+        assert.equal(invalidJwtResult.statusCode, 403);
+        assert.equal(readJwtResult.statusCode, 403);
+        assert.equal(executeJwtResult.statusCode, 403);
+        assert.equal(writeJwtResult.statusCode, 403);
+        assert.equal(allJwtResult.statusCode, 403);
+        assert.equal(oAuthJwtResult.statusCode, 403);
+        assert.equal(sdAdminReadJwtResult.statusCode, 200);
+        assert.equal(sdAdminExecuteJwtResult.statusCode, 200);
+        assert.equal(sdAdminWriteJwtResult.statusCode, 200);
+        assert.equal(sdAdminAllJwtResult.statusCode, 200);
+    });
+
+    it('GET /users/settings requires read permission', async () => {
+        const route = { method: 'GET', url: '/users/settings' };
+
+        const noAuthResult = await serverInject(server, route);
+        const invalidJwtResult = await serverInject(server, route, invalidJwt);
+        const readJwtResult = await serverInject(server, route, readJwt);
+        const executeJwtResult = await serverInject(server, route, executeJwt);
+        const writeJwtResult = await serverInject(server, route, writeJwt);
+        const allJwtResult = await serverInject(server, route, allJwt);
+        const oAuthJwtResult = await serverInject(server, route, oauthJwt);
+
+        assert.equal(noAuthResult.statusCode, 401);
+        assert.equal(invalidJwtResult.statusCode, 403);
+        assert.equal(readJwtResult.statusCode, 200);
+        assert.equal(executeJwtResult.statusCode, 200);
+        assert.equal(writeJwtResult.statusCode, 200);
+        assert.equal(allJwtResult.statusCode, 200);
+        assert.equal(oAuthJwtResult.statusCode, 200);
+    });
+
+    it('PUT /users/settings requires all permission', async () => {
+        const route = { method: 'PUT', url: '/users/settings' };
+
+        const noAuthResult = await serverInject(server, route);
+        const invalidJwtResult = await serverInject(server, route, invalidJwt);
+        const readJwtResult = await serverInject(server, route, readJwt);
+        const executeJwtResult = await serverInject(server, route, executeJwt);
+        const writeJwtResult = await serverInject(server, route, writeJwt);
+        const allJwtResult = await serverInject(server, route, allJwt);
+        const oAuthJwtResult = await serverInject(server, route, oauthJwt);
+
+        assert.equal(noAuthResult.statusCode, 401);
+        assert.equal(invalidJwtResult.statusCode, 403);
+        assert.equal(readJwtResult.statusCode, 403);
+        assert.equal(executeJwtResult.statusCode, 403);
+        assert.equal(writeJwtResult.statusCode, 403);
+        assert.equal(allJwtResult.statusCode, 200);
+        assert.equal(oAuthJwtResult.statusCode, 200);
+    });
+
+    it('DELETE /users/settings requires all permission', async () => {
+        const route = { method: 'DELETE', url: '/users/settings' };
+
+        const noAuthResult = await serverInject(server, route);
+        const invalidJwtResult = await serverInject(server, route, invalidJwt);
+        const readJwtResult = await serverInject(server, route, readJwt);
+        const executeJwtResult = await serverInject(server, route, executeJwt);
+        const writeJwtResult = await serverInject(server, route, writeJwt);
+        const allJwtResult = await serverInject(server, route, allJwt);
+        const oAuthJwtResult = await serverInject(server, route, oauthJwt);
+
+        assert.equal(noAuthResult.statusCode, 401);
+        assert.equal(invalidJwtResult.statusCode, 403);
+        assert.equal(readJwtResult.statusCode, 403);
+        assert.equal(executeJwtResult.statusCode, 403);
+        assert.equal(writeJwtResult.statusCode, 403);
+        assert.equal(allJwtResult.statusCode, 200);
+        assert.equal(oAuthJwtResult.statusCode, 200);
+    });
+});
 
 describe('user plugin test', () => {
     let server;
@@ -83,28 +208,6 @@ describe('user plugin test', () => {
 
     it('registers the plugin', () => {
         assert.isOk(server.registrations.users);
-    });
-
-    describe('authorization settings for user routes', () => {
-        const routesRequiringAuthorization = [
-            ['get', '/users/settings', 'read'],
-            ['put', '/users/settings', 'all'],
-            ['delete', '/users/settings', 'all'],
-            ['get', '/users/{username}', 'read']
-        ];
-
-        it('sets the agreed permission on every authenticated user route', () => {
-            routesRequiringAuthorization.forEach(([method, path, permission]) => {
-                const route = server.table().find(r => r.method === method && r.path === path);
-
-                assert.isOk(route, `${method.toUpperCase()} ${path} should be registered`);
-                assert.equal(
-                    route.settings.plugins.authorization.permission,
-                    permission,
-                    `${method.toUpperCase()} ${path} should require ${permission} permission`
-                );
-            });
-        });
     });
 
     describe('GET /user/settings', () => {
