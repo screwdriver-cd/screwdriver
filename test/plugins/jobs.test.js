@@ -116,6 +116,7 @@ describe('job plugin test', () => {
         pipelineFactoryMock = {
             get: sinon.stub().resolves(pipelineMock),
             scm: {
+                getPermissions: sinon.stub().resolves({ archived: false }),
                 getReadOnlyInfo: sinon.stub().returns({ readOnlyEnabled: false })
             }
         };
@@ -652,6 +653,19 @@ describe('job plugin test', () => {
                     settings: jobMock.permutations[0].settings
                 });
                 assert.equal(reply.statusCode, 200);
+            });
+        });
+
+        it('returns 403 and does not emit a status event for an archived repository', () => {
+            server.events = {
+                emit: sinon.stub().resolves(null)
+            };
+            pipelineFactoryMock.scm.getPermissions.resolves({ archived: true });
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 403);
+                assert.equal(reply.result.message, 'Archived repositories cannot be used for this operation');
+                assert.notCalled(server.events.emit);
             });
         });
 

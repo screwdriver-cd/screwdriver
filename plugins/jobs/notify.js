@@ -42,6 +42,16 @@ module.exports = () => ({
             }
 
             const pipeline = await pipelineFactory.get(pipelineId);
+            const permissions = await pipelineFactory.scm.getPermissions({
+                scmUri: pipeline.scmUri,
+                scmContext: pipeline.scmContext,
+                scmRepo: pipeline.scmRepo,
+                token: await pipeline.token
+            });
+
+            if (permissions.archived === true) {
+                throw boom.forbidden('Archived repositories cannot be used for this operation');
+            }
 
             await request.server.events.emit('job_status', {
                 status: request.payload.status,

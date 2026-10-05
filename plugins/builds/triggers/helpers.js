@@ -1,6 +1,7 @@
 'use strict';
 
 const logger = require('screwdriver-logger');
+const boom = require('@hapi/boom');
 const workflowParser = require('screwdriver-workflow-parser');
 const merge = require('lodash.mergewith');
 const schema = require('screwdriver-data-schema');
@@ -236,6 +237,17 @@ async function createEvent(config) {
 
     // get pipeline admin's token
     const token = await realAdmin.unsealToken();
+    const permissions = await eventFactory.scm.getPermissions({
+        scmContext,
+        scmUri,
+        scmRepo: pipeline.scmRepo,
+        token
+    });
+
+    if (permissions.archived === true) {
+        throw boom.forbidden('Archived repositories cannot be used for this operation');
+    }
+
     const scmConfig = {
         scmContext,
         scmUri,

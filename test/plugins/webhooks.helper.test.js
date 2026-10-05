@@ -370,6 +370,7 @@ describe('startHookEvent test', () => {
                 getChangedFiles: sinon.stub(),
                 getCommitSha: sinon.stub(),
                 getCommitRefSha: sinon.stub(),
+                getPermissions: sinon.stub().resolves({ archived: false }),
                 getReadOnlyInfo: sinon.stub().returns({ enabled: false }),
                 withRequestCache: sinon.stub().callsFake((requestCache, method) => method())
             }
@@ -1643,6 +1644,96 @@ describe('startHookEvent test', () => {
                     subscribedEvent: true,
                     subscribedConfigSha: sha
                 });
+                assert.calledOnce(pipelineFactoryMock.scm.getPermissions);
+                assert.calledWithMatch(pipelineFactoryMock.scm.getPermissions, {
+                    scmUri: pipelineMock2.scmUri,
+                    scmContext: pipelineMock2.scmContext,
+                    scmRepo: pipelineMock2.scmRepo,
+                    token
+                });
+            });
+        });
+
+        it('skips subscribed event when the subscribed repository is archived', () => {
+            pipelineFactoryMock.scm.parseUrl
+                .withArgs({ checkoutUrl: fullCheckoutUrl, token, scmContext })
+                .resolves('github.com:789123:master');
+            pipelineFactoryMock.list
+                .withArgs({
+                    search: { field: 'scmUri', keyword: 'github.com:789123:%' },
+                    params: { state: 'ACTIVE' }
+                })
+                .resolves([
+                    getPipelineMocks({
+                        id: 'sourcePipeline',
+                        scmUri: 'github.com:789123:master',
+                        annotations: {},
+                        admins: { baxterthehacker: false },
+                        workflowGraph,
+                        branch: Promise.resolve('master')
+                    })
+                ]);
+            const subscribedPipeline = { ...pipelineMock };
+
+            subscribedPipeline.subscribedScmUrlsWithActions = [
+                { scmUri: 'github.com:789123:master', actions: ['commit'] }
+            ];
+            pipelineFactoryMock.list
+                .withArgs({
+                    search: { field: 'subscribedScmUrlsWithActions', keyword: '%github.com:789123:%' },
+                    params: { state: 'ACTIVE' }
+                })
+                .resolves([subscribedPipeline]);
+            pipelineFactoryMock.scm.getPermissions.resolves({ archived: true });
+
+            return startHookEvent(request, responseHandler, parsed).then(reply => {
+                assert.equal(reply.statusCode, 201);
+                assert.calledOnce(pipelineFactoryMock.scm.getPermissions);
+                assert.calledOnce(eventFactoryMock.create);
+                assert.neverCalledWith(
+                    eventFactoryMock.create,
+                    sinon.match({ pipelineId: subscribedPipeline.id, startFrom: '~subscribe' })
+                );
+            });
+        });
+
+        it('does not check repository permissions when the subscribed action does not match', () => {
+            pipelineFactoryMock.scm.parseUrl
+                .withArgs({ checkoutUrl: fullCheckoutUrl, token, scmContext })
+                .resolves('github.com:789123:master');
+            pipelineFactoryMock.list
+                .withArgs({
+                    search: { field: 'scmUri', keyword: 'github.com:789123:%' },
+                    params: { state: 'ACTIVE' }
+                })
+                .resolves([
+                    getPipelineMocks({
+                        id: 'sourcePipeline',
+                        scmUri: 'github.com:789123:master',
+                        annotations: {},
+                        admins: { baxterthehacker: false },
+                        workflowGraph,
+                        branch: Promise.resolve('master')
+                    })
+                ]);
+            const subscribedPipeline = { ...pipelineMock };
+
+            subscribedPipeline.subscribedScmUrlsWithActions = [{ scmUri: 'github.com:789123:master', actions: ['pr'] }];
+            pipelineFactoryMock.list
+                .withArgs({
+                    search: { field: 'subscribedScmUrlsWithActions', keyword: '%github.com:789123:%' },
+                    params: { state: 'ACTIVE' }
+                })
+                .resolves([subscribedPipeline]);
+
+            return startHookEvent(request, responseHandler, parsed).then(reply => {
+                assert.equal(reply.statusCode, 201);
+                assert.notCalled(pipelineFactoryMock.scm.getPermissions);
+                assert.calledOnce(eventFactoryMock.create);
+                assert.neverCalledWith(
+                    eventFactoryMock.create,
+                    sinon.match({ pipelineId: subscribedPipeline.id, startFrom: '~subscribe' })
+                );
             });
         });
 
@@ -2359,6 +2450,13 @@ describe('startHookEvent test', () => {
                         subscribedEvent: true,
                         subscribedConfigSha: sha,
                         subscribedSourceUrl: 'foo'
+                    });
+                    assert.calledOnce(pipelineFactoryMock.scm.getPermissions);
+                    assert.calledWithMatch(pipelineFactoryMock.scm.getPermissions, {
+                        scmUri: pipelineMock2.scmUri,
+                        scmContext: pipelineMock2.scmContext,
+                        scmRepo: pipelineMock2.scmRepo,
+                        token
                     });
                 });
             });

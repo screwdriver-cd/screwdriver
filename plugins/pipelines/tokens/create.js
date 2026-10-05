@@ -52,7 +52,11 @@ module.exports = () => ({
             const scmUri = await getScmUri({ pipeline, pipelineFactory });
 
             // Check the user's permission
-            await getUserPermissions({ user, scmUri });
+            const permissions = await getUserPermissions({ user, scmUri });
+
+            if (permissions.archived === true) {
+                throw boom.forbidden('Archived repositories cannot be used for this operation');
+            }
 
             // Make sure the token name is unique
             const tokens = await pipeline.tokens;

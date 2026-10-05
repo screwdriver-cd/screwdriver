@@ -424,6 +424,44 @@ describe('authorization settings test for build routes', () => {
     });
 });
 
+describe('build trigger createEvent helper', () => {
+    it('rejects archived repositories before creating an event', async () => {
+        const pipeline = {
+            id: 123,
+            scmContext: 'github:github.com',
+            scmUri: 'github.com:359478:master',
+            admin: Promise.resolve({
+                unsealToken: sinon.stub().resolves('pipeline-token')
+            })
+        };
+        const pipelineFactory = {
+            get: sinon.stub().resolves(pipeline)
+        };
+        const eventFactory = {
+            scm: {
+                getPermissions: sinon.stub().resolves({ archived: true }),
+                getCommitSha: sinon.stub()
+            },
+            create: sinon.stub()
+        };
+
+        try {
+            await rewireBuildsIndex.createEvent({
+                pipelineFactory,
+                eventFactory,
+                pipelineId: pipeline.id,
+                startFrom: '~commit'
+            });
+            assert.fail('Expected archived repository to be rejected');
+        } catch (err) {
+            assert.equal(err.output.statusCode, 403);
+            assert.equal(err.message, 'Archived repositories cannot be used for this operation');
+            assert.notCalled(eventFactory.scm.getCommitSha);
+            assert.notCalled(eventFactory.create);
+        }
+    });
+});
+
 /* eslint-disable max-lines-per-function */
 describe('build plugin test', () => {
     let buildFactoryMock;
@@ -503,7 +541,8 @@ describe('build plugin test', () => {
             create: sinon.stub(),
             list: sinon.stub(),
             scm: {
-                getCommitSha: sinon.stub()
+                getCommitSha: sinon.stub(),
+                getPermissions: sinon.stub().resolves({ archived: false })
             }
         };
         bannerFactoryMock = {
@@ -7087,6 +7126,19 @@ describe('build plugin test', () => {
                 assert.calledWith(buildFactoryMock.create, params);
                 assert.deepEqual(pipelineMock.admins, { foo: true, bar: true, myself: true });
                 assert.deepEqual(pipelineMock.adminUserIds, [888, 999, 777]);
+            });
+        });
+
+        it('returns 403 and does not create a build for an archived repository', () => {
+            userMock.getPermissions.resolves({ push: true, archived: true });
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 403);
+                assert.equal(reply.result.message, 'Archived repositories cannot be used for this operation');
+                assert.notCalled(pipelineMock.update);
+                assert.notCalled(pipelineMock.sync);
+                assert.notCalled(buildFactoryMock.create);
+                assert.notCalled(eventFactoryMock.create);
             });
         });
 

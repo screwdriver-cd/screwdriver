@@ -66,6 +66,12 @@ module.exports = () => ({
                                     // check if user has push access
                                     // eslint-disable-next-line consistent-return
                                     .then(permissions => {
+                                        if (permissions.archived === true) {
+                                            throw boom.forbidden(
+                                                'Archived repositories cannot be used for this operation'
+                                            );
+                                        }
+
                                         if (!permissions.push) {
                                             // the user who are not permitted is deleted from admins table
                                             const newAdmins = pipeline.admins;

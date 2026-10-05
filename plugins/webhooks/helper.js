@@ -314,6 +314,29 @@ const uriTrimmer = uri => {
 };
 
 /**
+ * Check whether a pipeline's repository is archived.
+ * @method isArchivedPipeline
+ * @param {Pipeline}            pipeline
+ * @param {PipelineFactory}     pipelineFactory
+ */
+async function isArchivedPipeline(pipeline, pipelineFactory) {
+    const permissions = await pipelineFactory.scm.getPermissions({
+        scmUri: pipeline.scmUri,
+        scmContext: pipeline.scmContext,
+        scmRepo: pipeline.scmRepo,
+        token: await pipeline.token
+    });
+
+    if (permissions.archived === true) {
+        logger.info(`Skipping pipeline:${pipeline.id} for archived repository`);
+
+        return true;
+    }
+
+    return false;
+}
+
+/**
  * Create metadata by the parsed event
  * @param   {Object}   parsed   It has information to create metadata
  * @returns {Object}            Metadata
@@ -443,11 +466,11 @@ async function triggeredPipelines(
 
     // process the pipelinesWithSubscribedRepos only when the pipelinesOnCommitBranch is not empty
     // pipelinesOnCommitBranch has the information to determine the triggering event of downstream subscribing repo
-    pipelinesWithSubscribedRepos.forEach(p => {
+    for (const p of pipelinesWithSubscribedRepos) {
         if (!Array.isArray(p.subscribedScmUrlsWithActions)) {
-            return;
+            break;
         }
-        p.subscribedScmUrlsWithActions.forEach(subscribedScmUriWithAction => {
+        for (const subscribedScmUriWithAction of p.subscribedScmUrlsWithActions) {
             const { scmUri: subscribedScmUri, actions: subscribedActions } = subscribedScmUriWithAction;
 
             if (pipelinesOnCommitBranch[0].scmUri === subscribedScmUri) {
@@ -465,13 +488,16 @@ async function triggeredPipelines(
 
                 for (const subscribedAction of subscribedActions) {
                     if (new RegExp(subscribedAction).test(startFrom)) {
-                        currentRepoPipelines.push(p);
+                        if (!(await isArchivedPipeline(p, pipelineFactory))) {
+                            currentRepoPipelines.push(p);
+                        }
+
                         break;
                     }
                 }
             }
-        });
-    });
+        }
+    }
 
     return currentRepoPipelines;
 }
