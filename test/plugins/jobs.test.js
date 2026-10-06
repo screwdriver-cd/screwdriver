@@ -116,7 +116,6 @@ describe('job plugin test', () => {
         pipelineFactoryMock = {
             get: sinon.stub().resolves(pipelineMock),
             scm: {
-                getPermissions: sinon.stub().resolves({ archived: false }),
                 getReadOnlyInfo: sinon.stub().returns({ readOnlyEnabled: false })
             }
         };
