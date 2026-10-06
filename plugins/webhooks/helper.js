@@ -466,10 +466,11 @@ async function triggeredPipelines(
 
     // process the pipelinesWithSubscribedRepos only when the pipelinesOnCommitBranch is not empty
     // pipelinesOnCommitBranch has the information to determine the triggering event of downstream subscribing repo
-    for (const pipelineWithSubscribedRepos of pipelinesWithSubscribedRepos.filter(p =>
-        Array.isArray(p.subscribedScmUrlsWithActions)
-    )) {
-        for (const subscribedScmUriWithAction of pipelineWithSubscribedRepos.subscribedScmUrlsWithActions) {
+    pipelinesWithSubscribedRepos.forEach(p => {
+        if (!Array.isArray(p.subscribedScmUrlsWithActions)) {
+            return;
+        }
+        p.subscribedScmUrlsWithActions.forEach(subscribedScmUriWithAction => {
             const { scmUri: subscribedScmUri, actions: subscribedActions } = subscribedScmUriWithAction;
 
             if (pipelinesOnCommitBranch[0].scmUri === subscribedScmUri) {
@@ -487,16 +488,13 @@ async function triggeredPipelines(
 
                 for (const subscribedAction of subscribedActions) {
                     if (new RegExp(subscribedAction).test(startFrom)) {
-                        if (!(await isArchivedPipeline(pipelineWithSubscribedRepos, pipelineFactory))) {
-                            currentRepoPipelines.push(pipelineWithSubscribedRepos);
-                        }
-
+                        currentRepoPipelines.push(p);
                         break;
                     }
                 }
             }
-        }
-    }
+        });
+    });
 
     return currentRepoPipelines;
 }
@@ -1273,6 +1271,12 @@ async function createEvents(server, userFactory, pipelineFactory, pipelines, par
                     eventConfig.startFrom = '~subscribe';
                     eventConfig.subscribedConfigSha = eventConfig.sha;
 
+                    if (await isArchivedPipeline(pTuple.pipeline, pipelineFactory)) {
+                        logger.info(`skip create event for this subscribed trigger due to archiving repository`);
+
+                        return null;
+                    }
+
                     try {
                         eventConfig.sha = await pipelineFactory.scm.getCommitSha(scmConfig);
                     } catch (err) {
@@ -1280,6 +1284,8 @@ async function createEvents(server, userFactory, pipelineFactory, pipelines, par
                             throw err;
                         } else {
                             logger.info(`skip create event for this subscribed trigger`);
+
+                            return null;
                         }
                     }
 
@@ -1297,6 +1303,8 @@ async function createEvents(server, userFactory, pipelineFactory, pipelines, par
                             throw err;
                         } else {
                             logger.info(`skip create event for this subscribed trigger`);
+
+                            return null;
                         }
                     }
                 }

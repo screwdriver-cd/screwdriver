@@ -370,6 +370,7 @@ describe('startHookEvent test', () => {
                 getChangedFiles: sinon.stub(),
                 getCommitSha: sinon.stub(),
                 getCommitRefSha: sinon.stub(),
+                decorateCommit: sinon.stub(),
                 getPermissions: sinon.stub().resolves({ archived: false }),
                 getReadOnlyInfo: sinon.stub().returns({ enabled: false }),
                 withRequestCache: sinon.stub().callsFake((requestCache, method) => method())
@@ -1250,6 +1251,41 @@ describe('startHookEvent test', () => {
             pipelineFactoryMock.list.resolves([pipelineMock]);
         });
 
+        const setupSubscribedCommitPipelines = () => {
+            pipelineFactoryMock.scm.parseUrl
+                .withArgs({ checkoutUrl: fullCheckoutUrl, token, scmContext })
+                .resolves('github.com:789123:master');
+            pipelineFactoryMock.list
+                .withArgs({
+                    search: { field: 'scmUri', keyword: 'github.com:789123:%' },
+                    params: { state: 'ACTIVE' }
+                })
+                .resolves([
+                    getPipelineMocks({
+                        id: 'pipelineHash',
+                        scmUri: 'github.com:789123:master',
+                        annotations: {},
+                        admins: { baxterthehacker: false },
+                        workflowGraph,
+                        branch: Promise.resolve('master')
+                    })
+                ]);
+
+            const subscribedPipeline = { ...pipelineMock };
+
+            subscribedPipeline.subscribedScmUrlsWithActions = [
+                { scmUri: 'github.com:789123:master', actions: ['commit'] }
+            ];
+            pipelineFactoryMock.list
+                .withArgs({
+                    search: { field: 'subscribedScmUrlsWithActions', keyword: '%github.com:789123:%' },
+                    params: { state: 'ACTIVE' }
+                })
+                .resolves([subscribedPipeline]);
+
+            return subscribedPipeline;
+        };
+
         it('returns 201 on success', () =>
             startHookEvent(request, responseHandler, parsed).then(reply => {
                 assert.equal(reply.statusCode, 201);
@@ -1578,35 +1614,9 @@ describe('startHookEvent test', () => {
         });
 
         it('returns 201 when the hook source triggers subscribed event on commit', () => {
-            pipelineFactoryMock.scm.parseUrl
-                .withArgs({ checkoutUrl: fullCheckoutUrl, token, scmContext })
-                .resolves('github.com:789123:master');
-            pipelineFactoryMock.list
-                .withArgs({
-                    search: { field: 'scmUri', keyword: 'github.com:789123:%' },
-                    params: { state: 'ACTIVE' }
-                })
-                .resolves([
-                    getPipelineMocks({
-                        id: 'pipelineHash',
-                        scmUri: 'github.com:789123:master',
-                        annotations: {},
-                        admins: {
-                            baxterthehacker: false
-                        },
-                        workflowGraph,
-                        branch: Promise.resolve('master')
-                    })
-                ]);
-            const pipelineMock2 = { ...pipelineMock };
+            const subscribedPipeline = setupSubscribedCommitPipelines();
 
-            pipelineMock2.subscribedScmUrlsWithActions = [{ scmUri: 'github.com:789123:master', actions: ['commit'] }];
-            pipelineFactoryMock.list
-                .withArgs({
-                    search: { field: 'subscribedScmUrlsWithActions', keyword: '%github.com:789123:%' },
-                    params: { state: 'ACTIVE' }
-                })
-                .resolves([pipelineMock2]);
+            pipelineFactoryMock.scm.decorateCommit.resolves({ url: 'foo' });
 
             return startHookEvent(request, responseHandler, parsed).then(reply => {
                 assert.equal(reply.statusCode, 201);
@@ -1642,15 +1652,55 @@ describe('startHookEvent test', () => {
                     releaseName: undefined,
                     ref: undefined,
                     subscribedEvent: true,
-                    subscribedConfigSha: sha
+                    subscribedConfigSha: sha,
+                    subscribedSourceUrl: 'foo'
                 });
                 assert.calledOnce(pipelineFactoryMock.scm.getPermissions);
                 assert.calledWithMatch(pipelineFactoryMock.scm.getPermissions, {
-                    scmUri: pipelineMock2.scmUri,
-                    scmContext: pipelineMock2.scmContext,
-                    scmRepo: pipelineMock2.scmRepo,
+                    scmUri: subscribedPipeline.scmUri,
+                    scmContext: subscribedPipeline.scmContext,
+                    scmRepo: subscribedPipeline.scmRepo,
                     token
                 });
+            });
+        });
+
+        it('skips subscribed event when getting its commit SHA fails with a 4xx error', () => {
+            const subscribedPipeline = setupSubscribedCommitPipelines();
+            const err = new Error('some error');
+
+            err.status = 404;
+            pipelineFactoryMock.scm.getCommitSha
+                .withArgs(sinon.match({ scmUri: subscribedPipeline.scmUri }))
+                .onSecondCall()
+                .rejects(err);
+
+            return startHookEvent(request, responseHandler, parsed).then(reply => {
+                assert.equal(reply.statusCode, 201);
+                assert.calledOnce(eventFactoryMock.create);
+                assert.calledWith(eventFactoryMock.create, sinon.match({ startFrom: '~commit' }));
+                assert.neverCalledWith(
+                    eventFactoryMock.create,
+                    sinon.match({ pipelineId: subscribedPipeline.id, startFrom: '~subscribe' })
+                );
+            });
+        });
+
+        it('skips subscribed event when decorating its commit fails with a 4xx error', () => {
+            const subscribedPipeline = setupSubscribedCommitPipelines();
+            const err = new Error('some error');
+
+            err.status = 404;
+            pipelineFactoryMock.scm.decorateCommit.rejects(err);
+
+            return startHookEvent(request, responseHandler, parsed).then(reply => {
+                assert.equal(reply.statusCode, 201);
+                assert.calledOnce(eventFactoryMock.create);
+                assert.calledWith(eventFactoryMock.create, sinon.match({ startFrom: '~commit' }));
+                assert.neverCalledWith(
+                    eventFactoryMock.create,
+                    sinon.match({ pipelineId: subscribedPipeline.id, startFrom: '~subscribe' })
+                );
             });
         });
 
@@ -2450,13 +2500,6 @@ describe('startHookEvent test', () => {
                         subscribedEvent: true,
                         subscribedConfigSha: sha,
                         subscribedSourceUrl: 'foo'
-                    });
-                    assert.calledOnce(pipelineFactoryMock.scm.getPermissions);
-                    assert.calledWithMatch(pipelineFactoryMock.scm.getPermissions, {
-                        scmUri: pipelineMock2.scmUri,
-                        scmContext: pipelineMock2.scmContext,
-                        scmRepo: pipelineMock2.scmRepo,
-                        token
                     });
                 });
             });
