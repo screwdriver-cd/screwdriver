@@ -469,7 +469,7 @@ async function triggeredPipelines(
     for (const pipelineWithSubscribedRepos of pipelinesWithSubscribedRepos.filter(p =>
         Array.isArray(p.subscribedScmUrlsWithActions)
     )) {
-        for (const subscribedScmUriWithAction of pipelineWithSUbscribedRepos.subscribedScmUrlsWithActions) {
+        for (const subscribedScmUriWithAction of pipelineWithSubscribedRepos.subscribedScmUrlsWithActions) {
             const { scmUri: subscribedScmUri, actions: subscribedActions } = subscribedScmUriWithAction;
 
             if (pipelinesOnCommitBranch[0].scmUri === subscribedScmUri) {
@@ -487,8 +487,8 @@ async function triggeredPipelines(
 
                 for (const subscribedAction of subscribedActions) {
                     if (new RegExp(subscribedAction).test(startFrom)) {
-                        if (!(await isArchivedPipeline(pipelineWithSUbscribedRepos, pipelineFactory))) {
-                            currentRepoPipelines.push(pipelineWithSUbscribedRepos);
+                        if (!(await isArchivedPipeline(pipelineWithSubscribedRepos, pipelineFactory))) {
+                            currentRepoPipelines.push(pipelineWithSubscribedRepos);
                         }
 
                         break;
