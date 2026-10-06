@@ -466,7 +466,7 @@ async function triggeredPipelines(
 
     // process the pipelinesWithSubscribedRepos only when the pipelinesOnCommitBranch is not empty
     // pipelinesOnCommitBranch has the information to determine the triggering event of downstream subscribing repo
-    for (const pipelineWithSUbscribedRepos of pipelinesWithSubscribedRepos.filter(p =>
+    for (const pipelineWithSubscribedRepos of pipelinesWithSubscribedRepos.filter(p =>
         Array.isArray(p.subscribedScmUrlsWithActions)
     )) {
         for (const subscribedScmUriWithAction of pipelineWithSUbscribedRepos.subscribedScmUrlsWithActions) {
