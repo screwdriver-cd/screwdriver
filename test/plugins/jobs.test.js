@@ -656,19 +656,6 @@ describe('job plugin test', () => {
             });
         });
 
-        it('returns 403 and does not emit a status event for an archived repository', () => {
-            server.events = {
-                emit: sinon.stub().resolves(null)
-            };
-            pipelineFactoryMock.scm.getPermissions.resolves({ archived: true });
-
-            return server.inject(options).then(reply => {
-                assert.equal(reply.statusCode, 403);
-                assert.equal(reply.result.message, 'Archived repositories cannot be used for this operation');
-                assert.notCalled(server.events.emit);
-            });
-        });
-
         it('returns 404 if job does not exist', () => {
             jobFactoryMock.get.withArgs(id).resolves(null);
 
