@@ -206,9 +206,7 @@ module.exports = () => ({
                 }
 
                 applyStateChange(oldPipeline, state, username, stateChangeMessage);
-                const updatedPipeline = await (state === 'ACTIVE'
-                    ? oldPipeline.enable()
-                    : oldPipeline.disable());
+                const updatedPipeline = await (state === 'ACTIVE' ? oldPipeline.enable() : oldPipeline.disable());
 
                 return h.response(updatedPipeline.toJson()).code(200);
             }
