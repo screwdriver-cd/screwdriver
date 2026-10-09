@@ -968,6 +968,7 @@ describe('pipeline plugin test', () => {
                 parseUrl: sinon.stub(),
                 decorateUrl: sinon.stub(),
                 getCommitSha: sinon.stub().resolves('sha'),
+                getPermissions: sinon.stub().resolves({ archived: false }),
                 addDeployKey: sinon.stub(),
                 getReadOnlyInfo: sinon.stub().returns({ readOnlyEnabled: false }),
                 getDisplayName: sinon.stub().returns()
@@ -2942,6 +2943,17 @@ describe('pipeline plugin test', () => {
                 assert.calledOnce(pipelineMock.sync);
             }));
 
+        it('returns 403 and does not update or sync an archived repository', () => {
+            userMock.getPermissions.withArgs(scmUri).resolves({ push: true, archived: true });
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 403);
+                assert.equal(reply.result.message, 'Archived repositories cannot be used for this operation');
+                assert.notCalled(pipelineMock.update);
+                assert.notCalled(pipelineMock.sync);
+            });
+        });
+
         it('returns 204 with pipeline token', () => {
             options.auth.credentials = {
                 username,
@@ -3102,6 +3114,16 @@ describe('pipeline plugin test', () => {
                 assert.equal(reply.statusCode, 204);
             }));
 
+        it('returns 403 and does not add webhooks for an archived repository', () => {
+            userMock.getPermissions.withArgs(scmUri).resolves({ push: true, archived: true });
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 403);
+                assert.equal(reply.result.message, 'Archived repositories cannot be used for this operation');
+                assert.notCalled(pipelineMock.addWebhooks);
+            });
+        });
+
         it('returns 204 for syncing webhooks with admin token', () => {
             options.auth.credentials.scope.push('admin');
 
@@ -3211,6 +3233,16 @@ describe('pipeline plugin test', () => {
             server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 204);
             }));
+
+        it('returns 403 and does not sync pull requests for an archived repository', () => {
+            userMock.getPermissions.withArgs(scmUri).resolves({ push: true, archived: true });
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 403);
+                assert.equal(reply.result.message, 'Archived repositories cannot be used for this operation');
+                assert.notCalled(pipelineMock.syncPRs);
+            });
+        });
 
         it('returns 204 for syncing pull requests with admin token', () => {
             options.auth.credentials.scope.push('admin');
@@ -3368,6 +3400,17 @@ describe('pipeline plugin test', () => {
                     allowInPR: true
                 });
                 assert.equal(reply.statusCode, 201);
+            });
+        });
+
+        it('returns 403 and does not create a pipeline for an archived repository', () => {
+            userMock.getPermissions.withArgs(scmUri).resolves({ admin: true, archived: true });
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 403);
+                assert.equal(reply.result.message, 'Archived repositories cannot be used for this operation');
+                assert.notCalled(pipelineFactoryMock.create);
+                assert.notCalled(collectionFactoryMock.list);
             });
         });
 
@@ -4459,6 +4502,64 @@ describe('pipeline plugin test', () => {
             });
         });
 
+        it('returns 403 without listing child pipelines when the parent repository is archived', () => {
+            userMock.getPermissions.withArgs(scmUri).resolves({ push: true, archived: true });
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 403);
+                assert.notCalled(pipelineFactoryMock.list);
+                assert.notCalled(eventFactoryMock.create);
+            });
+        });
+
+        it('returns 403 without creating events when a child repository is archived', () => {
+            const childScmUri = 'github.com:99999:branchName';
+            const childPipeline = getPipelineMocks({
+                ...testPipeline,
+                id: 456,
+                scmUri: childScmUri
+            });
+
+            userMock.getPermissions.withArgs(childScmUri).resolves({ push: true, archived: true });
+            pipelineFactoryMock.list.resolves([childPipeline]);
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 403);
+                assert.calledOnce(pipelineFactoryMock.scm.getCommitSha);
+                assert.calledWith(pipelineFactoryMock.scm.getCommitSha, sinon.match({ scmUri: childScmUri }));
+                assert.notCalled(eventFactoryMock.create);
+            });
+        });
+
+        it('starts eligible child pipelines and skips archived children when mixed', () => {
+            const activeScmUri = 'github.com:11111:branchName';
+            const archivedScmUri = 'github.com:22222:branchName';
+            const activePipeline = getPipelineMocks({
+                ...testPipeline,
+                id: 456,
+                scmUri: activeScmUri
+            });
+            const archivedPipeline = getPipelineMocks({
+                ...testPipeline,
+                id: 789,
+                scmUri: archivedScmUri
+            });
+
+            userMock.getPermissions.withArgs(activeScmUri).resolves({ push: true, archived: false });
+            userMock.getPermissions.withArgs(archivedScmUri).resolves({ push: true, archived: true });
+            pipelineFactoryMock.list.resolves([activePipeline, archivedPipeline]);
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 403);
+                assert.calledOnce(eventFactoryMock.create);
+                assert.calledWith(eventFactoryMock.create, sinon.match({ pipelineId: activePipeline.id }));
+                assert.neverCalledWith(eventFactoryMock.create, sinon.match({ pipelineId: archivedPipeline.id }));
+                assert.calledTwice(pipelineFactoryMock.scm.getCommitSha);
+                assert.calledWith(pipelineFactoryMock.scm.getCommitSha, sinon.match({ scmUri: activeScmUri }));
+                assert.calledWith(pipelineFactoryMock.scm.getCommitSha, sinon.match({ scmUri: archivedScmUri }));
+            });
+        });
+
         it('returns 403 when user does not have admin permission', () => {
             const error = {
                 statusCode: 403,
@@ -5063,6 +5164,16 @@ describe('pipeline plugin test', () => {
                     issuerId: userMock.id
                 });
             }));
+
+        it('returns 403 and does not create a token for an archived repository', () => {
+            userMock.getPermissions.withArgs(scmUri).resolves({ admin: true, archived: true });
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 403);
+                assert.equal(reply.result.message, 'Archived repositories cannot be used for this operation');
+                assert.notCalled(tokenFactoryMock.create);
+            });
+        });
 
         it('returns 201 and created new minimum token', () => {
             options.payload = { name };
@@ -5810,6 +5921,7 @@ describe('pipeline plugin test', () => {
             userMock.unsealToken.resolves(token);
             userMock.getPermissions.withArgs(scmUri).resolves({ push: true });
             userFactoryMock.get.withArgs({ username, scmContext }).resolves(userMock);
+            pipelineFactoryMock.get.withArgs(id).resolves(getPipelineMocks(testPipeline));
             userFactoryMock.scm.parseUrl.resolves(scmUri);
             userFactoryMock.scm.openPr.resolves(pullRequest);
         });
@@ -5828,6 +5940,42 @@ describe('pipeline plugin test', () => {
                     title: 'update file',
                     token
                 });
+            });
+        });
+
+        it('returns 403 and does not open a pull request for an archived target repository', () => {
+            userMock.getPermissions.withArgs(scmUri).resolves({ push: true, archived: true });
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 403);
+                assert.notCalled(userFactoryMock.scm.openPr);
+            });
+        });
+
+        it('returns 403 and does not check permissions or open a pull request for a different repository', () => {
+            userFactoryMock.scm.parseUrl.resolves('github.com:99999:master');
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 403);
+                assert.equal(
+                    reply.result.message,
+                    'Creating pull requests to repositories other than the pipeline is not permitted'
+                );
+                assert.notCalled(userMock.getPermissions);
+                assert.notCalled(userFactoryMock.scm.openPr);
+            });
+        });
+
+        it('returns 404 and does not process the user or repository when the pipeline does not exist', () => {
+            pipelineFactoryMock.get.withArgs(id).resolves(null);
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 404);
+                assert.equal(reply.result.message, 'Pipeline does not exist');
+                assert.notCalled(userFactoryMock.get);
+                assert.notCalled(userFactoryMock.scm.parseUrl);
+                assert.notCalled(userMock.getPermissions);
+                assert.notCalled(userFactoryMock.scm.openPr);
             });
         });
 
