@@ -624,6 +624,17 @@ describe('event plugin test', () => {
             });
         });
 
+        it('returns 403 and does not create an event for an archived repository', () => {
+            userMock.getPermissions.resolves({ push: true, archived: true });
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 403);
+                assert.equal(reply.result.message, 'Archived repositories cannot be used for this operation');
+                assert.notCalled(eventFactoryMock.create);
+                assert.notCalled(pipelineMock.update);
+            });
+        });
+
         it('returns 201 when it successfully creates restart event with branch specific triggered parent event', () => {
             options.payload.startFrom = 'main';
             options.payload.startAction = 'RESTART_FROM_EVENT';

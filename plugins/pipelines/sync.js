@@ -66,6 +66,10 @@ module.exports = () => ({
                 throw boom.boomify(error, { statusCode: error.statusCode });
             }
 
+            if (permissions.archived === true) {
+                throw boom.forbidden('Archived repositories cannot be used for this operation');
+            }
+
             // check if user has push access
             if (!permissions.push) {
                 // user is not permitted, delete from admins table

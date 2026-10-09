@@ -26,11 +26,16 @@ module.exports = () => ({
         },
 
         handler: async (request, h) => {
-            const { userFactory } = request.server.app;
+            const { pipelineFactory, userFactory } = request.server.app;
             const { username, scmContext } = request.auth.credentials;
             const { files, title, message } = request.payload;
             const checkoutUrl = helper.formatCheckoutUrl(request.payload.checkoutUrl);
             const rootDir = helper.sanitizeRootDir(request.payload.rootDir);
+            const pipeline = await pipelineFactory.get(request.params.id);
+
+            if (!pipeline) {
+                throw boom.notFound('Pipeline does not exist');
+            }
 
             return userFactory
                 .get({ username, scmContext })
@@ -49,10 +54,25 @@ module.exports = () => ({
                                     checkoutUrl,
                                     token
                                 })
-                                .then(scmUri =>
-                                    user
+                                .then(scmUri => {
+                                    if (
+                                        scmUri.split(':').slice(0, 2).join(':') !==
+                                        pipeline.scmUri.split(':').slice(0, 2).join(':')
+                                    ) {
+                                        throw boom.forbidden(
+                                            'Creating pull requests to repositories other than the pipeline is not permitted'
+                                        );
+                                    }
+
+                                    return user
                                         .getPermissions(scmUri)
-                                        .then(permissions => {
+                                        .then(async permissions => {
+                                            if (permissions.archived === true) {
+                                                throw boom.forbidden(
+                                                    'Archived repositories cannot be used for this operation'
+                                                );
+                                            }
+
                                             if (!permissions.push) {
                                                 throw boom.forbidden(
                                                     `User ${user.getFullDisplayName()} does not have push permission for this repo`
@@ -79,8 +99,8 @@ module.exports = () => ({
                                         .catch(error => {
                                             // 404 error throws, if branch name is incorrect
                                             throw boom.boomify(error, { statusCode: error.statusCode });
-                                        })
-                                );
+                                        });
+                                });
                         })
                         .then(async pullRequest => {
                             if (!pullRequest) {

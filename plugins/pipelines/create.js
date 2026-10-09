@@ -52,7 +52,11 @@ module.exports = () => ({
             }
 
             // get the user permissions for the repo
-            await getUserPermissions({ user, scmUri });
+            const permissions = await getUserPermissions({ user, scmUri });
+
+            if (permissions.archived === true) {
+                throw boom.forbidden('Archived repositories cannot be used for this operation');
+            }
 
             // see if there is already a pipeline
             let pipeline = await pipelineFactory.get({ scmUri });
