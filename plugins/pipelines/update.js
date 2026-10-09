@@ -161,7 +161,13 @@ module.exports = () => ({
 
                 // Apply state change and return early
                 applyStateChange(oldPipeline, state, username, stateChangeMessage);
-                const updatedPipeline = await oldPipeline.update();
+                let updatedPipeline;
+
+                if (isScrewdriverAdmin) {
+                    updatedPipeline = await (state === 'ACTIVE' ? oldPipeline.enable() : oldPipeline.disable());
+                } else {
+                    updatedPipeline = await oldPipeline.update();
+                }
 
                 return h.response(updatedPipeline.toJson()).code(200);
             }
@@ -200,7 +206,9 @@ module.exports = () => ({
                 }
 
                 applyStateChange(oldPipeline, state, username, stateChangeMessage);
-                const updatedPipeline = await oldPipeline.update();
+                const updatedPipeline = await (state === 'ACTIVE'
+                    ? oldPipeline.enable()
+                    : oldPipeline.disable());
 
                 return h.response(updatedPipeline.toJson()).code(200);
             }
