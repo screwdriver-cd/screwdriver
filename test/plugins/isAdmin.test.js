@@ -4,6 +4,7 @@ const { assert } = require('chai');
 const sinon = require('sinon');
 const hapi = require('@hapi/hapi');
 const hoek = require('@hapi/hoek');
+const { newAuthTestServer, serverInject } = require('./auth.test.helper');
 const pipelineMock = require('./data/pipeline.json');
 
 sinon.assert.expose(assert, { prefix: '' });
@@ -15,6 +16,57 @@ const getUserMock = user => {
 
     return mock;
 };
+
+describe('authorization settings test for isAdmin routes', () => {
+    let server;
+    let readJwt;
+    let executeJwt;
+    let writeJwt;
+    let allJwt;
+    let oauthJwt;
+    let invalidJwt;
+
+    beforeEach(async () => {
+        /* eslint-disable global-require */
+        const plugin = require('../../plugins/isAdmin');
+        /* eslint-enable global-require */
+
+        server = await newAuthTestServer();
+
+        await server.register({ plugin });
+
+        readJwt = server.generateTestJwt({ permission: 'read' });
+        executeJwt = server.generateTestJwt({ permission: 'execute' });
+        writeJwt = server.generateTestJwt({ permission: 'write' });
+        allJwt = server.generateTestJwt({ permission: 'all' });
+        oauthJwt = server.generateTestJwt({ type: 'oauth' });
+        invalidJwt = server.generateTestJwt({ permission: 'invalid' });
+    });
+
+    afterEach(() => {
+        server = null;
+    });
+
+    it('GET /isAdmin requires read permission', async () => {
+        const route = { method: 'GET', url: '/isAdmin' };
+
+        const noAuthResult = await serverInject(server, route);
+        const invalidJwtResult = await serverInject(server, route, invalidJwt);
+        const readJwtResult = await serverInject(server, route, readJwt);
+        const executeJwtResult = await serverInject(server, route, executeJwt);
+        const writeJwtResult = await serverInject(server, route, writeJwt);
+        const allJwtResult = await serverInject(server, route, allJwt);
+        const oAuthJwtResult = await serverInject(server, route, oauthJwt);
+
+        assert.equal(noAuthResult.statusCode, 401);
+        assert.equal(invalidJwtResult.statusCode, 403);
+        assert.equal(readJwtResult.statusCode, 200);
+        assert.equal(executeJwtResult.statusCode, 200);
+        assert.equal(writeJwtResult.statusCode, 200);
+        assert.equal(allJwtResult.statusCode, 200);
+        assert.equal(oAuthJwtResult.statusCode, 200);
+    });
+});
 
 describe('isAdmin plugin test', () => {
     let server;
@@ -95,13 +147,6 @@ describe('isAdmin plugin test', () => {
 
     it('registers the plugin', () => {
         assert.isOk(server.registrations.isAdmin);
-    });
-
-    it('requires read permission', () => {
-        const route = server.table().find(r => r.method === 'get' && r.path === '/isAdmin');
-
-        assert.isOk(route);
-        assert.equal(route.settings.plugins.authorization.permission, 'read');
     });
 
     describe('GET /isAdmin?pipelineId=', () => {

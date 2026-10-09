@@ -42,7 +42,6 @@ const newAuthTestServer = async () => {
         username: 'batman',
         scmUserId: 123,
         scmContext: 'github:github.com',
-        scope: ['user'],
         metadata: {}
     };
     const tokenFactoryMock = {
@@ -107,9 +106,10 @@ const newAuthTestServer = async () => {
         }
     });
 
-    server.generateTestJwt = ({ type = 'api_token', permission = 'all' }) => {
+    server.generateTestJwt = ({ type = 'api_token', permission = 'all', scope = ['user'] }) => {
         const profile = server.plugins.auth.generateProfile({
             ...baseProfile,
+            scope,
             auth: {
                 type,
                 apiTokenId: 123

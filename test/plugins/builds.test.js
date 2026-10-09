@@ -120,6 +120,8 @@ describe('authorization settings test for build routes', () => {
     let writeJwt;
     let allJwt;
     let oauthJwt;
+    let buildJwt;
+    let temporalJwt;
     let invalidJwt;
 
     beforeEach(async () => {
@@ -136,6 +138,8 @@ describe('authorization settings test for build routes', () => {
         writeJwt = server.generateTestJwt({ permission: 'write' });
         allJwt = server.generateTestJwt({ permission: 'all' });
         oauthJwt = server.generateTestJwt({ type: 'oauth' });
+        buildJwt = server.generateTestJwt({ type: 'temporary', scope: ['build'] });
+        temporalJwt = server.generateTestJwt({ type: 'temporary', scope: ['temporal'] });
         invalidJwt = server.generateTestJwt({ permission: 'invalid' });
     });
 
@@ -393,6 +397,7 @@ describe('authorization settings test for build routes', () => {
         const writeJwtResult = await serverInject(server, route, writeJwt);
         const allJwtResult = await serverInject(server, route, allJwt);
         const oAuthJwtResult = await serverInject(server, route, oauthJwt);
+        const buildJwtResult = await serverInject(server, route, buildJwt);
 
         assert.equal(noAuthResult.statusCode, 401);
         assert.equal(invalidJwtResult.statusCode, 403);
@@ -401,6 +406,7 @@ describe('authorization settings test for build routes', () => {
         assert.equal(writeJwtResult.statusCode, 403);
         assert.equal(allJwtResult.statusCode, 403);
         assert.equal(oAuthJwtResult.statusCode, 403);
+        assert.equal(buildJwtResult.statusCode, 200);
     });
 
     it('POST /builds/{id}/token requires temporal scope', async () => {
@@ -413,6 +419,7 @@ describe('authorization settings test for build routes', () => {
         const writeJwtResult = await serverInject(server, route, writeJwt);
         const allJwtResult = await serverInject(server, route, allJwt);
         const oAuthJwtResult = await serverInject(server, route, oauthJwt);
+        const temporalJwtResult = await serverInject(server, route, temporalJwt);
 
         assert.equal(noAuthResult.statusCode, 401);
         assert.equal(invalidJwtResult.statusCode, 403);
@@ -421,6 +428,7 @@ describe('authorization settings test for build routes', () => {
         assert.equal(writeJwtResult.statusCode, 403);
         assert.equal(allJwtResult.statusCode, 403);
         assert.equal(oAuthJwtResult.statusCode, 403);
+        assert.equal(temporalJwtResult.statusCode, 200);
     });
 });
 
