@@ -163,6 +163,8 @@ module.exports = () => ({
                 applyStateChange(oldPipeline, state, username, stateChangeMessage);
                 let updatedPipeline;
 
+                // Screwdriver admins may not have valid pipeline-admin SCM credentials,
+                // so persist the state change without accessing SCM.
                 if (isScrewdriverAdmin) {
                     updatedPipeline = await (state === 'ACTIVE' ? oldPipeline.enable() : oldPipeline.disable());
                 } else {
