@@ -155,6 +155,8 @@ describe('authorization settings test for secret routes', () => {
 
 describe('secret plugin test', () => {
     let secretFactoryMock;
+    let buildFactoryMock;
+    let jobFactoryMock;
     let userFactoryMock;
     let pipelineFactoryMock;
     let plugin;
@@ -168,6 +170,12 @@ describe('secret plugin test', () => {
             create: sinon.stub(),
             get: sinon.stub(),
             remove: sinon.stub()
+        };
+        buildFactoryMock = {
+            get: sinon.stub()
+        };
+        jobFactoryMock = {
+            get: sinon.stub()
         };
         pipelineFactoryMock = {
             get: sinon.stub(),
@@ -195,6 +203,8 @@ describe('secret plugin test', () => {
         });
         server.app = {
             secretFactory: secretFactoryMock,
+            buildFactory: buildFactoryMock,
+            jobFactory: jobFactoryMock,
             userFactory: userFactoryMock,
             pipelineFactory: pipelineFactoryMock
         };
@@ -667,13 +677,34 @@ describe('secret plugin test', () => {
         });
 
         describe('Build scope', () => {
+            const buildId = 12345;
+            const jobAId = 5678;
+            const jobBId = 8765;
+            const bOnlySecret = {
+                ...testSecret,
+                id: 9876,
+                name: 'B_ONLY',
+                value: 'marker-secret'
+            };
+
             beforeEach(() => {
+                buildFactoryMock.get.withArgs(buildId).resolves({ id: buildId, jobId: jobAId });
+                jobFactoryMock.get.withArgs(jobAId).resolves({
+                    id: jobAId,
+                    pipelineId: 123,
+                    secrets: Promise.resolve([getSecretMock(testSecret)])
+                });
+                jobFactoryMock.get.withArgs(jobBId).resolves({
+                    id: jobBId,
+                    pipelineId: 123,
+                    secrets: Promise.resolve([getSecretMock(bOnlySecret)])
+                });
                 options = {
                     method: 'GET',
                     url: `/secrets/${secretId}`,
                     auth: {
                         credentials: {
-                            username,
+                            username: buildId,
                             scmContext,
                             pipelineId: 123,
                             scope: ['build']
@@ -688,7 +719,54 @@ describe('secret plugin test', () => {
                     assert.equal(reply.statusCode, 200);
                     assert.deepEqual(reply.result, testSecret);
                     assert.calledWith(secretFactoryMock.get, secretId);
+                    assert.calledWith(buildFactoryMock.get, buildId);
+                    assert.calledWith(jobFactoryMock.get, jobAId);
                 }));
+
+            it('returns 404 when build does not exist', () => {
+                buildFactoryMock.get.withArgs(buildId).resolves(null);
+
+                return server.inject(options).then(reply => {
+                    assert.equal(reply.statusCode, 404);
+                    assert.calledWith(buildFactoryMock.get, buildId);
+                });
+            });
+
+            it('returns 404 when the build job does not exist', () => {
+                jobFactoryMock.get.withArgs(jobAId).resolves(null);
+
+                return server.inject(options).then(reply => {
+                    assert.equal(reply.statusCode, 404);
+                    assert.calledWith(jobFactoryMock.get, jobAId);
+                });
+            });
+
+            it('returns 403 for a secret assigned only to a sibling job in the same pipeline', () => {
+                secretFactoryMock.get.resolves(getSecretMock(bOnlySecret));
+                options.url = `/secrets/${bOnlySecret.id}`;
+
+                return server.inject(options).then(reply => {
+                    assert.equal(reply.statusCode, 403);
+                    assert.notNestedProperty(reply.result, 'value');
+                    assert.calledWith(jobFactoryMock.get, jobAId);
+                    assert.notCalled(jobFactoryMock.get.withArgs(jobBId));
+                });
+            });
+
+            it('allows a secret inherited from the config pipeline when assigned to the job', () => {
+                options.auth.credentials.pipelineId = 124;
+                options.auth.credentials.configPipelineId = 123;
+                jobFactoryMock.get.withArgs(jobAId).resolves({
+                    id: jobAId,
+                    pipelineId: 124,
+                    secrets: Promise.resolve([getSecretMock(testSecret)])
+                });
+
+                return server.inject(options).then(reply => {
+                    assert.equal(reply.statusCode, 200);
+                    assert.deepEqual(reply.result, testSecret);
+                });
+            });
 
             it('returns 403 if build is not allowed to access secret', () => {
                 options.auth.credentials.pipelineId = 124;

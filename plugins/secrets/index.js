@@ -25,7 +25,6 @@ const secretsPlugin = {
          * @param {Array}   credentials.scope        Scope of the credential (user, build, admin)
          * @param {String}  [credentials.pipelineId] If credential is a build, this is the pipeline ID
          * @param {String}  [credentials.configPipelineId] If credential is a build, this is the parent pipeline ID
-         * @param {String}  [credentials.jobId]      If credential is a build, this is the job ID
          * @param {String}  [credentials.isPR]       If credential is a build, this is true if a PR
          * @param {Object}  secret                   Secret object from Hapi
          * @param {String}  permission               Required permission level
@@ -33,7 +32,7 @@ const secretsPlugin = {
          * @return {Boolean}
          */
         server.expose('canAccess', async (credentials, secret, permission, app) => {
-            const { userFactory, pipelineFactory } = app;
+            const { buildFactory, userFactory, pipelineFactory, jobFactory } = app;
             const { scmContext, scope, username } = credentials;
 
             // Get secret pipeline
@@ -64,6 +63,27 @@ const secretsPlugin = {
                 await getUserPermissions({ user, scmUri, level: permission });
 
                 return false;
+            }
+
+            // Check build scope
+            if (scope.includes('build')) {
+                const build = await buildFactory.get(username);
+
+                if (!build) {
+                    throw boom.notFound(`Build ${username} does not exist`);
+                }
+
+                const job = await jobFactory.get(build.jobId);
+
+                if (!job) {
+                    throw boom.notFound(`Job ${build.jobId} does not exist`);
+                }
+
+                const secrets = await job.secrets;
+
+                if (!secrets.some(jobSecret => jobSecret.id === secret.id)) {
+                    throw boom.forbidden('Token does not have permission to this secret');
+                }
             }
 
             // Check if secret belongs to current pipeline or parent pipeline

@@ -35,6 +35,13 @@ module.exports = () => ({
                         throw boom.notFound('Build does not exist');
                     }
 
+                    // Ensure build scope tokens can only request secrets for their own build.
+                    if (credentials.scope.includes('build')) {
+                        if (parseInt(credentials.username, 10) !== parseInt(request.params.id, 10)) {
+                            throw boom.forbidden('Token does not have permission to this secret');
+                        }
+                    }
+
                     return build.secrets;
                 })
                 .then(secrets => {
