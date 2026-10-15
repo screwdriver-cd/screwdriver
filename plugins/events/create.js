@@ -170,6 +170,10 @@ module.exports = () => ({
                 throw boom.boomify(err, { statusCode: err.statusCode });
             }
 
+            if (permissions.archived === true) {
+                throw boom.forbidden('Archived repositories cannot be used for this operation');
+            }
+
             // Update admins
             if (!prNum) {
                 try {

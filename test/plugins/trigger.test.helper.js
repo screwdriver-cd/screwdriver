@@ -353,7 +353,8 @@ class EventFactoryMock {
         this.server = server;
         this.records = [null];
         this.scm = {
-            getCommitSha: sinon.stub().resolves('github:github.com')
+            getCommitSha: sinon.stub().resolves('github:github.com'),
+            getPermissions: sinon.stub().resolves({ archived: false })
         };
     }
 

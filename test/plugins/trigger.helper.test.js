@@ -1554,7 +1554,8 @@ describe('createEvent function', () => {
 
     beforeEach(() => {
         scmMock = {
-            getCommitSha: sinon.stub().resolves('commitSha123')
+            getCommitSha: sinon.stub().resolves('commitSha123'),
+            getPermissions: sinon.stub().resolves({ archived: false })
         };
 
         pipelineFactoryMock = {
@@ -1733,7 +1734,8 @@ describe('createExternalEvent function', () => {
 
     beforeEach(() => {
         scmMock = {
-            getCommitSha: sinon.stub().resolves('commitSha123')
+            getCommitSha: sinon.stub().resolves('commitSha123'),
+            getPermissions: sinon.stub().resolves({ archived: false })
         };
 
         pipelineFactoryMock = {
