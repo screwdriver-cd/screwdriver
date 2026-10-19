@@ -5496,7 +5496,7 @@ describe('pipeline plugin test', () => {
             id: 888
         };
 
-        const adminsUserScmContext = 'github:git.screwdriver.com';
+        const usersToAddScmContext = 'github:git.screwdriver.com';
 
         beforeEach(() => {
             options = {
@@ -5504,7 +5504,7 @@ describe('pipeline plugin test', () => {
                 url: `/pipelines/${pipelineId}/updateAdmins`,
                 payload: {
                     usernames: [userJohn.username, userRob.username],
-                    scmContext: adminsUserScmContext
+                    scmContext: usersToAddScmContext
                 },
                 auth: {
                     credentials: {
@@ -5522,6 +5522,8 @@ describe('pipeline plugin test', () => {
         });
 
         it('returns 200 and update the admins when requested by a pipeline admin', () => {
+            // Users being added as pipeline admins may have a different SCM context from the acting user and pipeline.
+            // Verify that adding users from usersToAddScmContext succeeds despite this difference.
             const pipelineMock = getPipelineMocks(testPipeline);
 
             pipelineMock.adminUserIds = [userSam.id];
@@ -5733,7 +5735,7 @@ describe('pipeline plugin test', () => {
             id: 999
         };
 
-        const adminsUserScmContext = 'github:git.screwdriver.com';
+        const usersToAddScmContext = 'github:git.screwdriver.com';
 
         beforeEach(() => {
             userSDAdmin = {
@@ -5780,12 +5782,12 @@ describe('pipeline plugin test', () => {
                     {
                         id: pipelineMockA.id,
                         usernames: [userJohn.username, userRob.username],
-                        scmContext: adminsUserScmContext
+                        scmContext: usersToAddScmContext
                     },
                     {
                         id: pipelineMockB.id,
                         usernames: [userJohn.username, userVictor.username],
-                        scmContext: adminsUserScmContext
+                        scmContext: usersToAddScmContext
                     }
                 ],
                 auth: {
@@ -5804,6 +5806,8 @@ describe('pipeline plugin test', () => {
         });
 
         it('returns 200 and update the admins when requested by a pipeline admin', () => {
+            // Users being added as pipeline admins may have a different SCM context from the acting user and pipeline.
+            // Verify that adding users from usersToAddScmContext succeeds despite this difference.
             return server.inject(options).then(reply => {
                 assert.calledOnce(userFactoryMock.get);
                 assert.calledWith(userFactoryMock.get, {
