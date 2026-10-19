@@ -48,16 +48,26 @@ async function batchUpdatePipelineAdmins(pipelineConfigs, user, isSDAdmin, serve
             }
 
             if (!isSDAdmin) {
-                await user
-                    .getPermissions(pipeline.scmUri)
-                    // check if user has admin access
-                    .then(permissions => {
-                        if (!permissions.admin) {
-                            throw boom.forbidden(
-                                `User ${user.username} does not have admin permission for the pipeline (id=${pipeline.id}) repo and is not allowed to update admins`
-                            );
-                        }
-                    });
+                if (pipeline.scmContext !== user.scmContext) {
+                    throw boom.forbidden(
+                        `User ${user.username} and pipeline (id=${pipeline.id}) have different SCM contexts`
+                    );
+                }
+
+                let permissions;
+
+                try {
+                    permissions = await user.getPermissions(pipeline.scmUri);
+                } catch (error) {
+                    throw boom.boomify(error, { statusCode: error.statusCode });
+                }
+
+                // check if user has admin access
+                if (!permissions.admin) {
+                    throw boom.forbidden(
+                        `User ${user.username} does not have admin permission for the pipeline (id=${pipeline.id}) repo and is not allowed to update admins`
+                    );
+                }
             }
 
             // check if pipeline is being deleted
