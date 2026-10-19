@@ -5467,12 +5467,14 @@ describe('pipeline plugin test', () => {
 
         const userPipelineAdmin = {
             username: 'arya_github',
+            scmContext: 'github:github.com',
             id: 500,
             getPermissions: sinon.stub()
         };
 
         const userPipelineNonAdmin = {
             username: 'thor_github',
+            scmContext: 'github:github.com',
             id: 600,
             getPermissions: sinon.stub()
         };
@@ -5738,12 +5740,14 @@ describe('pipeline plugin test', () => {
 
             userPipelineAdmin = {
                 username: 'arya_github',
+                scmContext: 'github:github.com',
                 id: 500,
                 getPermissions: sinon.stub()
             };
 
             userPipelineNonAdmin = {
                 username: 'thor_github',
+                scmContext: 'github:github.com',
                 id: 600,
                 getPermissions: sinon.stub()
             };
