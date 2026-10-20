@@ -120,6 +120,8 @@ describe('authorization settings test for build routes', () => {
     let writeJwt;
     let allJwt;
     let oauthJwt;
+    let buildJwt;
+    let temporalJwt;
     let invalidJwt;
 
     beforeEach(async () => {
@@ -136,6 +138,8 @@ describe('authorization settings test for build routes', () => {
         writeJwt = server.generateTestJwt({ permission: 'write' });
         allJwt = server.generateTestJwt({ permission: 'all' });
         oauthJwt = server.generateTestJwt({ type: 'oauth' });
+        buildJwt = server.generateTestJwt({ type: 'temporary', scope: ['build'] });
+        temporalJwt = server.generateTestJwt({ type: 'temporary', scope: ['temporal'] });
         invalidJwt = server.generateTestJwt({ permission: 'invalid' });
     });
 
@@ -393,6 +397,7 @@ describe('authorization settings test for build routes', () => {
         const writeJwtResult = await serverInject(server, route, writeJwt);
         const allJwtResult = await serverInject(server, route, allJwt);
         const oAuthJwtResult = await serverInject(server, route, oauthJwt);
+        const buildJwtResult = await serverInject(server, route, buildJwt);
 
         assert.equal(noAuthResult.statusCode, 401);
         assert.equal(invalidJwtResult.statusCode, 403);
@@ -401,6 +406,7 @@ describe('authorization settings test for build routes', () => {
         assert.equal(writeJwtResult.statusCode, 403);
         assert.equal(allJwtResult.statusCode, 403);
         assert.equal(oAuthJwtResult.statusCode, 403);
+        assert.equal(buildJwtResult.statusCode, 200);
     });
 
     it('POST /builds/{id}/token requires temporal scope', async () => {
@@ -413,6 +419,7 @@ describe('authorization settings test for build routes', () => {
         const writeJwtResult = await serverInject(server, route, writeJwt);
         const allJwtResult = await serverInject(server, route, allJwt);
         const oAuthJwtResult = await serverInject(server, route, oauthJwt);
+        const temporalJwtResult = await serverInject(server, route, temporalJwt);
 
         assert.equal(noAuthResult.statusCode, 401);
         assert.equal(invalidJwtResult.statusCode, 403);
@@ -421,6 +428,45 @@ describe('authorization settings test for build routes', () => {
         assert.equal(writeJwtResult.statusCode, 403);
         assert.equal(allJwtResult.statusCode, 403);
         assert.equal(oAuthJwtResult.statusCode, 403);
+        assert.equal(temporalJwtResult.statusCode, 200);
+    });
+});
+
+describe('build trigger createEvent helper', () => {
+    it('rejects archived repositories before creating an event', async () => {
+        const pipeline = {
+            id: 123,
+            scmContext: 'github:github.com',
+            scmUri: 'github.com:359478:master',
+            admin: Promise.resolve({
+                unsealToken: sinon.stub().resolves('pipeline-token')
+            })
+        };
+        const pipelineFactory = {
+            get: sinon.stub().resolves(pipeline)
+        };
+        const eventFactory = {
+            scm: {
+                getPermissions: sinon.stub().resolves({ archived: true }),
+                getCommitSha: sinon.stub()
+            },
+            create: sinon.stub()
+        };
+
+        try {
+            await rewireBuildsIndex.createEvent({
+                pipelineFactory,
+                eventFactory,
+                pipelineId: pipeline.id,
+                startFrom: '~commit'
+            });
+            assert.fail('Expected archived repository to be rejected');
+        } catch (err) {
+            assert.equal(err.output.statusCode, 403);
+            assert.equal(err.message, 'Archived repositories cannot be used for this operation');
+            assert.notCalled(eventFactory.scm.getCommitSha);
+            assert.notCalled(eventFactory.create);
+        }
     });
 });
 
@@ -503,7 +549,8 @@ describe('build plugin test', () => {
             create: sinon.stub(),
             list: sinon.stub(),
             scm: {
-                getCommitSha: sinon.stub()
+                getCommitSha: sinon.stub(),
+                getPermissions: sinon.stub().resolves({ archived: false })
             }
         };
         bannerFactoryMock = {
@@ -7087,6 +7134,19 @@ describe('build plugin test', () => {
                 assert.calledWith(buildFactoryMock.create, params);
                 assert.deepEqual(pipelineMock.admins, { foo: true, bar: true, myself: true });
                 assert.deepEqual(pipelineMock.adminUserIds, [888, 999, 777]);
+            });
+        });
+
+        it('returns 403 and does not create a build for an archived repository', () => {
+            userMock.getPermissions.resolves({ push: true, archived: true });
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 403);
+                assert.equal(reply.result.message, 'Archived repositories cannot be used for this operation');
+                assert.notCalled(pipelineMock.update);
+                assert.notCalled(pipelineMock.sync);
+                assert.notCalled(buildFactoryMock.create);
+                assert.notCalled(eventFactoryMock.create);
             });
         });
 

@@ -38,7 +38,11 @@ module.exports = () => ({
 
             const user = await userFactory.get({ username, scmContext });
 
-            await getUserPermissions({ user, scmUri: pipeline.scmUri, level: 'push' });
+            const permissions = await getUserPermissions({ user, scmUri: pipeline.scmUri, level: 'push' });
+
+            if (permissions.archived === true) {
+                throw boom.forbidden('Archived repositories cannot be used for this operation');
+            }
 
             const pipelines = await pipelineFactory.list({
                 params: {
@@ -56,8 +60,11 @@ module.exports = () => ({
                         scmUri: p.scmUri,
                         token: pipelineToken
                     });
+                    const childPermissions = await getUserPermissions({ user, scmUri: p.scmUri, level: 'push' });
 
-                    await getUserPermissions({ user, scmUri: p.scmUri, level: 'push' });
+                    if (childPermissions.archived === true) {
+                        throw boom.forbidden('Archived repositories cannot be used for this operation');
+                    }
 
                     await createEvent(
                         {

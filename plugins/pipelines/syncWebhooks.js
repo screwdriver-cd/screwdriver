@@ -49,7 +49,11 @@ module.exports = () => ({
                 const scmUri = await getScmUri({ pipeline, pipelineFactory });
 
                 // Check the user's permission
-                await getUserPermissions({ user, scmUri, level: 'push' });
+                const permissions = await getUserPermissions({ user, scmUri, level: 'push' });
+
+                if (permissions.archived === true) {
+                    throw boom.forbidden('Archived repositories cannot be used for this operation');
+                }
             }
 
             // user has good permissions, add or update webhooks

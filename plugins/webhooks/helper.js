@@ -314,6 +314,29 @@ const uriTrimmer = uri => {
 };
 
 /**
+ * Check whether a pipeline's repository is archived.
+ * @method isArchivedPipeline
+ * @param {Pipeline}            pipeline
+ * @param {PipelineFactory}     pipelineFactory
+ */
+async function isArchivedPipeline(pipeline, pipelineFactory) {
+    const permissions = await pipelineFactory.scm.getPermissions({
+        scmUri: pipeline.scmUri,
+        scmContext: pipeline.scmContext,
+        scmRepo: pipeline.scmRepo,
+        token: await pipeline.token
+    });
+
+    if (permissions.archived === true) {
+        logger.info(`Skipping pipeline:${pipeline.id} for archived repository`);
+
+        return true;
+    }
+
+    return false;
+}
+
+/**
  * Create metadata by the parsed event
  * @param   {Object}   parsed   It has information to create metadata
  * @returns {Object}            Metadata
@@ -1248,6 +1271,12 @@ async function createEvents(server, userFactory, pipelineFactory, pipelines, par
                     eventConfig.startFrom = '~subscribe';
                     eventConfig.subscribedConfigSha = eventConfig.sha;
 
+                    if (await isArchivedPipeline(pTuple.pipeline, pipelineFactory)) {
+                        logger.info(`skip create event for this subscribed trigger due to archiving repository`);
+
+                        return null;
+                    }
+
                     try {
                         eventConfig.sha = await pipelineFactory.scm.getCommitSha(scmConfig);
                     } catch (err) {
@@ -1255,6 +1284,8 @@ async function createEvents(server, userFactory, pipelineFactory, pipelines, par
                             throw err;
                         } else {
                             logger.info(`skip create event for this subscribed trigger`);
+
+                            return null;
                         }
                     }
 
@@ -1272,6 +1303,8 @@ async function createEvents(server, userFactory, pipelineFactory, pipelines, par
                             throw err;
                         } else {
                             logger.info(`skip create event for this subscribed trigger`);
+
+                            return null;
                         }
                     }
                 }

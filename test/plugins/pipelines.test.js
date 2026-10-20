@@ -8,6 +8,7 @@ const hapi = require('@hapi/hapi');
 const boom = require('@hapi/boom');
 const hoek = require('@hapi/hoek');
 const rewiremock = require('rewiremock/node');
+const { newAuthTestServer, serverInject } = require('./auth.test.helper');
 const testPipeline = require('./data/pipeline.json');
 const testPipelines = require('./data/pipelines.json');
 const testPrivatePipelines = require('./data/privatePipelines.json');
@@ -208,6 +209,719 @@ const getMockBuildClusters = buildClusters => {
     return decorateBuildClusterObject(buildClusters);
 };
 
+describe('authorization settings test for pipeline routes', () => {
+    let server;
+    let readJwt;
+    let executeJwt;
+    let writeJwt;
+    let allJwt;
+    let oauthJwt;
+    let invalidJwt;
+
+    beforeEach(async () => {
+        /* eslint-disable global-require */
+        const plugin = rewiremock.proxy('../../plugins/pipelines', {
+            '../../plugins/lock': {}
+        });
+        /* eslint-enable global-require */
+
+        server = await newAuthTestServer();
+
+        await server.register({ plugin });
+
+        readJwt = server.generateTestJwt({ permission: 'read' });
+        executeJwt = server.generateTestJwt({ permission: 'execute' });
+        writeJwt = server.generateTestJwt({ permission: 'write' });
+        allJwt = server.generateTestJwt({ permission: 'all' });
+        oauthJwt = server.generateTestJwt({ type: 'oauth' });
+        invalidJwt = server.generateTestJwt({ permission: 'invalid' });
+    });
+
+    afterEach(() => {
+        server = null;
+    });
+
+    it('GET /pipelines/{id}/badge does not requires permission', async () => {
+        const route = { method: 'GET', url: '/pipelines/123/badge' };
+
+        const noAuthResult = await serverInject(server, route);
+        const invalidJwtResult = await serverInject(server, route, invalidJwt);
+        const readJwtResult = await serverInject(server, route, readJwt);
+        const executeJwtResult = await serverInject(server, route, executeJwt);
+        const writeJwtResult = await serverInject(server, route, writeJwt);
+        const allJwtResult = await serverInject(server, route, allJwt);
+        const oAuthJwtResult = await serverInject(server, route, oauthJwt);
+
+        assert.equal(noAuthResult.statusCode, 200);
+        assert.equal(invalidJwtResult.statusCode, 200);
+        assert.equal(readJwtResult.statusCode, 200);
+        assert.equal(executeJwtResult.statusCode, 200);
+        assert.equal(writeJwtResult.statusCode, 200);
+        assert.equal(allJwtResult.statusCode, 200);
+        assert.equal(oAuthJwtResult.statusCode, 200);
+    });
+
+    it('GET /pipelines/{id}/{jobName}/badge does not requires permission', async () => {
+        const route = { method: 'GET', url: '/pipelines/123/foo/badge' };
+
+        const noAuthResult = await serverInject(server, route);
+        const invalidJwtResult = await serverInject(server, route, invalidJwt);
+        const readJwtResult = await serverInject(server, route, readJwt);
+        const executeJwtResult = await serverInject(server, route, executeJwt);
+        const writeJwtResult = await serverInject(server, route, writeJwt);
+        const allJwtResult = await serverInject(server, route, allJwt);
+        const oAuthJwtResult = await serverInject(server, route, oauthJwt);
+
+        assert.equal(noAuthResult.statusCode, 200);
+        assert.equal(invalidJwtResult.statusCode, 200);
+        assert.equal(readJwtResult.statusCode, 200);
+        assert.equal(executeJwtResult.statusCode, 200);
+        assert.equal(writeJwtResult.statusCode, 200);
+        assert.equal(allJwtResult.statusCode, 200);
+        assert.equal(oAuthJwtResult.statusCode, 200);
+    });
+
+    it('GET /pipelines requires read permission', async () => {
+        const route = { method: 'GET', url: '/pipelines' };
+
+        const noAuthResult = await serverInject(server, route);
+        const invalidJwtResult = await serverInject(server, route, invalidJwt);
+        const readJwtResult = await serverInject(server, route, readJwt);
+        const executeJwtResult = await serverInject(server, route, executeJwt);
+        const writeJwtResult = await serverInject(server, route, writeJwt);
+        const allJwtResult = await serverInject(server, route, allJwt);
+        const oAuthJwtResult = await serverInject(server, route, oauthJwt);
+
+        assert.equal(noAuthResult.statusCode, 401);
+        assert.equal(invalidJwtResult.statusCode, 403);
+        assert.equal(readJwtResult.statusCode, 200);
+        assert.equal(executeJwtResult.statusCode, 200);
+        assert.equal(writeJwtResult.statusCode, 200);
+        assert.equal(allJwtResult.statusCode, 200);
+        assert.equal(oAuthJwtResult.statusCode, 200);
+    });
+
+    it('GET /pipelines/{id} requires read permission', async () => {
+        const route = { method: 'GET', url: '/pipelines/123' };
+
+        const noAuthResult = await serverInject(server, route);
+        const invalidJwtResult = await serverInject(server, route, invalidJwt);
+        const readJwtResult = await serverInject(server, route, readJwt);
+        const executeJwtResult = await serverInject(server, route, executeJwt);
+        const writeJwtResult = await serverInject(server, route, writeJwt);
+        const allJwtResult = await serverInject(server, route, allJwt);
+        const oAuthJwtResult = await serverInject(server, route, oauthJwt);
+
+        assert.equal(noAuthResult.statusCode, 401);
+        assert.equal(invalidJwtResult.statusCode, 403);
+        assert.equal(readJwtResult.statusCode, 200);
+        assert.equal(executeJwtResult.statusCode, 200);
+        assert.equal(writeJwtResult.statusCode, 200);
+        assert.equal(allJwtResult.statusCode, 200);
+        assert.equal(oAuthJwtResult.statusCode, 200);
+    });
+
+    it('GET /pipelines/{id}/jobs requires read permission', async () => {
+        const route = { method: 'GET', url: '/pipelines/123/jobs' };
+
+        const noAuthResult = await serverInject(server, route);
+        const invalidJwtResult = await serverInject(server, route, invalidJwt);
+        const readJwtResult = await serverInject(server, route, readJwt);
+        const executeJwtResult = await serverInject(server, route, executeJwt);
+        const writeJwtResult = await serverInject(server, route, writeJwt);
+        const allJwtResult = await serverInject(server, route, allJwt);
+        const oAuthJwtResult = await serverInject(server, route, oauthJwt);
+
+        assert.equal(noAuthResult.statusCode, 401);
+        assert.equal(invalidJwtResult.statusCode, 403);
+        assert.equal(readJwtResult.statusCode, 200);
+        assert.equal(executeJwtResult.statusCode, 200);
+        assert.equal(writeJwtResult.statusCode, 200);
+        assert.equal(allJwtResult.statusCode, 200);
+        assert.equal(oAuthJwtResult.statusCode, 200);
+    });
+
+    it('GET /pipelines/{id}/stages requires read permission', async () => {
+        const route = { method: 'GET', url: '/pipelines/123/stages' };
+
+        const noAuthResult = await serverInject(server, route);
+        const invalidJwtResult = await serverInject(server, route, invalidJwt);
+        const readJwtResult = await serverInject(server, route, readJwt);
+        const executeJwtResult = await serverInject(server, route, executeJwt);
+        const writeJwtResult = await serverInject(server, route, writeJwt);
+        const allJwtResult = await serverInject(server, route, allJwt);
+        const oAuthJwtResult = await serverInject(server, route, oauthJwt);
+
+        assert.equal(noAuthResult.statusCode, 401);
+        assert.equal(invalidJwtResult.statusCode, 403);
+        assert.equal(readJwtResult.statusCode, 200);
+        assert.equal(executeJwtResult.statusCode, 200);
+        assert.equal(writeJwtResult.statusCode, 200);
+        assert.equal(allJwtResult.statusCode, 200);
+        assert.equal(oAuthJwtResult.statusCode, 200);
+    });
+
+    it('GET /pipelines/{id}/triggers requires read permission', async () => {
+        const route = { method: 'GET', url: '/pipelines/123/triggers' };
+
+        const noAuthResult = await serverInject(server, route);
+        const invalidJwtResult = await serverInject(server, route, invalidJwt);
+        const readJwtResult = await serverInject(server, route, readJwt);
+        const executeJwtResult = await serverInject(server, route, executeJwt);
+        const writeJwtResult = await serverInject(server, route, writeJwt);
+        const allJwtResult = await serverInject(server, route, allJwt);
+        const oAuthJwtResult = await serverInject(server, route, oauthJwt);
+
+        assert.equal(noAuthResult.statusCode, 401);
+        assert.equal(invalidJwtResult.statusCode, 403);
+        assert.equal(readJwtResult.statusCode, 200);
+        assert.equal(executeJwtResult.statusCode, 200);
+        assert.equal(writeJwtResult.statusCode, 200);
+        assert.equal(allJwtResult.statusCode, 200);
+        assert.equal(oAuthJwtResult.statusCode, 200);
+    });
+
+    it('GET /pipelines/{id}/secrets requires read permission', async () => {
+        const route = { method: 'GET', url: '/pipelines/123/secrets' };
+
+        const noAuthResult = await serverInject(server, route);
+        const invalidJwtResult = await serverInject(server, route, invalidJwt);
+        const readJwtResult = await serverInject(server, route, readJwt);
+        const executeJwtResult = await serverInject(server, route, executeJwt);
+        const writeJwtResult = await serverInject(server, route, writeJwt);
+        const allJwtResult = await serverInject(server, route, allJwt);
+        const oAuthJwtResult = await serverInject(server, route, oauthJwt);
+
+        assert.equal(noAuthResult.statusCode, 401);
+        assert.equal(invalidJwtResult.statusCode, 403);
+        assert.equal(readJwtResult.statusCode, 200);
+        assert.equal(executeJwtResult.statusCode, 200);
+        assert.equal(writeJwtResult.statusCode, 200);
+        assert.equal(allJwtResult.statusCode, 200);
+        assert.equal(oAuthJwtResult.statusCode, 200);
+    });
+
+    it('GET /pipelines/{id}/events requires read permission', async () => {
+        const route = { method: 'GET', url: '/pipelines/123/events' };
+
+        const noAuthResult = await serverInject(server, route);
+        const invalidJwtResult = await serverInject(server, route, invalidJwt);
+        const readJwtResult = await serverInject(server, route, readJwt);
+        const executeJwtResult = await serverInject(server, route, executeJwt);
+        const writeJwtResult = await serverInject(server, route, writeJwt);
+        const allJwtResult = await serverInject(server, route, allJwt);
+        const oAuthJwtResult = await serverInject(server, route, oauthJwt);
+
+        assert.equal(noAuthResult.statusCode, 401);
+        assert.equal(invalidJwtResult.statusCode, 403);
+        assert.equal(readJwtResult.statusCode, 200);
+        assert.equal(executeJwtResult.statusCode, 200);
+        assert.equal(writeJwtResult.statusCode, 200);
+        assert.equal(allJwtResult.statusCode, 200);
+        assert.equal(oAuthJwtResult.statusCode, 200);
+    });
+
+    it('GET /pipelines/{id}/builds requires read permission', async () => {
+        const route = { method: 'GET', url: '/pipelines/123/builds' };
+
+        const noAuthResult = await serverInject(server, route);
+        const invalidJwtResult = await serverInject(server, route, invalidJwt);
+        const readJwtResult = await serverInject(server, route, readJwt);
+        const executeJwtResult = await serverInject(server, route, executeJwt);
+        const writeJwtResult = await serverInject(server, route, writeJwt);
+        const allJwtResult = await serverInject(server, route, allJwt);
+        const oAuthJwtResult = await serverInject(server, route, oauthJwt);
+
+        assert.equal(noAuthResult.statusCode, 401);
+        assert.equal(invalidJwtResult.statusCode, 403);
+        assert.equal(readJwtResult.statusCode, 200);
+        assert.equal(executeJwtResult.statusCode, 200);
+        assert.equal(writeJwtResult.statusCode, 200);
+        assert.equal(allJwtResult.statusCode, 200);
+        assert.equal(oAuthJwtResult.statusCode, 200);
+    });
+
+    it('GET /pipelines/{id}/metrics requires read permission', async () => {
+        const route = { method: 'GET', url: '/pipelines/123/metrics' };
+
+        const noAuthResult = await serverInject(server, route);
+        const invalidJwtResult = await serverInject(server, route, invalidJwt);
+        const readJwtResult = await serverInject(server, route, readJwt);
+        const executeJwtResult = await serverInject(server, route, executeJwt);
+        const writeJwtResult = await serverInject(server, route, writeJwt);
+        const allJwtResult = await serverInject(server, route, allJwt);
+        const oAuthJwtResult = await serverInject(server, route, oauthJwt);
+
+        assert.equal(noAuthResult.statusCode, 401);
+        assert.equal(invalidJwtResult.statusCode, 403);
+        assert.equal(readJwtResult.statusCode, 200);
+        assert.equal(executeJwtResult.statusCode, 200);
+        assert.equal(writeJwtResult.statusCode, 200);
+        assert.equal(allJwtResult.statusCode, 200);
+        assert.equal(oAuthJwtResult.statusCode, 200);
+    });
+
+    it('GET /pipelines/{id}/jobs/{jobName}/latestBuild requires read permission', async () => {
+        const route = { method: 'GET', url: '/pipelines/123/jobs/foo/latestBuild' };
+
+        const noAuthResult = await serverInject(server, route);
+        const invalidJwtResult = await serverInject(server, route, invalidJwt);
+        const readJwtResult = await serverInject(server, route, readJwt);
+        const executeJwtResult = await serverInject(server, route, executeJwt);
+        const writeJwtResult = await serverInject(server, route, writeJwt);
+        const allJwtResult = await serverInject(server, route, allJwt);
+        const oAuthJwtResult = await serverInject(server, route, oauthJwt);
+
+        assert.equal(noAuthResult.statusCode, 401);
+        assert.equal(invalidJwtResult.statusCode, 403);
+        assert.equal(readJwtResult.statusCode, 200);
+        assert.equal(executeJwtResult.statusCode, 200);
+        assert.equal(writeJwtResult.statusCode, 200);
+        assert.equal(allJwtResult.statusCode, 200);
+        assert.equal(oAuthJwtResult.statusCode, 200);
+    });
+
+    it('GET /pipelines/{id}/lastSuccessfulEvent requires read permission', async () => {
+        const route = { method: 'GET', url: '/pipelines/123/lastSuccessfulEvent' };
+
+        const noAuthResult = await serverInject(server, route);
+        const invalidJwtResult = await serverInject(server, route, invalidJwt);
+        const readJwtResult = await serverInject(server, route, readJwt);
+        const executeJwtResult = await serverInject(server, route, executeJwt);
+        const writeJwtResult = await serverInject(server, route, writeJwt);
+        const allJwtResult = await serverInject(server, route, allJwt);
+        const oAuthJwtResult = await serverInject(server, route, oauthJwt);
+
+        assert.equal(noAuthResult.statusCode, 401);
+        assert.equal(invalidJwtResult.statusCode, 403);
+        assert.equal(readJwtResult.statusCode, 200);
+        assert.equal(executeJwtResult.statusCode, 200);
+        assert.equal(writeJwtResult.statusCode, 200);
+        assert.equal(allJwtResult.statusCode, 200);
+        assert.equal(oAuthJwtResult.statusCode, 200);
+    });
+
+    it('GET /pipelines/{id}/latestCommitEvent requires read permission', async () => {
+        const route = { method: 'GET', url: '/pipelines/123/latestCommitEvent' };
+
+        const noAuthResult = await serverInject(server, route);
+        const invalidJwtResult = await serverInject(server, route, invalidJwt);
+        const readJwtResult = await serverInject(server, route, readJwt);
+        const executeJwtResult = await serverInject(server, route, executeJwt);
+        const writeJwtResult = await serverInject(server, route, writeJwt);
+        const allJwtResult = await serverInject(server, route, allJwt);
+        const oAuthJwtResult = await serverInject(server, route, oauthJwt);
+
+        assert.equal(noAuthResult.statusCode, 401);
+        assert.equal(invalidJwtResult.statusCode, 403);
+        assert.equal(readJwtResult.statusCode, 200);
+        assert.equal(executeJwtResult.statusCode, 200);
+        assert.equal(writeJwtResult.statusCode, 200);
+        assert.equal(allJwtResult.statusCode, 200);
+        assert.equal(oAuthJwtResult.statusCode, 200);
+    });
+
+    it('GET /pipelines/{id}/tokens requires read permission', async () => {
+        const route = { method: 'GET', url: '/pipelines/123/tokens' };
+
+        const noAuthResult = await serverInject(server, route);
+        const invalidJwtResult = await serverInject(server, route, invalidJwt);
+        const readJwtResult = await serverInject(server, route, readJwt);
+        const executeJwtResult = await serverInject(server, route, executeJwt);
+        const writeJwtResult = await serverInject(server, route, writeJwt);
+        const allJwtResult = await serverInject(server, route, allJwt);
+        const oAuthJwtResult = await serverInject(server, route, oauthJwt);
+
+        assert.equal(noAuthResult.statusCode, 401);
+        assert.equal(invalidJwtResult.statusCode, 403);
+        assert.equal(readJwtResult.statusCode, 200);
+        assert.equal(executeJwtResult.statusCode, 200);
+        assert.equal(writeJwtResult.statusCode, 200);
+        assert.equal(allJwtResult.statusCode, 200);
+        assert.equal(oAuthJwtResult.statusCode, 200);
+    });
+
+    it('GET /pipelines/{id}/admins requires read permission', async () => {
+        const route = { method: 'GET', url: '/pipelines/123/admins' };
+
+        const noAuthResult = await serverInject(server, route);
+        const invalidJwtResult = await serverInject(server, route, invalidJwt);
+        const readJwtResult = await serverInject(server, route, readJwt);
+        const executeJwtResult = await serverInject(server, route, executeJwt);
+        const writeJwtResult = await serverInject(server, route, writeJwt);
+        const allJwtResult = await serverInject(server, route, allJwt);
+        const oAuthJwtResult = await serverInject(server, route, oauthJwt);
+
+        assert.equal(noAuthResult.statusCode, 401);
+        assert.equal(invalidJwtResult.statusCode, 403);
+        assert.equal(readJwtResult.statusCode, 200);
+        assert.equal(executeJwtResult.statusCode, 200);
+        assert.equal(writeJwtResult.statusCode, 200);
+        assert.equal(allJwtResult.statusCode, 200);
+        assert.equal(oAuthJwtResult.statusCode, 200);
+    });
+
+    it('GET /pipelines/{id}/admin requires read permission', async () => {
+        const route = { method: 'GET', url: '/pipelines/123/admin' };
+
+        const noAuthResult = await serverInject(server, route);
+        const invalidJwtResult = await serverInject(server, route, invalidJwt);
+        const readJwtResult = await serverInject(server, route, readJwt);
+        const executeJwtResult = await serverInject(server, route, executeJwt);
+        const writeJwtResult = await serverInject(server, route, writeJwt);
+        const allJwtResult = await serverInject(server, route, allJwt);
+        const oAuthJwtResult = await serverInject(server, route, oauthJwt);
+
+        assert.equal(noAuthResult.statusCode, 401);
+        assert.equal(invalidJwtResult.statusCode, 403);
+        assert.equal(readJwtResult.statusCode, 200);
+        assert.equal(executeJwtResult.statusCode, 200);
+        assert.equal(writeJwtResult.statusCode, 200);
+        assert.equal(allJwtResult.statusCode, 200);
+        assert.equal(oAuthJwtResult.statusCode, 200);
+    });
+
+    it('POST /pipelines/{id}/startall requires execute permission', async () => {
+        const route = { method: 'POST', url: '/pipelines/123/startall' };
+
+        const noAuthResult = await serverInject(server, route);
+        const invalidJwtResult = await serverInject(server, route, invalidJwt);
+        const readJwtResult = await serverInject(server, route, readJwt);
+        const executeJwtResult = await serverInject(server, route, executeJwt);
+        const writeJwtResult = await serverInject(server, route, writeJwt);
+        const allJwtResult = await serverInject(server, route, allJwt);
+        const oAuthJwtResult = await serverInject(server, route, oauthJwt);
+
+        assert.equal(noAuthResult.statusCode, 401);
+        assert.equal(invalidJwtResult.statusCode, 403);
+        assert.equal(readJwtResult.statusCode, 403);
+        assert.equal(executeJwtResult.statusCode, 200);
+        assert.equal(writeJwtResult.statusCode, 200);
+        assert.equal(allJwtResult.statusCode, 200);
+        assert.equal(oAuthJwtResult.statusCode, 200);
+    });
+
+    it('DELETE /pipelines/{id}/caches requires write permission', async () => {
+        const route = { method: 'DELETE', url: '/pipelines/123/caches' };
+
+        const noAuthResult = await serverInject(server, route);
+        const invalidJwtResult = await serverInject(server, route, invalidJwt);
+        const readJwtResult = await serverInject(server, route, readJwt);
+        const executeJwtResult = await serverInject(server, route, executeJwt);
+        const writeJwtResult = await serverInject(server, route, writeJwt);
+        const allJwtResult = await serverInject(server, route, allJwt);
+        const oAuthJwtResult = await serverInject(server, route, oauthJwt);
+
+        assert.equal(noAuthResult.statusCode, 401);
+        assert.equal(invalidJwtResult.statusCode, 403);
+        assert.equal(readJwtResult.statusCode, 403);
+        assert.equal(executeJwtResult.statusCode, 403);
+        assert.equal(writeJwtResult.statusCode, 200);
+        assert.equal(allJwtResult.statusCode, 200);
+        assert.equal(oAuthJwtResult.statusCode, 200);
+    });
+
+    it('POST /pipelines requires all permission', async () => {
+        const route = { method: 'POST', url: '/pipelines' };
+
+        const noAuthResult = await serverInject(server, route);
+        const invalidJwtResult = await serverInject(server, route, invalidJwt);
+        const readJwtResult = await serverInject(server, route, readJwt);
+        const executeJwtResult = await serverInject(server, route, executeJwt);
+        const writeJwtResult = await serverInject(server, route, writeJwt);
+        const allJwtResult = await serverInject(server, route, allJwt);
+        const oAuthJwtResult = await serverInject(server, route, oauthJwt);
+
+        assert.equal(noAuthResult.statusCode, 401);
+        assert.equal(invalidJwtResult.statusCode, 403);
+        assert.equal(readJwtResult.statusCode, 403);
+        assert.equal(executeJwtResult.statusCode, 403);
+        assert.equal(writeJwtResult.statusCode, 403);
+        assert.equal(allJwtResult.statusCode, 200);
+        assert.equal(oAuthJwtResult.statusCode, 200);
+    });
+
+    it('PUT /pipelines/{id} requires all permission', async () => {
+        const route = { method: 'PUT', url: '/pipelines/123' };
+
+        const noAuthResult = await serverInject(server, route);
+        const invalidJwtResult = await serverInject(server, route, invalidJwt);
+        const readJwtResult = await serverInject(server, route, readJwt);
+        const executeJwtResult = await serverInject(server, route, executeJwt);
+        const writeJwtResult = await serverInject(server, route, writeJwt);
+        const allJwtResult = await serverInject(server, route, allJwt);
+        const oAuthJwtResult = await serverInject(server, route, oauthJwt);
+
+        assert.equal(noAuthResult.statusCode, 401);
+        assert.equal(invalidJwtResult.statusCode, 403);
+        assert.equal(readJwtResult.statusCode, 403);
+        assert.equal(executeJwtResult.statusCode, 403);
+        assert.equal(writeJwtResult.statusCode, 403);
+        assert.equal(allJwtResult.statusCode, 200);
+        assert.equal(oAuthJwtResult.statusCode, 200);
+    });
+
+    it('DELETE /pipelines/{id} requires all permission', async () => {
+        const route = { method: 'DELETE', url: '/pipelines/123' };
+
+        const noAuthResult = await serverInject(server, route);
+        const invalidJwtResult = await serverInject(server, route, invalidJwt);
+        const readJwtResult = await serverInject(server, route, readJwt);
+        const executeJwtResult = await serverInject(server, route, executeJwt);
+        const writeJwtResult = await serverInject(server, route, writeJwt);
+        const allJwtResult = await serverInject(server, route, allJwt);
+        const oAuthJwtResult = await serverInject(server, route, oauthJwt);
+
+        assert.equal(noAuthResult.statusCode, 401);
+        assert.equal(invalidJwtResult.statusCode, 403);
+        assert.equal(readJwtResult.statusCode, 403);
+        assert.equal(executeJwtResult.statusCode, 403);
+        assert.equal(writeJwtResult.statusCode, 403);
+        assert.equal(allJwtResult.statusCode, 200);
+        assert.equal(oAuthJwtResult.statusCode, 200);
+    });
+
+    it('POST /pipelines/{id}/sync requires all permission', async () => {
+        const route = { method: 'POST', url: '/pipelines/123/sync' };
+
+        const noAuthResult = await serverInject(server, route);
+        const invalidJwtResult = await serverInject(server, route, invalidJwt);
+        const readJwtResult = await serverInject(server, route, readJwt);
+        const executeJwtResult = await serverInject(server, route, executeJwt);
+        const writeJwtResult = await serverInject(server, route, writeJwt);
+        const allJwtResult = await serverInject(server, route, allJwt);
+        const oAuthJwtResult = await serverInject(server, route, oauthJwt);
+
+        assert.equal(noAuthResult.statusCode, 401);
+        assert.equal(invalidJwtResult.statusCode, 403);
+        assert.equal(readJwtResult.statusCode, 403);
+        assert.equal(executeJwtResult.statusCode, 403);
+        assert.equal(writeJwtResult.statusCode, 403);
+        assert.equal(allJwtResult.statusCode, 200);
+        assert.equal(oAuthJwtResult.statusCode, 200);
+    });
+
+    it('POST /pipelines/{id}/sync/webhooks requires all permission', async () => {
+        const route = { method: 'POST', url: '/pipelines/123/sync/webhooks' };
+
+        const noAuthResult = await serverInject(server, route);
+        const invalidJwtResult = await serverInject(server, route, invalidJwt);
+        const readJwtResult = await serverInject(server, route, readJwt);
+        const executeJwtResult = await serverInject(server, route, executeJwt);
+        const writeJwtResult = await serverInject(server, route, writeJwt);
+        const allJwtResult = await serverInject(server, route, allJwt);
+        const oAuthJwtResult = await serverInject(server, route, oauthJwt);
+
+        assert.equal(noAuthResult.statusCode, 401);
+        assert.equal(invalidJwtResult.statusCode, 403);
+        assert.equal(readJwtResult.statusCode, 403);
+        assert.equal(executeJwtResult.statusCode, 403);
+        assert.equal(writeJwtResult.statusCode, 403);
+        assert.equal(allJwtResult.statusCode, 200);
+        assert.equal(oAuthJwtResult.statusCode, 200);
+    });
+
+    it('POST /pipelines/{id}/sync/pullrequests requires all permission', async () => {
+        const route = { method: 'POST', url: '/pipelines/123/sync/pullrequests' };
+
+        const noAuthResult = await serverInject(server, route);
+        const invalidJwtResult = await serverInject(server, route, invalidJwt);
+        const readJwtResult = await serverInject(server, route, readJwt);
+        const executeJwtResult = await serverInject(server, route, executeJwt);
+        const writeJwtResult = await serverInject(server, route, writeJwt);
+        const allJwtResult = await serverInject(server, route, allJwt);
+        const oAuthJwtResult = await serverInject(server, route, oauthJwt);
+
+        assert.equal(noAuthResult.statusCode, 401);
+        assert.equal(invalidJwtResult.statusCode, 403);
+        assert.equal(readJwtResult.statusCode, 403);
+        assert.equal(executeJwtResult.statusCode, 403);
+        assert.equal(writeJwtResult.statusCode, 403);
+        assert.equal(allJwtResult.statusCode, 200);
+        assert.equal(oAuthJwtResult.statusCode, 200);
+    });
+
+    it('POST /pipelines/{id}/openPr requires all permission', async () => {
+        const route = { method: 'POST', url: '/pipelines/123/openPr' };
+
+        const noAuthResult = await serverInject(server, route);
+        const invalidJwtResult = await serverInject(server, route, invalidJwt);
+        const readJwtResult = await serverInject(server, route, readJwt);
+        const executeJwtResult = await serverInject(server, route, executeJwt);
+        const writeJwtResult = await serverInject(server, route, writeJwt);
+        const allJwtResult = await serverInject(server, route, allJwt);
+        const oAuthJwtResult = await serverInject(server, route, oauthJwt);
+
+        assert.equal(noAuthResult.statusCode, 401);
+        assert.equal(invalidJwtResult.statusCode, 403);
+        assert.equal(readJwtResult.statusCode, 403);
+        assert.equal(executeJwtResult.statusCode, 403);
+        assert.equal(writeJwtResult.statusCode, 403);
+        assert.equal(allJwtResult.statusCode, 200);
+        assert.equal(oAuthJwtResult.statusCode, 200);
+    });
+
+    it('PUT /pipelines/{id}/buildCluster requires all permission', async () => {
+        const route = { method: 'PUT', url: '/pipelines/123/buildCluster' };
+
+        const noAuthResult = await serverInject(server, route);
+        const invalidJwtResult = await serverInject(server, route, invalidJwt);
+        const readJwtResult = await serverInject(server, route, readJwt);
+        const executeJwtResult = await serverInject(server, route, executeJwt);
+        const writeJwtResult = await serverInject(server, route, writeJwt);
+        const allJwtResult = await serverInject(server, route, allJwt);
+        const oAuthJwtResult = await serverInject(server, route, oauthJwt);
+
+        assert.equal(noAuthResult.statusCode, 401);
+        assert.equal(invalidJwtResult.statusCode, 403);
+        assert.equal(readJwtResult.statusCode, 403);
+        assert.equal(executeJwtResult.statusCode, 403);
+        assert.equal(writeJwtResult.statusCode, 403);
+        assert.equal(allJwtResult.statusCode, 200);
+        assert.equal(oAuthJwtResult.statusCode, 200);
+    });
+
+    it('POST /pipelines/{id}/tokens requires all permission', async () => {
+        const route = { method: 'POST', url: '/pipelines/123/tokens' };
+
+        const noAuthResult = await serverInject(server, route);
+        const invalidJwtResult = await serverInject(server, route, invalidJwt);
+        const readJwtResult = await serverInject(server, route, readJwt);
+        const executeJwtResult = await serverInject(server, route, executeJwt);
+        const writeJwtResult = await serverInject(server, route, writeJwt);
+        const allJwtResult = await serverInject(server, route, allJwt);
+        const oAuthJwtResult = await serverInject(server, route, oauthJwt);
+
+        assert.equal(noAuthResult.statusCode, 401);
+        assert.equal(invalidJwtResult.statusCode, 403);
+        assert.equal(readJwtResult.statusCode, 403);
+        assert.equal(executeJwtResult.statusCode, 403);
+        assert.equal(writeJwtResult.statusCode, 403);
+        assert.equal(allJwtResult.statusCode, 200);
+        assert.equal(oAuthJwtResult.statusCode, 200);
+    });
+
+    it('PUT /pipelines/{pipelineId}/tokens/{tokenId} requires all permission', async () => {
+        const route = { method: 'PUT', url: '/pipelines/123/tokens/456' };
+
+        const noAuthResult = await serverInject(server, route);
+        const invalidJwtResult = await serverInject(server, route, invalidJwt);
+        const readJwtResult = await serverInject(server, route, readJwt);
+        const executeJwtResult = await serverInject(server, route, executeJwt);
+        const writeJwtResult = await serverInject(server, route, writeJwt);
+        const allJwtResult = await serverInject(server, route, allJwt);
+        const oAuthJwtResult = await serverInject(server, route, oauthJwt);
+
+        assert.equal(noAuthResult.statusCode, 401);
+        assert.equal(invalidJwtResult.statusCode, 403);
+        assert.equal(readJwtResult.statusCode, 403);
+        assert.equal(executeJwtResult.statusCode, 403);
+        assert.equal(writeJwtResult.statusCode, 403);
+        assert.equal(allJwtResult.statusCode, 200);
+        assert.equal(oAuthJwtResult.statusCode, 200);
+    });
+
+    it('PUT /pipelines/{pipelineId}/tokens/{tokenId}/refresh requires all permission', async () => {
+        const route = { method: 'PUT', url: '/pipelines/123/tokens/456/refresh' };
+
+        const noAuthResult = await serverInject(server, route);
+        const invalidJwtResult = await serverInject(server, route, invalidJwt);
+        const readJwtResult = await serverInject(server, route, readJwt);
+        const executeJwtResult = await serverInject(server, route, executeJwt);
+        const writeJwtResult = await serverInject(server, route, writeJwt);
+        const allJwtResult = await serverInject(server, route, allJwt);
+        const oAuthJwtResult = await serverInject(server, route, oauthJwt);
+
+        assert.equal(noAuthResult.statusCode, 401);
+        assert.equal(invalidJwtResult.statusCode, 403);
+        assert.equal(readJwtResult.statusCode, 403);
+        assert.equal(executeJwtResult.statusCode, 403);
+        assert.equal(writeJwtResult.statusCode, 403);
+        assert.equal(allJwtResult.statusCode, 200);
+        assert.equal(oAuthJwtResult.statusCode, 200);
+    });
+
+    it('DELETE /pipelines/{pipelineId}/tokens/{tokenId} requires all permission', async () => {
+        const route = { method: 'DELETE', url: '/pipelines/123/tokens/456' };
+
+        const noAuthResult = await serverInject(server, route);
+        const invalidJwtResult = await serverInject(server, route, invalidJwt);
+        const readJwtResult = await serverInject(server, route, readJwt);
+        const executeJwtResult = await serverInject(server, route, executeJwt);
+        const writeJwtResult = await serverInject(server, route, writeJwt);
+        const allJwtResult = await serverInject(server, route, allJwt);
+        const oAuthJwtResult = await serverInject(server, route, oauthJwt);
+
+        assert.equal(noAuthResult.statusCode, 401);
+        assert.equal(invalidJwtResult.statusCode, 403);
+        assert.equal(readJwtResult.statusCode, 403);
+        assert.equal(executeJwtResult.statusCode, 403);
+        assert.equal(writeJwtResult.statusCode, 403);
+        assert.equal(allJwtResult.statusCode, 200);
+        assert.equal(oAuthJwtResult.statusCode, 200);
+    });
+
+    it('DELETE /pipelines/{id}/tokens requires all permission', async () => {
+        const route = { method: 'DELETE', url: '/pipelines/123/tokens' };
+
+        const noAuthResult = await serverInject(server, route);
+        const invalidJwtResult = await serverInject(server, route, invalidJwt);
+        const readJwtResult = await serverInject(server, route, readJwt);
+        const executeJwtResult = await serverInject(server, route, executeJwt);
+        const writeJwtResult = await serverInject(server, route, writeJwt);
+        const allJwtResult = await serverInject(server, route, allJwt);
+        const oAuthJwtResult = await serverInject(server, route, oauthJwt);
+
+        assert.equal(noAuthResult.statusCode, 401);
+        assert.equal(invalidJwtResult.statusCode, 403);
+        assert.equal(readJwtResult.statusCode, 403);
+        assert.equal(executeJwtResult.statusCode, 403);
+        assert.equal(writeJwtResult.statusCode, 403);
+        assert.equal(allJwtResult.statusCode, 200);
+        assert.equal(oAuthJwtResult.statusCode, 200);
+    });
+
+    it('PUT /pipelines/{id}/updateAdmins requires all permission', async () => {
+        const route = { method: 'PUT', url: '/pipelines/123/updateAdmins' };
+
+        const noAuthResult = await serverInject(server, route);
+        const invalidJwtResult = await serverInject(server, route, invalidJwt);
+        const readJwtResult = await serverInject(server, route, readJwt);
+        const executeJwtResult = await serverInject(server, route, executeJwt);
+        const writeJwtResult = await serverInject(server, route, writeJwt);
+        const allJwtResult = await serverInject(server, route, allJwt);
+        const oAuthJwtResult = await serverInject(server, route, oauthJwt);
+
+        assert.equal(noAuthResult.statusCode, 401);
+        assert.equal(invalidJwtResult.statusCode, 403);
+        assert.equal(readJwtResult.statusCode, 403);
+        assert.equal(executeJwtResult.statusCode, 403);
+        assert.equal(writeJwtResult.statusCode, 403);
+        assert.equal(allJwtResult.statusCode, 200);
+        assert.equal(oAuthJwtResult.statusCode, 200);
+    });
+
+    it('PUT /pipelines/updateAdmins requires all permission', async () => {
+        const route = { method: 'PUT', url: '/pipelines/updateAdmins' };
+
+        const noAuthResult = await serverInject(server, route);
+        const invalidJwtResult = await serverInject(server, route, invalidJwt);
+        const readJwtResult = await serverInject(server, route, readJwt);
+        const executeJwtResult = await serverInject(server, route, executeJwt);
+        const writeJwtResult = await serverInject(server, route, writeJwt);
+        const allJwtResult = await serverInject(server, route, allJwt);
+        const oAuthJwtResult = await serverInject(server, route, oauthJwt);
+
+        assert.equal(noAuthResult.statusCode, 401);
+        assert.equal(invalidJwtResult.statusCode, 403);
+        assert.equal(readJwtResult.statusCode, 403);
+        assert.equal(executeJwtResult.statusCode, 403);
+        assert.equal(writeJwtResult.statusCode, 403);
+        assert.equal(allJwtResult.statusCode, 200);
+        assert.equal(oAuthJwtResult.statusCode, 200);
+    });
+});
+
 describe('pipeline plugin test', () => {
     let pipelineFactoryMock;
     let userFactoryMock;
@@ -255,6 +969,7 @@ describe('pipeline plugin test', () => {
                 parseUrl: sinon.stub(),
                 decorateUrl: sinon.stub(),
                 getCommitSha: sinon.stub().resolves('sha'),
+                getPermissions: sinon.stub().resolves({ archived: false }),
                 addDeployKey: sinon.stub(),
                 getReadOnlyInfo: sinon.stub().returns({ readOnlyEnabled: false }),
                 getDisplayName: sinon.stub().returns()
@@ -410,82 +1125,6 @@ describe('pipeline plugin test', () => {
     it('registers the plugin', () => {
         assert.isOk(server.registrations.pipelines);
         assert.equal(server.registrations.pipelines.options.password, password);
-    });
-
-    describe('authorization settings for pipeline routes', () => {
-        const routesRequiringAuthorization = [
-            ['post', '/pipelines', 'all'],
-            ['delete', '/pipelines/{id}', 'all'],
-            ['put', '/pipelines/{id}', 'all'],
-            ['post', '/pipelines/{id}/sync', 'all'],
-            ['post', '/pipelines/{id}/sync/webhooks', 'all'],
-            ['post', '/pipelines/{id}/sync/pullrequests', 'all'],
-            ['get', '/pipelines/{id}', 'read'],
-            ['get', '/pipelines', 'read'],
-            ['get', '/pipelines/{id}/jobs', 'read'],
-            ['get', '/pipelines/{id}/stages', 'read'],
-            ['get', '/pipelines/{id}/triggers', 'read'],
-            ['get', '/pipelines/{id}/secrets', 'read'],
-            ['get', '/pipelines/{id}/events', 'read'],
-            ['get', '/pipelines/{id}/builds', 'read'],
-            ['post', '/pipelines/{id}/startall', 'execute'],
-            ['get', '/pipelines/{id}/metrics', 'read'],
-            ['get', '/pipelines/{id}/jobs/{jobName}/latestBuild', 'read'],
-            ['get', '/pipelines/{id}/lastSuccessfulEvent', 'read'],
-            ['get', '/pipelines/{id}/latestCommitEvent', 'read'],
-            ['post', '/pipelines/{id}/openPr', 'all'],
-            ['put', '/pipelines/{id}/buildCluster', 'all'],
-            ['get', '/pipelines/{id}/tokens', 'read'],
-            ['get', '/pipelines/{id}/admins', 'read'],
-            ['get', '/pipelines/{id}/admin', 'read'],
-            ['get', '/pipeline/templates', 'read'],
-            ['get', '/pipeline/template/{namespace}/{name}', 'read'],
-            ['get', '/pipeline/template/{id}', 'read'],
-            ['get', '/pipeline/template/{namespace}/{name}/{versionOrTag}', 'read'],
-            ['get', '/pipeline/templates/{namespace}/{name}/versions', 'read'],
-            ['get', '/pipeline/templates/{namespace}/{name}/tags', 'read'],
-            ['delete', '/pipelines/{id}/caches', 'write'],
-            ['post', '/pipelines/{id}/tokens', 'all'],
-            ['put', '/pipelines/{pipelineId}/tokens/{tokenId}', 'all'],
-            ['put', '/pipelines/{pipelineId}/tokens/{tokenId}/refresh', 'all'],
-            ['delete', '/pipelines/{pipelineId}/tokens/{tokenId}', 'all'],
-            ['delete', '/pipelines/{pipelineId}/tokens', 'all'],
-            ['put', '/pipelines/{id}/updateAdmins', 'all'],
-            ['put', '/pipelines/updateAdmins', 'all'],
-            ['post', '/pipeline/template', 'all'],
-            ['put', '/pipeline/template/{namespace}/{name}/tags/{tag}', 'all'],
-            ['delete', '/pipeline/templates/{namespace}/{name}', 'all'],
-            ['delete', '/pipeline/templates/{namespace}/{name}/tags/{tag}', 'all'],
-            ['delete', '/pipeline/templates/{namespace}/{name}/versions/{version}', 'all'],
-            ['put', '/pipeline/templates/{namespace}/{name}/trusted', 'all']
-        ];
-        const publicRoutes = [
-            ['get', '/pipelines/{id}/badge'],
-            ['get', '/pipelines/{id}/{jobName}/badge'],
-            ['post', '/pipeline/template/validate']
-        ];
-
-        it('sets the agreed permission on every authenticated pipeline route', () => {
-            routesRequiringAuthorization.forEach(([method, path, permission]) => {
-                const route = server.table().find(r => r.method === method && r.path === path);
-
-                assert.isOk(route, `${method.toUpperCase()} ${path} should be registered`);
-                assert.equal(
-                    route.settings.plugins.authorization.permission,
-                    permission,
-                    `${method.toUpperCase()} ${path} should require ${permission} permission`
-                );
-            });
-        });
-
-        it('does not add authorization settings to public pipeline routes', () => {
-            publicRoutes.forEach(([method, path]) => {
-                const route = server.table().find(r => r.method === method && r.path === path);
-
-                assert.isOk(route, `${method.toUpperCase()} ${path} should be registered`);
-                assert.isUndefined(route.settings.plugins.authorization);
-            });
-        });
     });
 
     describe('GET /pipelines', () => {
@@ -1671,12 +2310,13 @@ describe('pipeline plugin test', () => {
         it('returns 200 if found last successful event', () => {
             eventFactoryMock.list.resolves(events);
 
-            server.inject(options).then(reply => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 200);
                 assert.calledWith(eventFactoryMock.list, {
                     params: {
                         pipelineId: id,
-                        type: 'pipeline'
+                        type: 'pipeline',
+                        status: 'SUCCESS'
                     },
                     sort: 'descending',
                     sortBy: 'id',
@@ -2304,6 +2944,17 @@ describe('pipeline plugin test', () => {
                 assert.calledOnce(pipelineMock.sync);
             }));
 
+        it('returns 403 and does not update or sync an archived repository', () => {
+            userMock.getPermissions.withArgs(scmUri).resolves({ push: true, archived: true });
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 403);
+                assert.equal(reply.result.message, 'Archived repositories cannot be used for this operation');
+                assert.notCalled(pipelineMock.update);
+                assert.notCalled(pipelineMock.sync);
+            });
+        });
+
         it('returns 204 with pipeline token', () => {
             options.auth.credentials = {
                 username,
@@ -2464,6 +3115,16 @@ describe('pipeline plugin test', () => {
                 assert.equal(reply.statusCode, 204);
             }));
 
+        it('returns 403 and does not add webhooks for an archived repository', () => {
+            userMock.getPermissions.withArgs(scmUri).resolves({ push: true, archived: true });
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 403);
+                assert.equal(reply.result.message, 'Archived repositories cannot be used for this operation');
+                assert.notCalled(pipelineMock.addWebhooks);
+            });
+        });
+
         it('returns 204 for syncing webhooks with admin token', () => {
             options.auth.credentials.scope.push('admin');
 
@@ -2573,6 +3234,16 @@ describe('pipeline plugin test', () => {
             server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 204);
             }));
+
+        it('returns 403 and does not sync pull requests for an archived repository', () => {
+            userMock.getPermissions.withArgs(scmUri).resolves({ push: true, archived: true });
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 403);
+                assert.equal(reply.result.message, 'Archived repositories cannot be used for this operation');
+                assert.notCalled(pipelineMock.syncPRs);
+            });
+        });
 
         it('returns 204 for syncing pull requests with admin token', () => {
             options.auth.credentials.scope.push('admin');
@@ -2730,6 +3401,17 @@ describe('pipeline plugin test', () => {
                     allowInPR: true
                 });
                 assert.equal(reply.statusCode, 201);
+            });
+        });
+
+        it('returns 403 and does not create a pipeline for an archived repository', () => {
+            userMock.getPermissions.withArgs(scmUri).resolves({ admin: true, archived: true });
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 403);
+                assert.equal(reply.result.message, 'Archived repositories cannot be used for this operation');
+                assert.notCalled(pipelineFactoryMock.create);
+                assert.notCalled(collectionFactoryMock.list);
             });
         });
 
@@ -3059,6 +3741,8 @@ describe('pipeline plugin test', () => {
             pipelineFactoryMock.get.withArgs({ id }).resolves(pipelineMock);
             pipelineFactoryMock.get.withArgs({ scmUri }).resolves(null);
             pipelineMock.update.resolves(updatedPipelineMock);
+            pipelineMock.enable = sinon.stub().resolves(updatedPipelineMock);
+            pipelineMock.disable = sinon.stub().resolves(updatedPipelineMock);
             pipelineMock.sync.resolves(updatedPipelineMock);
             pipelineMock.toJson.returns({});
             pipelineFactoryMock.scm.parseUrl.resolves(scmUri);
@@ -3474,6 +4158,7 @@ describe('pipeline plugin test', () => {
 
             return server.inject(options).then(reply => {
                 assert.calledOnce(pipelineMock.update);
+                assert.notCalled(pipelineMock.disable);
                 assert.notCalled(updatedPipelineMock.addWebhooks);
                 assert.equal(pipelineMock.state, 'DISABLED');
                 assert.equal(pipelineMock.stateChanger, username);
@@ -3482,20 +4167,47 @@ describe('pipeline plugin test', () => {
             });
         });
 
-        it('returns 200 when child pipeline state is updated by a screwdriver admin', () => {
+        it('returns 200 when screwdriver admin disables a child pipeline without an SCM admin', () => {
             pipelineMock.configPipelineId = 123;
             pipelineMock.state = 'ACTIVE';
-            options.payload = { state: 'DISABLED' };
+            pipelineMock.admins = {};
+            options.payload = { state: 'DISABLED', stateChangeMessage: 'Emergency maintenance' };
+            options.auth.credentials = { username, scmContext, scmUserId: 999, scope: ['user'] };
+            userMock.getPermissions.withArgs(oldScmUri).rejects(new Error('SCM unavailable'));
+            screwdriverAdminDetailsMock.returns({ isAdmin: true });
+            updatedPipelineMock.toJson = sinon.stub().returns({ ...testPipeline, state: 'DISABLED' });
+            pipelineMock.update.rejects(new Error('SCM unavailable'));
+
+            return server.inject(options).then(reply => {
+                assert.calledOnce(pipelineMock.disable);
+                assert.notCalled(pipelineMock.enable);
+                assert.notCalled(pipelineMock.update);
+                assert.notCalled(updatedPipelineMock.addWebhooks);
+                assert.equal(pipelineMock.state, 'DISABLED');
+                assert.equal(pipelineMock.stateChanger, username);
+                assert.ok(pipelineMock.stateChangeTime);
+                assert.equal(pipelineMock.stateChangeMessage, 'Emergency maintenance');
+                assert.equal(reply.statusCode, 200);
+            });
+        });
+
+        it('returns 200 when screwdriver admin without pipeline access enables a child pipeline', () => {
+            pipelineMock.configPipelineId = 123;
+            pipelineMock.state = 'DISABLED';
+            options.payload = { state: 'ACTIVE' };
             options.auth.credentials = { username, scmContext, scmUserId: 999, scope: ['user'] };
             userMock.getPermissions.withArgs(oldScmUri).resolves({ admin: false });
             screwdriverAdminDetailsMock.returns({ isAdmin: true });
-            updatedPipelineMock.toJson = sinon.stub().returns({ ...testPipeline, state: 'DISABLED' });
-            pipelineMock.update.resolves(updatedPipelineMock);
+            updatedPipelineMock.toJson = sinon.stub().returns({ ...testPipeline, state: 'ACTIVE' });
 
             return server.inject(options).then(reply => {
-                assert.calledOnce(pipelineMock.update);
+                assert.calledOnce(pipelineMock.enable);
+                assert.notCalled(pipelineMock.disable);
+                assert.notCalled(pipelineMock.update);
                 assert.notCalled(updatedPipelineMock.addWebhooks);
-                assert.equal(pipelineMock.state, 'DISABLED');
+                assert.equal(pipelineMock.state, 'ACTIVE');
+                assert.equal(pipelineMock.stateChanger, username);
+                assert.ok(pipelineMock.stateChangeTime);
                 assert.equal(reply.statusCode, 200);
             });
         });
@@ -3558,12 +4270,45 @@ describe('pipeline plugin test', () => {
             pipelineMock.update.resolves(updatedPipelineMock);
 
             return server.inject(options).then(reply => {
-                assert.calledOnce(pipelineMock.update);
+                assert.calledOnce(pipelineMock.disable);
+                assert.notCalled(pipelineMock.update);
                 assert.notCalled(updatedPipelineMock.addWebhooks);
                 assert.equal(pipelineMock.state, 'DISABLED');
                 assert.equal(pipelineMock.stateChanger, username);
                 assert.ok(pipelineMock.stateChangeTime);
                 assert.equal(reply.statusCode, 200);
+            });
+        });
+
+        it('returns 200 when screwdriver admin without pipeline access enables a pipeline', () => {
+            pipelineMock.state = 'DISABLED';
+            options.payload = { state: 'ACTIVE' };
+            options.auth.credentials = { username, scmContext, scmUserId: 999, scope: ['user'] };
+            userMock.getPermissions.withArgs(oldScmUri).resolves({ admin: false });
+            screwdriverAdminDetailsMock.returns({ isAdmin: true });
+
+            return server.inject(options).then(reply => {
+                assert.calledOnce(pipelineMock.enable);
+                assert.notCalled(pipelineMock.disable);
+                assert.notCalled(pipelineMock.update);
+                assert.equal(pipelineMock.state, 'ACTIVE');
+                assert.equal(pipelineMock.stateChanger, username);
+                assert.equal(reply.statusCode, 200);
+            });
+        });
+
+        it('returns 409 when screwdriver admin requests an invalid state transition', () => {
+            pipelineMock.state = 'DISABLED';
+            options.payload = { state: 'DISABLED' };
+            options.auth.credentials = { username, scmContext, scmUserId: 999, scope: ['user'] };
+            userMock.getPermissions.withArgs(oldScmUri).resolves({ admin: false });
+            screwdriverAdminDetailsMock.returns({ isAdmin: true });
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 409);
+                assert.notCalled(pipelineMock.enable);
+                assert.notCalled(pipelineMock.disable);
+                assert.notCalled(pipelineMock.update);
             });
         });
 
@@ -3575,6 +4320,7 @@ describe('pipeline plugin test', () => {
 
             return server.inject(options).then(reply => {
                 assert.notCalled(updatedPipelineMock.addWebhooks);
+                assert.notCalled(pipelineMock.disable);
                 assert.equal(reply.statusCode, 403);
                 assert.equal(
                     reply.result.message,
@@ -3626,7 +4372,8 @@ describe('pipeline plugin test', () => {
             pipelineMock.update.resolves(updatedPipelineMock);
 
             return server.inject(options).then(reply => {
-                assert.calledOnce(pipelineMock.update);
+                assert.calledOnce(pipelineMock.disable);
+                assert.notCalled(pipelineMock.update);
                 assert.notCalled(updatedPipelineMock.addWebhooks);
                 assert.equal(reply.statusCode, 200);
             });
@@ -3818,6 +4565,64 @@ describe('pipeline plugin test', () => {
                 assert.calledThrice(pipelineFactoryMock.scm.getCommitSha);
                 assert.calledThrice(eventFactoryMock.create);
                 assert.equal(reply.statusCode, 201);
+            });
+        });
+
+        it('returns 403 without listing child pipelines when the parent repository is archived', () => {
+            userMock.getPermissions.withArgs(scmUri).resolves({ push: true, archived: true });
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 403);
+                assert.notCalled(pipelineFactoryMock.list);
+                assert.notCalled(eventFactoryMock.create);
+            });
+        });
+
+        it('returns 403 without creating events when a child repository is archived', () => {
+            const childScmUri = 'github.com:99999:branchName';
+            const childPipeline = getPipelineMocks({
+                ...testPipeline,
+                id: 456,
+                scmUri: childScmUri
+            });
+
+            userMock.getPermissions.withArgs(childScmUri).resolves({ push: true, archived: true });
+            pipelineFactoryMock.list.resolves([childPipeline]);
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 403);
+                assert.calledOnce(pipelineFactoryMock.scm.getCommitSha);
+                assert.calledWith(pipelineFactoryMock.scm.getCommitSha, sinon.match({ scmUri: childScmUri }));
+                assert.notCalled(eventFactoryMock.create);
+            });
+        });
+
+        it('starts eligible child pipelines and skips archived children when mixed', () => {
+            const activeScmUri = 'github.com:11111:branchName';
+            const archivedScmUri = 'github.com:22222:branchName';
+            const activePipeline = getPipelineMocks({
+                ...testPipeline,
+                id: 456,
+                scmUri: activeScmUri
+            });
+            const archivedPipeline = getPipelineMocks({
+                ...testPipeline,
+                id: 789,
+                scmUri: archivedScmUri
+            });
+
+            userMock.getPermissions.withArgs(activeScmUri).resolves({ push: true, archived: false });
+            userMock.getPermissions.withArgs(archivedScmUri).resolves({ push: true, archived: true });
+            pipelineFactoryMock.list.resolves([activePipeline, archivedPipeline]);
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 403);
+                assert.calledOnce(eventFactoryMock.create);
+                assert.calledWith(eventFactoryMock.create, sinon.match({ pipelineId: activePipeline.id }));
+                assert.neverCalledWith(eventFactoryMock.create, sinon.match({ pipelineId: archivedPipeline.id }));
+                assert.calledTwice(pipelineFactoryMock.scm.getCommitSha);
+                assert.calledWith(pipelineFactoryMock.scm.getCommitSha, sinon.match({ scmUri: activeScmUri }));
+                assert.calledWith(pipelineFactoryMock.scm.getCommitSha, sinon.match({ scmUri: archivedScmUri }));
             });
         });
 
@@ -4425,6 +5230,16 @@ describe('pipeline plugin test', () => {
                     issuerId: userMock.id
                 });
             }));
+
+        it('returns 403 and does not create a token for an archived repository', () => {
+            userMock.getPermissions.withArgs(scmUri).resolves({ admin: true, archived: true });
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 403);
+                assert.equal(reply.result.message, 'Archived repositories cannot be used for this operation');
+                assert.notCalled(tokenFactoryMock.create);
+            });
+        });
 
         it('returns 201 and created new minimum token', () => {
             options.payload = { name };
@@ -5172,6 +5987,7 @@ describe('pipeline plugin test', () => {
             userMock.unsealToken.resolves(token);
             userMock.getPermissions.withArgs(scmUri).resolves({ push: true });
             userFactoryMock.get.withArgs({ username, scmContext }).resolves(userMock);
+            pipelineFactoryMock.get.withArgs(id).resolves(getPipelineMocks(testPipeline));
             userFactoryMock.scm.parseUrl.resolves(scmUri);
             userFactoryMock.scm.openPr.resolves(pullRequest);
         });
@@ -5190,6 +6006,42 @@ describe('pipeline plugin test', () => {
                     title: 'update file',
                     token
                 });
+            });
+        });
+
+        it('returns 403 and does not open a pull request for an archived target repository', () => {
+            userMock.getPermissions.withArgs(scmUri).resolves({ push: true, archived: true });
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 403);
+                assert.notCalled(userFactoryMock.scm.openPr);
+            });
+        });
+
+        it('returns 403 and does not check permissions or open a pull request for a different repository', () => {
+            userFactoryMock.scm.parseUrl.resolves('github.com:99999:master');
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 403);
+                assert.equal(
+                    reply.result.message,
+                    'Creating pull requests to repositories other than the pipeline is not permitted'
+                );
+                assert.notCalled(userMock.getPermissions);
+                assert.notCalled(userFactoryMock.scm.openPr);
+            });
+        });
+
+        it('returns 404 and does not process the user or repository when the pipeline does not exist', () => {
+            pipelineFactoryMock.get.withArgs(id).resolves(null);
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 404);
+                assert.equal(reply.result.message, 'Pipeline does not exist');
+                assert.notCalled(userFactoryMock.get);
+                assert.notCalled(userFactoryMock.scm.parseUrl);
+                assert.notCalled(userMock.getPermissions);
+                assert.notCalled(userFactoryMock.scm.openPr);
             });
         });
 

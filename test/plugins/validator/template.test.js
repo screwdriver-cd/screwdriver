@@ -2,12 +2,64 @@
 
 const { assert } = require('chai');
 const hapi = require('@hapi/hapi');
+const { newAuthTestServer, serverInject } = require('../auth.test.helper');
 
 const MISSING_VERSION_INPUT = require('../data/template-validator.missing-version.json');
 const TEST_INPUT = require('../data/template-validator.input.json');
 const TEST_INPUT_DESCRIPTION = ['Template for building a NodeJS module', 'Installs dependencies and runs tests\n'].join(
     '\n'
 );
+
+describe('authorization settings test for template validator routes', () => {
+    let server;
+    let readJwt;
+    let executeJwt;
+    let writeJwt;
+    let allJwt;
+    let oauthJwt;
+    let invalidJwt;
+
+    beforeEach(async () => {
+        /* eslint-disable global-require */
+        const plugin = require('../../../plugins/template-validator');
+        /* eslint-enable global-require */
+
+        server = await newAuthTestServer();
+
+        await server.register({ plugin });
+
+        readJwt = server.generateTestJwt({ permission: 'read' });
+        executeJwt = server.generateTestJwt({ permission: 'execute' });
+        writeJwt = server.generateTestJwt({ permission: 'write' });
+        allJwt = server.generateTestJwt({ permission: 'all' });
+        oauthJwt = server.generateTestJwt({ type: 'oauth' });
+        invalidJwt = server.generateTestJwt({ permission: 'invalid' });
+    });
+
+    afterEach(() => {
+        server = null;
+    });
+
+    it('POST /validator/template does not requires permission', async () => {
+        const route = { method: 'POST', url: '/validator/template' };
+
+        const noAuthResult = await serverInject(server, route);
+        const invalidJwtResult = await serverInject(server, route, invalidJwt);
+        const readJwtResult = await serverInject(server, route, readJwt);
+        const executeJwtResult = await serverInject(server, route, executeJwt);
+        const writeJwtResult = await serverInject(server, route, writeJwt);
+        const allJwtResult = await serverInject(server, route, allJwt);
+        const oAuthJwtResult = await serverInject(server, route, oauthJwt);
+
+        assert.equal(noAuthResult.statusCode, 200);
+        assert.equal(invalidJwtResult.statusCode, 200);
+        assert.equal(readJwtResult.statusCode, 200);
+        assert.equal(executeJwtResult.statusCode, 200);
+        assert.equal(writeJwtResult.statusCode, 200);
+        assert.equal(allJwtResult.statusCode, 200);
+        assert.equal(oAuthJwtResult.statusCode, 200);
+    });
+});
 
 describe('template validator plugin test', () => {
     let plugin;
