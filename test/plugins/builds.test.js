@@ -7324,6 +7324,36 @@ describe('build plugin test', () => {
             });
         });
 
+        it('returns 200 when build scope token matches the build id', () => {
+            const buildMock = getBuildMock(testBuild);
+
+            buildFactoryMock.get.withArgs(id).resolves(buildMock);
+            options.auth.credentials = {
+                scope: ['build'],
+                username: id
+            };
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 200);
+                assert.calledOnce(secretAccessMock);
+            });
+        });
+
+        it('returns 403 when build scope token does not match the build id', () => {
+            const buildMock = getBuildMock(testBuild);
+
+            buildFactoryMock.get.withArgs(id).resolves(buildMock);
+            options.auth.credentials = {
+                scope: ['build'],
+                username: id + 1
+            };
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 403);
+                assert.notCalled(secretAccessMock);
+            });
+        });
+
         it('returns 200 with no secrets', () => {
             const buildMock = getBuildMock(testBuild);
 
