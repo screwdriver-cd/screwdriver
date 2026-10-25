@@ -5,6 +5,7 @@ const { assert } = require('chai');
 const badgeMaker = require('badge-maker');
 const sinon = require('sinon');
 const hapi = require('@hapi/hapi');
+const boom = require('@hapi/boom');
 const hoek = require('@hapi/hoek');
 const rewiremock = require('rewiremock/node');
 const { newAuthTestServer, serverInject } = require('./auth.test.helper');
@@ -6313,18 +6314,21 @@ describe('pipeline plugin test', () => {
 
         const userSDAdmin = {
             username: 'arya_github',
+            scmContext: 'github:github.com',
             id: 400,
             getPermissions: sinon.stub()
         };
 
         const userPipelineAdmin = {
             username: 'arya_github',
+            scmContext: 'github:github.com',
             id: 500,
             getPermissions: sinon.stub()
         };
 
         const userPipelineNonAdmin = {
             username: 'thor_github',
+            scmContext: 'github:github.com',
             id: 600,
             getPermissions: sinon.stub()
         };
@@ -6344,7 +6348,7 @@ describe('pipeline plugin test', () => {
             id: 888
         };
 
-        const adminsUserScmContext = 'github:git.screwdriver.com';
+        const usersToAddScmContext = 'github:git.screwdriver.com';
 
         beforeEach(() => {
             options = {
@@ -6352,7 +6356,7 @@ describe('pipeline plugin test', () => {
                 url: `/pipelines/${pipelineId}/updateAdmins`,
                 payload: {
                     usernames: [userJohn.username, userRob.username],
-                    scmContext: adminsUserScmContext
+                    scmContext: usersToAddScmContext
                 },
                 auth: {
                     credentials: {
@@ -6370,6 +6374,8 @@ describe('pipeline plugin test', () => {
         });
 
         it('returns 200 and update the admins when requested by a pipeline admin', () => {
+            // Users being added as pipeline admins may have a different SCM context from the acting user and pipeline.
+            // Verify that adding users from usersToAddScmContext succeeds despite this difference.
             const pipelineMock = getPipelineMocks(testPipeline);
 
             pipelineMock.adminUserIds = [userSam.id];
@@ -6404,9 +6410,11 @@ describe('pipeline plugin test', () => {
             });
         });
 
-        it('returns 200 and update the admins when requested by a SD admin', () => {
+        it('returns 200 when an SD admin has a different SCM context', () => {
+            userSDAdmin.scmContext = 'github:git.example.com';
             options.auth.credentials.scope = ['user', 'admin'];
             options.auth.credentials.username = userSDAdmin.username;
+            options.auth.credentials.scmContext = userSDAdmin.scmContext;
 
             userFactoryMock.get.resolves(userSDAdmin);
 
@@ -6423,7 +6431,7 @@ describe('pipeline plugin test', () => {
                 assert.calledOnce(userFactoryMock.get);
                 assert.calledWith(userFactoryMock.get, {
                     username: userSDAdmin.username,
-                    scmContext: 'github:github.com'
+                    scmContext: userSDAdmin.scmContext
                 });
 
                 assert.calledWith(pipelineFactoryMock.list, { params: { id: [123] } });
@@ -6579,23 +6587,26 @@ describe('pipeline plugin test', () => {
             id: 999
         };
 
-        const adminsUserScmContext = 'github:git.screwdriver.com';
+        const usersToAddScmContext = 'github:git.screwdriver.com';
 
         beforeEach(() => {
             userSDAdmin = {
                 username: 'hercules_github',
+                scmContext: 'github:github.com',
                 id: 400,
                 getPermissions: sinon.stub()
             };
 
             userPipelineAdmin = {
                 username: 'arya_github',
+                scmContext: 'github:github.com',
                 id: 500,
                 getPermissions: sinon.stub()
             };
 
             userPipelineNonAdmin = {
                 username: 'thor_github',
+                scmContext: 'github:github.com',
                 id: 600,
                 getPermissions: sinon.stub()
             };
@@ -6623,12 +6634,12 @@ describe('pipeline plugin test', () => {
                     {
                         id: pipelineMockA.id,
                         usernames: [userJohn.username, userRob.username],
-                        scmContext: adminsUserScmContext
+                        scmContext: usersToAddScmContext
                     },
                     {
                         id: pipelineMockB.id,
                         usernames: [userJohn.username, userVictor.username],
-                        scmContext: adminsUserScmContext
+                        scmContext: usersToAddScmContext
                     }
                 ],
                 auth: {
@@ -6647,6 +6658,8 @@ describe('pipeline plugin test', () => {
         });
 
         it('returns 200 and update the admins when requested by a pipeline admin', () => {
+            // Users being added as pipeline admins may have a different SCM context from the acting user and pipeline.
+            // Verify that adding users from usersToAddScmContext succeeds despite this difference.
             return server.inject(options).then(reply => {
                 assert.calledOnce(userFactoryMock.get);
                 assert.calledWith(userFactoryMock.get, {
@@ -6667,9 +6680,11 @@ describe('pipeline plugin test', () => {
             });
         });
 
-        it('returns 200 and update the admins when requested by a SD admin', () => {
+        it('returns 204 when an SD admin has a different SCM context', () => {
+            userSDAdmin.scmContext = 'github:git.example.com';
             options.auth.credentials.scope = ['user', 'admin'];
             options.auth.credentials.username = userSDAdmin.username;
+            options.auth.credentials.scmContext = userSDAdmin.scmContext;
 
             userFactoryMock.get.resolves(userSDAdmin);
 
@@ -6677,7 +6692,7 @@ describe('pipeline plugin test', () => {
                 assert.calledOnce(userFactoryMock.get);
                 assert.calledWith(userFactoryMock.get, {
                     username: userSDAdmin.username,
-                    scmContext: 'github:github.com'
+                    scmContext: userSDAdmin.scmContext
                 });
 
                 assert.calledWith(pipelineFactoryMock.list, { params: { id: [123, 456] } });
@@ -6745,6 +6760,88 @@ describe('pipeline plugin test', () => {
                 assert.equal(reply.statusCode, 400);
                 assert.equal(reply.result.message, 'Invalid request payload input');
             });
+        });
+
+        it('returns 403 when the user has a different SCM context from all pipelines', async () => {
+            userPipelineAdmin.scmContext = 'github:git.example.com';
+            options.auth.credentials.scmContext = userPipelineAdmin.scmContext;
+
+            const reply = await server.inject(options);
+
+            assert.equal(reply.statusCode, 403);
+            assert.equal(
+                reply.result.message,
+                `User ${userPipelineAdmin.username} and pipeline (id=${pipelineMockA.id}) have different SCM contexts`
+            );
+            assert.notCalled(userPipelineAdmin.getPermissions);
+            assert.notCalled(userFactoryMock.list);
+            assert.notCalled(pipelineMockA.update);
+            assert.notCalled(pipelineMockB.update);
+        });
+
+        it('returns 403 when only one pipeline has a different SCM context', async () => {
+            pipelineMockB.scmContext = 'github:git.example.com';
+            pipelineMockB.scmUri = 'git.example.com:67890:branchName';
+
+            const reply = await server.inject(options);
+
+            assert.equal(reply.statusCode, 403);
+            assert.equal(
+                reply.result.message,
+                `User ${userPipelineAdmin.username} and pipeline (id=${pipelineMockB.id}) have different SCM contexts`
+            );
+            assert.calledOnce(userPipelineAdmin.getPermissions);
+            assert.calledWith(userPipelineAdmin.getPermissions, pipelineMockA.scmUri);
+            assert.notCalled(pipelineMockB.update);
+        });
+
+        [403, 404].forEach(statusCode => {
+            it(`returns ${statusCode} when permission lookup fails with that status`, async () => {
+                const permissionErrorMessage = 'Failed to get repository permissions';
+                const error = new Error(permissionErrorMessage);
+
+                error.statusCode = statusCode;
+                userPipelineAdmin.getPermissions.rejects(error);
+
+                const reply = await server.inject(options);
+
+                assert.equal(reply.statusCode, statusCode);
+                assert.equal(reply.result.message, permissionErrorMessage);
+                assert.calledTwice(userPipelineAdmin.getPermissions);
+                assert.notCalled(userFactoryMock.list);
+                assert.notCalled(pipelineMockA.update);
+                assert.notCalled(pipelineMockB.update);
+            });
+        });
+
+        it('returns 500 when permission lookup fails without an HTTP status', async () => {
+            const permissionErrorMessage = 'Failed to get repository permissions';
+
+            userPipelineAdmin.getPermissions.rejects(new Error(permissionErrorMessage));
+
+            const reply = await server.inject(options);
+
+            assert.equal(reply.statusCode, 500);
+            assert.equal(reply.result.message, permissionErrorMessage);
+            assert.calledTwice(userPipelineAdmin.getPermissions);
+            assert.notCalled(userFactoryMock.list);
+            assert.notCalled(pipelineMockA.update);
+            assert.notCalled(pipelineMockB.update);
+        });
+
+        it('returns 404 when permission lookup fails with a Boom error', async () => {
+            const permissionErrorMessage = 'Repository not found';
+
+            userPipelineAdmin.getPermissions.rejects(boom.notFound(permissionErrorMessage));
+
+            const reply = await server.inject(options);
+
+            assert.equal(reply.statusCode, 404);
+            assert.equal(reply.result.message, permissionErrorMessage);
+            assert.calledTwice(userPipelineAdmin.getPermissions);
+            assert.notCalled(userFactoryMock.list);
+            assert.notCalled(pipelineMockA.update);
+            assert.notCalled(pipelineMockB.update);
         });
 
         it('returns 403 because when requested by pipeline non-admin user', () => {
