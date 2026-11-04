@@ -1581,6 +1581,7 @@ describe('createEvent function', () => {
             },
             scmContext: 'github:github.com',
             scmUri: 'github.com:12345:master',
+            state: 'ACTIVE',
             configPipelineId: null
         };
 
@@ -1628,6 +1629,7 @@ describe('createEvent function', () => {
             },
             scmContext: 'github:github.com',
             scmUri: 'github.com:12345:master',
+            state: 'ACTIVE',
             configPipelineId: 2
         };
 
@@ -1687,6 +1689,7 @@ describe('createEvent function', () => {
             },
             scmContext: 'github:github.com',
             scmUri: 'github.com:12345:master',
+            state: 'ACTIVE',
             configPipelineId: null
         };
 
@@ -1729,6 +1732,7 @@ describe('createExternalEvent function', () => {
         },
         scmContext: 'github:github.com',
         scmUri: 'github.com:12345:master',
+        state: 'ACTIVE',
         configPipelineId: null
     };
 

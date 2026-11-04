@@ -176,6 +176,7 @@ class PipelineFactoryMock {
      */
     async create(config) {
         const pipeline = {
+            state: 'ACTIVE',
             ...config,
             id: this.records.length,
             admin: {

@@ -232,6 +232,12 @@ async function createEvent(config) {
     } = config;
 
     const pipeline = await pipelineFactory.get(pipelineId);
+
+    if (pipeline.state !== 'ACTIVE') {
+        // INACTIVE, DELETING, or DISABLED pipeline
+        throw boom.badRequest(`Cannot create an event for a(n) ${pipeline.state} pipeline`);
+    }
+
     const realAdmin = await pipeline.admin;
     const { scmContext, scmUri } = pipeline;
 

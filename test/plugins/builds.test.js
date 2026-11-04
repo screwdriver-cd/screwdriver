@@ -438,6 +438,7 @@ describe('build trigger createEvent helper', () => {
             id: 123,
             scmContext: 'github:github.com',
             scmUri: 'github.com:359478:master',
+            state: 'ACTIVE',
             admin: Promise.resolve({
                 unsealToken: sinon.stub().resolves('pipeline-token')
             })
@@ -467,6 +468,47 @@ describe('build trigger createEvent helper', () => {
             assert.notCalled(eventFactory.scm.getCommitSha);
             assert.notCalled(eventFactory.create);
         }
+    });
+
+    ['DISABLED', 'INACTIVE', 'DELETING'].forEach(state => {
+        it(`rejects ${state} pipelines before creating an event`, async () => {
+            const pipeline = {
+                id: 123,
+                scmContext: 'github:github.com',
+                scmUri: 'github.com:359478:master',
+                state,
+                admin: Promise.resolve({
+                    unsealToken: sinon.stub().resolves('pipeline-token')
+                })
+            };
+            const pipelineFactory = {
+                get: sinon.stub().resolves(pipeline)
+            };
+            const eventFactory = {
+                scm: {
+                    getPermissions: sinon.stub(),
+                    getCommitSha: sinon.stub()
+                },
+                create: sinon.stub()
+            };
+
+            try {
+                await rewireBuildsIndex.createExternalEvent({
+                    pipelineFactory,
+                    eventFactory,
+                    externalPipelineId: pipeline.id,
+                    startFrom: '~sd@456:publish',
+                    causeMessage: 'Triggered by sd@456:publish'
+                });
+                assert.fail(`Expected ${state} pipeline to be rejected`);
+            } catch (err) {
+                assert.equal(err.output.statusCode, 400);
+                assert.equal(err.message, `Cannot create an event for a(n) ${state} pipeline`);
+                assert.notCalled(eventFactory.scm.getPermissions);
+                assert.notCalled(eventFactory.scm.getCommitSha);
+                assert.notCalled(eventFactory.create);
+            }
+        });
     });
 });
 
@@ -784,6 +826,7 @@ describe('build plugin test', () => {
                 scmContext,
                 scmUri,
                 scmRepo,
+                state: 'ACTIVE',
                 admins: { foo: true },
                 sync: sinon.stub().resolves(),
                 syncPR: sinon.stub().resolves(),
@@ -4183,6 +4226,37 @@ describe('build plugin test', () => {
                         assert.calledWith(eventFactoryMock.create.firstCall, expectedEventArgs);
                         assert.calledOnce(buildFactoryMock.create);
                         assert.calledWith(buildFactoryMock.create, expectedBuildArgs);
+                    });
+                });
+
+                it('does not trigger external jobs when the downstream pipeline is DISABLED', () => {
+                    const pipeline2JobA = {
+                        id: 2,
+                        pipelineId: 2,
+                        name: 'a',
+                        state: 'ENABLED',
+                        parsePRJobName: sinon.stub().returns('a'),
+                        permutations: [{ settings: { email: 'foo@bar.com' } }]
+                    };
+
+                    jobFactoryMock.get.withArgs({ pipelineId: '2', name: 'a' }).resolves(pipeline2JobA);
+                    jobFactoryMock.get.withArgs(pipeline2JobA.id).resolves(pipeline2JobA);
+                    pipelineFactoryMock.get.withArgs('2').resolves({ ...pipelineMock, id: 2, state: 'DISABLED' });
+                    eventFactoryMock.list.resolves([]);
+                    eventMock.workflowGraph = {
+                        nodes: [{ name: '~pr' }, { name: '~commit' }, { name: 'a', id: 1 }, { name: 'sd@2:a', id: 2 }],
+                        edges: [
+                            { src: '~pr', dest: 'a' },
+                            { src: '~commit', dest: 'a' },
+                            { src: 'a', dest: 'sd@2:a' }
+                        ]
+                    };
+
+                    return newServer.inject(options).then(reply => {
+                        assert.equal(reply.statusCode, 200);
+                        assert.calledWith(pipelineFactoryMock.get, '2');
+                        assert.notCalled(eventFactoryMock.create);
+                        assert.notCalled(buildFactoryMock.create);
                     });
                 });
 
