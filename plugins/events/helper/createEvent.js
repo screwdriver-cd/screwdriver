@@ -75,6 +75,17 @@ async function createEvent(config, server) {
     const { username, scmContext } = config;
     const event = await eventFactory.create(config);
 
+    // eventFactory.create sets event.builds to null when no jobs to start were
+    // found (e.g. every job of the pipeline is disabled): no build will ever be
+    // created for such an event, so mark it terminal instead of leaving it in
+    // CREATED forever (see https://github.com/screwdriver-cd/screwdriver/issues/3458).
+    if (event.builds === null) {
+        event.status = Status.ABORTED;
+        await event.update();
+
+        return event;
+    }
+
     if (event.builds) {
         // Virtual builds are just CREATED. Not started(QUEUED, RUNNNING, ...).
         const createdBuilds = event.builds.filter(b => b.status === 'CREATED');
