@@ -515,8 +515,24 @@ async function updateBuildAndTriggerDownstreamJobs(config, build, server, userna
         const stageTeardownJob = await jobFactory.get({ pipelineId: pipeline.id, name: stageTeardownName });
         let stageTeardownBuild = await buildFactory.get({ eventId: newEvent.id, jobId: stageTeardownJob.id });
 
-        // Start stage teardown build if stage is done
-        if (!stageTeardownBuild || stageTeardownBuild.status === 'CREATED') {
+        // A disabled teardown job will never run: complete the stage with the
+        // status of its builds instead of leaving the stage and a queued
+        // teardown build running forever
+        // (see https://github.com/screwdriver-cd/screwdriver/issues/3442)
+        if (stageTeardownJob && stageTeardownJob.state === 'DISABLED') {
+            if (stageTeardownBuild && ['CREATED', 'QUEUED'].includes(stageTeardownBuild.status)) {
+                stageTeardownBuild.status = 'ABORTED';
+                stageTeardownBuild.statusMessage = 'Stage teardown job is disabled';
+
+                await stageTeardownBuild.update();
+            }
+
+            stageBuild = await updateStageBuildStatus({
+                stageBuild,
+                newStatus: newBuild.status,
+                job: stageTeardownJob
+            });
+        } else if (!stageTeardownBuild || stageTeardownBuild.status === 'CREATED') {
             const stageJobBuilds = await getStageJobBuilds({ stage, event: newEvent, jobFactory });
             const stageIsDone = isStageDone(stageJobBuilds);
 
