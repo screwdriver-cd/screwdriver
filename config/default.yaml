@@ -465,10 +465,12 @@ redisLock:
       options:
         password: "THIS-IS-A-PASSWORD"
         tls: false
+        protocol: 2
       database: 0
     redisClusterConnection:
       hosts: []
       options:
         password: "THIS-IS-A-PASSWORD"
         tls: false
+        protocol: 2
       slotsRefreshTimeout: 1000

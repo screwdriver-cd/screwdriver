@@ -27,7 +27,9 @@ class Lock {
         const redisConfig = redisLockConfig[`${connectionType}Connection`];
         const redisOptions = {
             password: redisConfig.options && redisConfig.options.password,
-            tls: redisConfig.options ? parseBool(redisConfig.options.tls) : false
+            tls: redisConfig.options ? parseBool(redisConfig.options.tls) : false,
+            protocol:
+                redisConfig.options && redisConfig.options.protocol ? parseInt(redisConfig.options.protocol, 10) : 2
         };
 
         try {

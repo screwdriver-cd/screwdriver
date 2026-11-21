@@ -485,6 +485,7 @@ redisLock:
       options:
         password: REDLOCK_REDIS_PASSWORD
         tls: REDLOCK_REDIS_TLS_ENABLED
+        protocol: REDLOCK_REDIS_PROTOCOL
       database: REDLOCK_REDIS_DATABASE
     redisClusterConnection:
       hosts:
@@ -493,6 +494,7 @@ redisLock:
       options:
         password: REDLOCK_REDIS_PASSWORD
         tls: REDLOCK_REDIS_TLS_ENABLED
+        protocol: REDLOCK_REDIS_PROTOCOL
       slotsRefreshTimeout: REDLOCK_REDIS_CLUSTER_SLOTS_REFRESH_TIMEOUT
 
 # environment release information

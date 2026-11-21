@@ -106,6 +106,7 @@ describe('lock plugin test', () => {
             delete process.env.REDLOCK_REDIS_PORT;
             delete process.env.REDLOCK_REDIS_PASSWORD;
             delete process.env.REDLOCK_REDIS_TLS_ENABLED;
+            delete process.env.REDLOCK_REDIS_PROTOCOL;
             delete process.env.REDLOCK_DRIFT_FACTOR;
             delete process.env.REDLOCK_RETRY_COUNT;
             delete process.env.REDLOCK_RETRY_DELAY;
@@ -128,7 +129,8 @@ describe('lock plugin test', () => {
             assert.strictEqual(redis.port, 9999);
             assert.deepEqual(redis.options, {
                 password: 'THIS-IS-A-PASSWORD',
-                tls: false
+                tls: false,
+                protocol: 2
             });
 
             assert.deepEqual(redlock.redisList, [redis]);
@@ -146,6 +148,7 @@ describe('lock plugin test', () => {
             process.env.REDLOCK_REDIS_PORT = 9090;
             process.env.REDLOCK_REDIS_PASSWORD = 'password';
             process.env.REDLOCK_REDIS_TLS_ENABLED = true;
+            process.env.REDLOCK_REDIS_PROTOCOL = 3;
 
             process.env.REDLOCK_DRIFT_FACTOR = 0.02;
             process.env.REDLOCK_RETRY_COUNT = 100;
@@ -167,7 +170,8 @@ describe('lock plugin test', () => {
             assert.strictEqual(redis.port, '9090');
             assert.deepEqual(redis.options, {
                 password: 'password',
-                tls: true
+                tls: true,
+                protocol: 3
             });
 
             assert.deepEqual(redlock.redisList, [redis]);
@@ -182,6 +186,7 @@ describe('lock plugin test', () => {
 
         it('string options parse test', () => {
             process.env.REDLOCK_REDIS_TLS_ENABLED = 'true';
+            process.env.REDLOCK_REDIS_PROTOCOL = '3';
 
             process.env.REDLOCK_DRIFT_FACTOR = '0.02';
             process.env.REDLOCK_RETRY_COUNT = '100';
@@ -200,6 +205,7 @@ describe('lock plugin test', () => {
             const { redis, redlock } = plugin;
 
             assert.strictEqual(redis.options.tls, true);
+            assert.strictEqual(redis.options.protocol, 3);
             assert.deepEqual(redlock.redisList, [redis]);
             assert.deepEqual(redlock.options, {
                 driftFactor: 0.02,
@@ -222,6 +228,7 @@ describe('lock plugin test', () => {
             delete process.env.REDLOCK_REDIS_TYPE;
             delete process.env.REDLOCK_REDIS_PASSWORD;
             delete process.env.REDLOCK_REDIS_TLS_ENABLED;
+            delete process.env.REDLOCK_REDIS_PROTOCOL;
             delete process.env.REDIS_CLUSTER_HOSTS;
             delete process.env.REDIS_CLUSTER_SLOTS_REFRESH_TIMEOUT;
         });
@@ -242,7 +249,8 @@ describe('lock plugin test', () => {
             assert.deepEqual(redis.hosts, []);
             assert.deepEqual(redis.options.redisOptions, {
                 password: 'THIS-IS-A-PASSWORD',
-                tls: false
+                tls: false,
+                protocol: 2
             });
             assert.strictEqual(redis.options.slotsRefreshTimeout, 1000);
             assert.strictEqual(redis.options.clusterRetryStrategy(), 100);
@@ -253,6 +261,7 @@ describe('lock plugin test', () => {
             process.env.REDLOCK_REDIS_CLUSTER_SLOTS_REFRESH_TIMEOUT = 100;
             process.env.REDLOCK_REDIS_PASSWORD = 'password';
             process.env.REDLOCK_REDIS_TLS_ENABLED = true;
+            process.env.REDLOCK_REDIS_PROTOCOL = 3;
 
             process.env.REDLOCK_DRIFT_FACTOR = 0.02;
             process.env.REDLOCK_RETRY_COUNT = 100;
@@ -273,7 +282,8 @@ describe('lock plugin test', () => {
             assert.deepEqual(redis.hosts, ['127.0.0.1:6379', '127.0.0.2:6379', '127.0.0.3:6379']);
             assert.deepEqual(redis.options.redisOptions, {
                 password: 'password',
-                tls: true
+                tls: true,
+                protocol: 3
             });
             assert.strictEqual(redis.options.slotsRefreshTimeout, 100);
             assert.strictEqual(redis.options.clusterRetryStrategy(), 100);
