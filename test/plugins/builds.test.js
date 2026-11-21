@@ -2852,6 +2852,171 @@ describe('build plugin test', () => {
                     });
                 });
 
+                it('completes the stage when the stage teardown job is disabled', () => {
+                    // https://github.com/screwdriver-cd/screwdriver/issues/3442
+                    const stageBuildMock = {
+                        id: 1,
+                        stageId: 1,
+                        update: sinon.stub().resolves(),
+                        status: 'RUNNING'
+                    };
+                    const status = 'SUCCESS';
+                    const options = {
+                        method: 'PUT',
+                        url: `/builds/${id}`,
+                        auth: {
+                            credentials: {
+                                username: id,
+                                scope: ['build']
+                            },
+                            strategy: ['token']
+                        },
+                        payload: {
+                            status
+                        }
+                    };
+
+                    const currentJobMock = {
+                        id: 1234,
+                        name: 'alpha-certify',
+                        pipelineId,
+                        permutations: [{}],
+                        pipeline: sinon.stub().resolves(pipelineMock)(),
+                        getLatestBuild: sinon.stub().resolves(buildMock)
+                    };
+                    const disabledTeardownJobMock = {
+                        id: 1235,
+                        name: 'stage@alpha:teardown',
+                        pipelineId,
+                        state: 'DISABLED',
+                        permutations: [{}],
+                        pipeline: sinon.stub().resolves(pipelineMock)(),
+                        getLatestBuild: sinon.stub().resolves(buildMock)
+                    };
+
+                    buildMock.job = sinon.stub().resolves(currentJobMock)();
+                    buildMock.parentBuilds = { 123: { eventId: '8888', jobs: { 'alpha-test': 7777 } } };
+                    eventMock.getBuilds.resolves([
+                        {
+                            id: 1,
+                            eventId: '8888',
+                            jobId: 1,
+                            status: 'FAILURE'
+                        },
+                        {
+                            id: 7777,
+                            eventId: '8888',
+                            jobId: 4,
+                            status: 'SUCCESS'
+                        }
+                    ]);
+
+                    jobFactoryMock.get
+                        .withArgs({ pipelineId: 123, name: 'stage@alpha:teardown' })
+                        .resolves(disabledTeardownJobMock);
+                    eventMock.workflowGraph = testWorkflowGraphWithVirtualTeardown;
+                    eventFactoryMock.get.resolves(eventMock);
+                    stageFactoryMock.get.resolves(stageMock);
+                    stageBuildFactoryMock.get.resolves(stageBuildMock);
+                    stageBuildMock.update.resolves(stageBuildMock);
+                    testBuild.status = 'CREATED';
+                    testBuild.initMeta = sinon.stub();
+                    buildMock = getBuildMock(testBuild);
+                    buildFactoryMock.get.withArgs({ eventId: '8888', jobId: 1234 }).resolves(buildMock);
+
+                    return server.inject(options).then(reply => {
+                        assert.equal(reply.statusCode, 200);
+                        assert.equal(stageBuildMock.status, 'SUCCESS');
+                        assert.calledOnce(stageBuildMock.update);
+                        assert.notCalled(buildFactoryMock.create);
+                    });
+                });
+
+                it('aborts the queued teardown build and completes the stage when the teardown job is disabled after queuing', () => {
+                    // https://github.com/screwdriver-cd/screwdriver/issues/3442
+                    const stageBuildMock = {
+                        id: 1,
+                        stageId: 1,
+                        update: sinon.stub().resolves(),
+                        status: 'RUNNING'
+                    };
+                    const status = 'SUCCESS';
+                    const options = {
+                        method: 'PUT',
+                        url: `/builds/${id}`,
+                        auth: {
+                            credentials: {
+                                username: id,
+                                scope: ['build']
+                            },
+                            strategy: ['token']
+                        },
+                        payload: {
+                            status
+                        }
+                    };
+
+                    const currentJobMock = {
+                        id: 1234,
+                        name: 'alpha-certify',
+                        pipelineId,
+                        permutations: [{}],
+                        pipeline: sinon.stub().resolves(pipelineMock)(),
+                        getLatestBuild: sinon.stub().resolves(buildMock)
+                    };
+                    const disabledTeardownJobMock = {
+                        id: 1235,
+                        name: 'stage@alpha:teardown',
+                        pipelineId,
+                        state: 'DISABLED',
+                        permutations: [{}],
+                        pipeline: sinon.stub().resolves(pipelineMock)(),
+                        getLatestBuild: sinon.stub().resolves(buildMock)
+                    };
+
+                    buildMock.job = sinon.stub().resolves(currentJobMock)();
+                    buildMock.parentBuilds = { 123: { eventId: '8888', jobs: { 'alpha-test': 7777 } } };
+                    eventMock.getBuilds.resolves([
+                        {
+                            id: 1,
+                            eventId: '8888',
+                            jobId: 1,
+                            status: 'FAILURE'
+                        },
+                        {
+                            id: 7777,
+                            eventId: '8888',
+                            jobId: 4,
+                            status: 'SUCCESS'
+                        }
+                    ]);
+
+                    jobFactoryMock.get
+                        .withArgs({ pipelineId: 123, name: 'stage@alpha:teardown' })
+                        .resolves(disabledTeardownJobMock);
+                    eventMock.workflowGraph = testWorkflowGraphWithVirtualTeardown;
+                    eventFactoryMock.get.resolves(eventMock);
+                    stageFactoryMock.get.resolves(stageMock);
+                    stageBuildFactoryMock.get.resolves(stageBuildMock);
+                    stageBuildMock.update.resolves(stageBuildMock);
+                    testBuild.status = 'CREATED';
+                    testBuild.initMeta = sinon.stub();
+                    buildMock = getBuildMock(testBuild);
+                    const stuckTeardownBuildMock = getBuildMock(testBuild);
+
+                    stuckTeardownBuildMock.status = 'QUEUED';
+                    stuckTeardownBuildMock.update.resolves(stuckTeardownBuildMock);
+                    buildFactoryMock.get.withArgs({ eventId: '8888', jobId: 1234 }).resolves(buildMock);
+                    buildFactoryMock.get.withArgs({ eventId: '8888', jobId: 1235 }).resolves(stuckTeardownBuildMock);
+
+                    return server.inject(options).then(reply => {
+                        assert.equal(reply.statusCode, 200);
+                        assert.equal(stuckTeardownBuildMock.status, 'ABORTED');
+                        assert.calledOnce(stuckTeardownBuildMock.update);
+                        assert.equal(stageBuildMock.status, 'SUCCESS');
+                    });
+                });
+
                 it('triggers stage teardown if current stage build is terminal and stage teardown is not next build', () => {
                     const stageBuildMock = {
                         id: 1,
