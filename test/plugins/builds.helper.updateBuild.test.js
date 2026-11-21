@@ -53,11 +53,23 @@ describe('deriveEventStatusFromBuildStatuses function', () => {
     });
 
     describe('one or more incomplete builds', () => {
-        it('should return event status as null when all the builds are CREATED/COLLAPSED', () => {
+        it('should return event status as null when all the builds are CREATED', () => {
             const expectedStatus = null;
 
             assert.equal(deriveEventStatusFromBuildStatuses([BUILD_CREATED]), expectedStatus);
+        });
+
+        it('should return event status as ABORTED when all the builds are COLLAPSED, since they will never run', () => {
+            // see https://github.com/screwdriver-cd/screwdriver/issues/3458
+            const expectedStatus = 'ABORTED';
+
             assert.equal(deriveEventStatusFromBuildStatuses([BUILD_COLLAPSED]), expectedStatus);
+            assert.equal(deriveEventStatusFromBuildStatuses([BUILD_COLLAPSED, BUILD_COLLAPSED]), expectedStatus);
+        });
+
+        it('should return event status as null when a CREATED build may still run alongside COLLAPSED builds', () => {
+            const expectedStatus = null;
+
             assert.equal(deriveEventStatusFromBuildStatuses([BUILD_CREATED, BUILD_COLLAPSED]), expectedStatus);
         });
 

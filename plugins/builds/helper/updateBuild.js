@@ -293,6 +293,11 @@ function deriveEventStatusFromBuildStatuses(builds) {
         newEventStatus = 'FAILURE';
     } else if (eventStatusToBuildCount.SUCCESS) {
         newEventStatus = 'SUCCESS';
+    } else if (builds.length > 0 && builds.every(b => b.status === 'COLLAPSED')) {
+        // All builds are collapsed: they will never run, so the event is
+        // terminal instead of staying in its previous status forever
+        // (see https://github.com/screwdriver-cd/screwdriver/issues/3458)
+        newEventStatus = 'ABORTED';
     }
 
     return newEventStatus;
