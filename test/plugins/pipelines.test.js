@@ -2935,6 +2935,8 @@ describe('pipeline plugin test', () => {
             pipelineMock.sync.resolves(null);
             pipelineMock.admin.resolves(null);
             pipelineMock.update.resolves(null);
+            pipelineMock.admins = {};
+            userFactoryMock.list.resolves([]);
             pipelineFactoryMock.get.withArgs(id).resolves(pipelineMock);
         });
 
@@ -2943,6 +2945,25 @@ describe('pipeline plugin test', () => {
                 assert.equal(reply.statusCode, 204);
                 assert.calledOnce(pipelineMock.sync);
             }));
+
+        it('removes existing admins without push permission from both admin fields', async () => {
+            const retained = getUserMock({ username: 'retained', scmContext, id: 201 });
+            const removed = getUserMock({ username: 'removed', scmContext, id: 202 });
+
+            options.auth.credentials.scope.push('admin');
+            retained.getPermissions.withArgs(scmUri).resolves({ push: true });
+            removed.getPermissions.withArgs(scmUri).resolves({ push: false });
+            pipelineMock.admins = { [username]: true, retained: true, removed: true };
+            pipelineMock.adminUserIds = [userMock.id, retained.id, removed.id];
+            userFactoryMock.list.resolves([retained, removed]);
+
+            const reply = await server.inject(options);
+
+            assert.equal(reply.statusCode, 204);
+            assert.calledWithExactly(userFactoryMock.list, { params: { username: ['retained', 'removed'], scmContext } });
+            assert.deepEqual(pipelineMock.admins, { [username]: true, retained: true });
+            assert.deepEqual(pipelineMock.adminUserIds, [userMock.id, retained.id]);
+        });
 
         it('returns 403 and does not update or sync an archived repository', () => {
             userMock.getPermissions.withArgs(scmUri).resolves({ push: true, archived: true });
@@ -2972,10 +2993,13 @@ describe('pipeline plugin test', () => {
         it('returns 204 when user does not have push permission but is Screwdriver admin', () => {
             options.auth.credentials.scope.push('admin');
             userMock.getPermissions.withArgs(scmUri).resolves({ push: false });
+            pipelineMock.admins = { otherAdmin: true };
 
             return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 204);
                 assert.calledOnce(pipelineMock.sync);
+                assert.notCalled(userFactoryMock.list);
+                assert.deepEqual(pipelineMock.admins, { otherAdmin: true });
             });
         });
 
