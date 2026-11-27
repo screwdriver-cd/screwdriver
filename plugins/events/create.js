@@ -2,6 +2,7 @@
 
 const urlLib = require('url');
 const boom = require('@hapi/boom');
+const { reach } = require('@hapi/hoek');
 const validationSchema = require('screwdriver-data-schema');
 const ANNOT_RESTRICT_PR = 'screwdriver.cd/restrictPR';
 const { getScmUri, isStageTeardown } = require('../helper');
@@ -222,11 +223,10 @@ module.exports = () => ({
                 payload.prRef = prInfo.ref;
                 payload.prSource = prInfo.prSource;
                 payload.chainPR = pipeline.chainPR;
-                let restrictPR = 'none';
-
-                if (pipeline.annotations && pipeline.annotations[ANNOT_RESTRICT_PR]) {
-                    restrictPR = pipeline.annotations[ANNOT_RESTRICT_PR];
-                }
+                const restrictPR =
+                    reach(pipeline.annotations, [ANNOT_RESTRICT_PR]) ||
+                    reach(request.server.app.webhookScms, [pipeline.scmContext, 'restrictPR']) ||
+                    'none';
 
                 if (restrictPR !== 'none' || prInfo.username !== username) {
                     // Remove user from admins
