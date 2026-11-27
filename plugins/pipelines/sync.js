@@ -7,6 +7,13 @@ const idSchema = schema.models.pipeline.base.extract('id');
 const logger = require('screwdriver-logger');
 const { getScmUri } = require('../helper');
 
+/**
+ * Remove other pipeline admins who no longer have push access.
+ * @param {Object} pipeline Pipeline being synced
+ * @param {Object} userFactory Factory for looking up admin users
+ * @param {String} scmUri Repository URI
+ * @param {Object} user User requesting the sync
+ */
 async function pruneAdmins(pipeline, userFactory, scmUri, user) {
     const admins = { ...pipeline.admins };
     const usernames = Object.keys(admins).filter(username => admins[username] && username !== user.username);

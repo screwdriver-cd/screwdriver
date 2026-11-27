@@ -2960,7 +2960,9 @@ describe('pipeline plugin test', () => {
             const reply = await server.inject(options);
 
             assert.equal(reply.statusCode, 204);
-            assert.calledWithExactly(userFactoryMock.list, { params: { username: ['retained', 'removed'], scmContext } });
+            assert.calledWithExactly(userFactoryMock.list, {
+                params: { username: ['retained', 'removed'], scmContext }
+            });
             assert.deepEqual(pipelineMock.admins, { [username]: true, retained: true });
             assert.deepEqual(pipelineMock.adminUserIds, [userMock.id, retained.id]);
         });
