@@ -7,6 +7,44 @@ const idSchema = schema.models.pipeline.base.extract('id');
 const logger = require('screwdriver-logger');
 const { getScmUri } = require('../helper');
 
+/**
+ * Remove other pipeline admins who no longer have push access.
+ * @param {Object} pipeline Pipeline being synced
+ * @param {Object} userFactory Factory for looking up admin users
+ * @param {String} scmUri Repository URI
+ * @param {Object} user User requesting the sync
+ */
+async function pruneAdmins(pipeline, userFactory, scmUri, user) {
+    const admins = { ...pipeline.admins };
+    const usernames = Object.keys(admins).filter(username => admins[username] && username !== user.username);
+
+    if (usernames.length === 0) {
+        return;
+    }
+
+    const users = await userFactory.list({ params: { username: usernames, scmContext: pipeline.scmContext } });
+    const usersByName = new Map(users.map(admin => [admin.username, admin]));
+    const removedIds = new Set();
+
+    await Promise.all(
+        usernames.map(async username => {
+            const admin = usersByName.get(username);
+
+            if (admin && (await admin.getPermissions(scmUri)).push) {
+                return;
+            }
+
+            delete admins[username];
+            if (admin) {
+                removedIds.add(admin.id);
+            }
+        })
+    );
+
+    pipeline.admins = admins;
+    pipeline.adminUserIds = pipeline.adminUserIds.filter(id => !removedIds.has(id));
+}
+
 module.exports = () => ({
     method: 'POST',
     path: '/pipelines/{id}/sync',
@@ -109,6 +147,10 @@ module.exports = () => ({
             }
 
             try {
+                if (hasPushPermissions) {
+                    await pruneAdmins(pipeline, userFactory, scmUri, user);
+                }
+
                 await pipeline.sync();
 
                 return h.response().code(204);
