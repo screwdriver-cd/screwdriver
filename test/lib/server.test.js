@@ -13,6 +13,9 @@ describe('server case', () => {
     };
     const config = {
         ecosystem,
+        webhooks: {
+            scms: { 'github:github.com': { restrictPR: 'fork' } }
+        },
         triggerFactory: 'trigger',
         pipelineFactory: 'pipeline',
         jobFactory: {
@@ -118,6 +121,7 @@ describe('server case', () => {
             const scmContext = 'github:github.com';
 
             Assert.isObject(server.app);
+            Assert.strictEqual(server.app.webhookScms, config.webhooks.scms);
             Assert.strictEqual(server.app.triggerFactory, 'trigger');
             Assert.strictEqual(server.app.pipelineFactory, 'pipeline');
             Assert.strictEqual(server.app.userFactory, 'user');

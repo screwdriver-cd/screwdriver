@@ -1682,6 +1682,7 @@ describe('event plugin test', () => {
         });
 
         it('returns 201 when it successfully creates a PR event when PR author only has permission to run PR', () => {
+            server.app.webhookScms = { [scmContext]: { restrictPR: 'fork' } };
             eventConfig.startFrom = 'PR-1:main';
             eventConfig.prNum = '1';
             eventConfig.type = 'pr';
@@ -1701,6 +1702,30 @@ describe('event plugin test', () => {
                 assert.calledWith(eventFactoryMock.scm.getPrInfo, { ...scmConfig, prNum: eventConfig.prNum });
                 assert.calledOnce(eventFactoryMock.scm.getChangedFiles);
             });
+        });
+
+        it('returns 403 when the SCM context restricts PRs and the pipeline has no annotation', async () => {
+            pipelineMock.annotations = {};
+            server.app.webhookScms = { [scmContext]: { restrictPR: 'fork' } };
+            options.payload.startFrom = 'PR-1:main';
+            userMock.getPermissions.resolves({ push: false });
+
+            const reply = await server.inject(options);
+
+            assert.equal(reply.statusCode, 403);
+            assert.notCalled(eventFactoryMock.create);
+        });
+
+        it('defaults to none when only another SCM context restricts PRs', async () => {
+            pipelineMock.annotations = undefined;
+            server.app.webhookScms = { 'github:other.example.com': { restrictPR: 'fork' } };
+            options.payload.startFrom = 'PR-1:main';
+            userMock.getPermissions.resolves({ push: false });
+
+            const reply = await server.inject(options);
+
+            assert.equal(reply.statusCode, 201);
+            assert.calledOnce(eventFactoryMock.create);
         });
 
         it('returns 404 when it fails to get the pipeline', () => {
